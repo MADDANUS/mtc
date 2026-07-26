@@ -4,6 +4,8 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\MesinModel;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class MesinController extends BaseController
 {
@@ -257,5 +259,36 @@ class MesinController extends BaseController
             'bar_feeder_type' => 'permit_empty|string|max_length[100]',
             'jenis'           => 'permit_empty|string|max_length[100]',
         ];
+    }
+
+    public function downloadAllQr()
+    {
+        ini_set('memory_limit', '512M');
+        ini_set('max_execution_time', '300'); // allow more time for downloading many QRs
+
+        $role = session()->get('role');
+        $lokasi = session()->get('lokasi');
+        $builder = $this->model->orderBy('lokasi', 'ASC')->orderBy('no_mesin', 'ASC');
+        
+        if ($role === 'leader' && $lokasi) {
+            $builder->where('lokasi', $lokasi);
+        }
+
+        $mesin = $builder->findAll();
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new Dompdf($options);
+
+        $html = view('admin/mesin/pdf_all_qr', ['mesin' => $mesin]);
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $dompdf->stream('Semua_QRCode_Mesin.pdf', ["Attachment" => true]);
+        exit();
     }
 }

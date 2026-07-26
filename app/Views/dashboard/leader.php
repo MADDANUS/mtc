@@ -151,6 +151,25 @@
 </div>
 <?php endif; ?>
 
+<?php if (in_array($roleSession, ['sheadprd', 'sheadmtc'])): ?>
+<div class="card border-0 border-start border-success border-4 shadow-sm rounded-4 overflow-hidden mb-4">
+  <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+        <i class="bi bi-calendar2-check fs-4"></i>
+      </div>
+      <div>
+        <h5 class="fw-bold mb-1 text-dark">Fitur Checklist Control</h5>
+        <p class="text-muted mb-0 small">Pantau status dan data Checklist Control bulanan secara lengkap dari sini.</p>
+      </div>
+    </div>
+    <a href="<?= site_url('kontrol') ?>" class="btn btn-success fw-bold rounded-pill px-4">
+      Buka Checklist Control <i class="bi bi-arrow-right ms-1"></i>
+    </a>
+  </div>
+</div>
+<?php endif; ?>
+
 <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
   <div class="card-header bg-white border-bottom-0 pt-4 pb-3 px-4 d-flex justify-content-between align-items-center">
     <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history text-primary me-2"></i>Pengecekan Terbaru (Semua PIC)</h5>

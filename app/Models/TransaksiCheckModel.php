@@ -69,6 +69,19 @@ class TransaksiCheckModel extends Model
             $builder->where('transaksi_check.id_user', $userId);
         }
 
+        // --- Role-based Visibility Logic ---
+        $role = session()->get('role');
+        if ($role === 'sheadprd') {
+            // Hanya lihat jika Overhaul dan status >= Approved L1
+            $builder->whereIn('transaksi_check.status', ['Approved L1', 'Approved L2', 'Approved']);
+        } elseif ($role === 'sheadmtc') {
+            // Hanya lihat jika Overhaul dan status >= Approved L2
+            $builder->whereIn('transaksi_check.status', ['Approved L2', 'Approved']);
+        } elseif ($role === 'leader') {
+            // Leader hanya berurusan dengan Overhaul
+            $builder->where('transaksi_check.jenis_check', 'Overhaul');
+        }
+
         if (!empty($filters['lokasi'])) {
             $builder->where('transaksi_check.lokasi_check', $filters['lokasi']);
         }
@@ -158,6 +171,16 @@ class TransaksiCheckModel extends Model
                     ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
                     ->join('transaksi_overhaul', 'transaksi_overhaul.id_transaksi = transaksi_check.id_transaksi', 'left');
                     
+        // --- Role-based Visibility Logic ---
+        $role = session()->get('role');
+        if ($role === 'sheadprd') {
+            $builder->whereIn('transaksi_check.status', ['Approved L1', 'Approved L2', 'Approved']);
+        } elseif ($role === 'sheadmtc') {
+            $builder->whereIn('transaksi_check.status', ['Approved L2', 'Approved']);
+        } elseif ($role === 'leader') {
+            $builder->where('transaksi_check.jenis_check', 'Overhaul');
+        }
+
         if (!empty($filters['lokasi'])) {
             $builder->where('master_mesin.lokasi', $filters['lokasi']);
         }

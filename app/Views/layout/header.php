@@ -686,9 +686,11 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
             <i class="bi bi-file-earmark-text"></i>Checklist Report
           </a>
           <?php endif; ?>
+          <?php if (in_array($role, ['sheadprd', 'sheadmtc', 'admin', 'member'])): ?>
           <a href="<?= site_url('kontrol') ?>" class="menu-item <?= $seg1 === 'kontrol' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
             <i class="bi bi-calendar2-check"></i>Ceklis Kontrol
           </a>
+          <?php endif; ?>
           <?php if (!in_array($role, ['sheadprd', 'sheadmtc'])): ?>
           <a href="<?= site_url('abnormal') ?>" class="menu-item <?= $seg1 === 'abnormal' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 10px;">
             <i class="bi bi-exclamation-triangle"></i>Laporan Abnormal

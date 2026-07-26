@@ -5,32 +5,48 @@
   <meta charset="UTF-8">
   <title>PDF Export - <?= esc($title) ?></title>
   <style>
+    * { box-sizing: border-box; }
     body {
       font-family: 'DejaVu Sans', sans-serif;
-      font-size: 12px;
+      font-size: 11px;
+      margin: 0;
+      padding: 0;
+    }
+    .pdf-container {
+      padding: 10px 15px;
+      width: 100%;
     }
     table {
-      width: 100%;
-      border-collapse: collapse;
+      width: 100% !important;
+      max-width: 100% !important;
+      border-collapse: collapse !important;
       margin-bottom: 20px;
+      table-layout: fixed !important;
+      word-wrap: break-word;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
     }
     th, td {
       border: 1px solid #000;
       padding: 4px;
+      font-size: 11px;
     }
+    .kop-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background-color: #fff; }
+    .kop-table th, .kop-table td { border: 1px solid #000; padding: 6px 10px; vertical-align: middle; }
+    .kop-table-title { background-color: #92b0d6; text-align: center; font-weight: bold; font-size: 14px; letter-spacing: 1px; color: #000; }
+    .kop-logo { text-align: center; width: 12%; font-weight: bold; }
+    .kop-label { font-weight: bold; font-size: 11px; width: 14%; }
+    .kop-val { width: 15%; }
+    
     .text-center { text-align: center; }
     .text-start { text-align: left; }
     .text-end { text-align: right; }
     .fw-bold { font-weight: bold; }
     .bg-light { background-color: #f8f9fa; }
-    
-    .kop-table-title { background-color: #92b0d6; text-align: center; font-weight: bold; font-size: 16px; letter-spacing: 1px; color: #000; }
-    .kop-logo { text-align: center; width: 12%; font-weight: bold; }
-    .kop-label { font-weight: bold; width: 14%; }
-    .kop-val { width: 15%; }
   </style>
 </head>
 <body>
+<div class="pdf-container">
 
 
 
@@ -43,19 +59,10 @@
   $waktuSelesai = $header['waktu_selesai'] ? strtotime($header['waktu_selesai']) : null;
 ?>
 
-<style>
-  .kop-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.85rem; background-color: #fff; }
-  .kop-table th, .kop-table td { border: 1px solid #000; padding: 6px 10px; vertical-align: middle; }
-  .kop-table-title { background-color: #92b0d6; text-align: center; font-weight: bold; font-size: 1.1rem; letter-spacing: 1px; color: #000; }
-  .kop-logo { text-align: center; width: 12%; font-weight: bold; }
-  .kop-label { font-weight: bold; font-size: 0.8rem; width: 14%; }
-  .kop-val { width: 15%; }
-</style>
-
 <?php if (strtolower($header['jenis_check']) === 'overhaul'): ?>
-  <table class="kop-table text-center">
+  <table class="kop-table text-center" style="margin-bottom: 0 !important;">
     <tr>
-      <td rowspan="3" class="kop-logo" style="width: 12%; padding-top: 15px;">
+      <td rowspan="3" class="kop-logo" style="width: 15%; padding-top: 15px;">
         <div style="width: 60px; height: 60px; border: 3px double #0000ff; border-radius: 50%; margin: 0 auto; position: relative;">
           <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #fff; padding: 0 4px; font-size: 1.5rem; font-weight: normal; color: #0000ff;">NSI</div>
         </div>
@@ -64,32 +71,35 @@
           <div>In Our Hands</div>
         </div>
       </td>
-      <td colspan="6" class="kop-table-title" style="padding: 10px;">CHECKLIST REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?></td>
+      <td colspan="3" class="kop-table-title" style="padding: 10px;">CHECKLIST REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?></td>
     </tr>
     <tr>
-      <td colspan="2" class="fw-bold" style="width: 28%;">NO. DOCUMENT</td>
-      <td colspan="2" class="fw-bold" style="width: 30%;">NO REVISI</td>
-      <td colspan="2" class="fw-bold" style="width: 30%;">HALAMAN</td>
+      <td class="fw-bold" style="width: 35%;">NO. DOCUMENT</td>
+      <td class="fw-bold" style="width: 25%;">NO REVISI</td>
+      <td class="fw-bold" style="width: 25%;">HALAMAN</td>
     </tr>
     <tr>
-      <td colspan="2">FM-MTN-11</td>
-      <td colspan="2">0</td>
-      <td colspan="2">1 DARI 1</td>
+      <td>FM-MTN-11</td>
+      <td>0</td>
+      <td>1 DARI 1</td>
     </tr>
     <tr>
-      <td colspan="7" class="text-start" style="font-size:0.75rem; padding: 2px 5px;">Rev.:0/291124</td>
+      <td colspan="4" class="text-start" style="font-size:0.75rem; padding: 2px 5px; border-top: 1px solid #000;">Rev.:0/291124</td>
     </tr>
+  </table>
+
+  <table class="kop-table text-center" style="margin-top: 0 !important; border-top: none;">
     <tr>
-      <td class="kop-label text-start" style="width:12%;">MAIN PIC</td>
-      <td class="kop-val text-start" colspan="2" style="width:28%;"><?= esc($namaTopOnly) ?></td>
-      <td class="kop-label text-start" style="width:15%;">NO MACHINE</td>
-      <td class="kop-val text-start" style="width:15%;"><?= esc($header['no_mesin']) ?></td>
-      <td class="kop-label text-start" style="width:15%;">DATE</td>
-      <td class="kop-val text-start" style="width:15%;"><?= date('Y-m-d', $waktuMulai) ?></td>
+      <td class="kop-label text-start" style="width:19%; border-top: none;">MAIN PIC</td>
+      <td class="kop-val text-start" style="border-top: none;"><?= esc($namaTopOnly) ?></td>
+      <td class="kop-label text-start" style="width:19%; border-top: none;">NO MACHINE</td>
+      <td class="kop-val text-start" style="border-top: none;"><?= esc($header['no_mesin']) ?></td>
+      <td class="kop-label text-start" style="width:19%; border-top: none;">DATE</td>
+      <td class="kop-val text-start" style="border-top: none;"><?= date('Y-m-d', $waktuMulai) ?></td>
     </tr>
     <tr>
       <td class="kop-label text-start" rowspan="2">SUPPORT PIC</td>
-      <td class="kop-val text-start" colspan="2" rowspan="2" style="vertical-align: top;"><?= esc($header['support_pic'] ?? '-') ?></td>
+      <td class="kop-val text-start" rowspan="2" style="vertical-align: top;"><?= esc($header['support_pic'] ?? '-') ?></td>
       <td class="kop-label text-start">MACHINE TYPE</td>
       <td class="kop-val text-start"><?= esc($header['type_mesin']) ?></td>
       <td class="kop-label text-start">START TIME</td>
@@ -107,9 +117,9 @@
   </div>
 
 <?php else: ?>
-  <table class="kop-table text-center">
+  <table class="kop-table text-center" style="margin-bottom: 0 !important;">
     <tr>
-      <td rowspan="3" class="kop-logo" style="width: 12%; padding-top: 15px;">
+      <td rowspan="3" class="kop-logo" style="width: 15%; padding-top: 15px;">
         <div style="width: 60px; height: 60px; border: 3px double #0000ff; border-radius: 50%; margin: 0 auto; position: relative;">
           <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #fff; padding: 0 4px; font-size: 1.5rem; font-weight: normal; color: #0000ff;">NSI</div>
         </div>
@@ -118,32 +128,35 @@
           <div>In Our Hands</div>
         </div>
       </td>
-      <td colspan="6" class="kop-table-title" style="padding: 10px;">CHECKLIST REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?></td>
+      <td colspan="3" class="kop-table-title" style="padding: 10px;">CHECKLIST REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?></td>
     </tr>
     <tr>
-      <td colspan="2" class="fw-bold" style="width: 28%;">NO. DOCUMENT</td>
-      <td colspan="2" class="fw-bold" style="width: 30%;">NO REVISI</td>
-      <td colspan="2" class="fw-bold" style="width: 30%;">HALAMAN</td>
+      <td class="fw-bold" style="width: 35%;">NO. DOCUMENT</td>
+      <td class="fw-bold" style="width: 25%;">NO REVISI</td>
+      <td class="fw-bold" style="width: 25%;">HALAMAN</td>
     </tr>
     <tr>
-      <td colspan="2">FM-MTN-10</td>
-      <td colspan="2">0</td>
-      <td colspan="2">1 DARI 1</td>
+      <td>FM-MTN-10</td>
+      <td>0</td>
+      <td>1 DARI 1</td>
     </tr>
     <tr>
-      <td colspan="7" class="text-start" style="font-size:0.75rem; padding: 2px 5px;">Rev.:0/291124</td>
+      <td colspan="4" class="text-start" style="font-size:0.75rem; padding: 2px 5px; border-top: 1px solid #000;">Rev.:0/291124</td>
     </tr>
+  </table>
+
+  <table class="kop-table text-center" style="margin-top: 0 !important; border-top: none;">
     <tr>
-      <td class="kop-label text-start" style="width:12%;">NO MACHINE</td>
-      <td class="kop-val text-start" colspan="2" style="width:28%;"><?= esc($header['no_mesin']) ?></td>
-      <td class="kop-label text-start" style="width:15%;">DATE</td>
-      <td class="kop-val text-start" style="width:15%;"><?= date('Y-m-d', $waktuMulai) ?></td>
-      <td class="kop-label text-start" style="width:15%;">LOKASI</td>
-      <td class="kop-val text-start" style="width:15%;"><?= esc($header['lokasi_check']) ?></td>
+      <td class="kop-label text-start" style="width:19%; border-top: none;">NO MACHINE</td>
+      <td class="kop-val text-start" style="border-top: none;"><?= esc($header['no_mesin']) ?></td>
+      <td class="kop-label text-start" style="width:19%; border-top: none;">DATE</td>
+      <td class="kop-val text-start" style="border-top: none;"><?= date('Y-m-d', $waktuMulai) ?></td>
+      <td class="kop-label text-start" style="width:19%; border-top: none;">LOKASI</td>
+      <td class="kop-val text-start" style="border-top: none;"><?= esc($header['lokasi_check']) ?></td>
     </tr>
     <tr>
       <td class="kop-label text-start">MACHINE TYPE</td>
-      <td class="kop-val text-start" colspan="2"><?= esc($header['type_mesin']) ?></td>
+      <td class="kop-val text-start"><?= esc($header['type_mesin']) ?></td>
       <td class="kop-label text-start">START TIME</td>
       <td class="kop-val text-start"><?= date('H:i:s', $waktuMulai) ?></td>
       <td class="kop-label text-start">DURASI</td>
@@ -151,7 +164,7 @@
     </tr>
     <tr>
       <td class="kop-label text-start">SERIAL NUMBER</td>
-      <td class="kop-val text-start" colspan="2"><?= esc($header['serial_nomor'] ?? '-') ?></td>
+      <td class="kop-val text-start"><?= esc($header['serial_nomor'] ?? '-') ?></td>
       <td class="kop-label text-start">FINISH TIME</td>
       <td class="kop-val text-start" colspan="3"><?= $waktuSelesai ? date('H:i:s', $waktuSelesai) : '-' ?></td>
     </tr>
@@ -167,7 +180,7 @@
 
 
 
-<div class="card-stat p-3">
+
   <?php if (strtolower($header['jenis_check']) === 'overhaul'): ?>
     <!-- OVERHAUL DETAIL TABLE -->
     <table class="table table-bordered align-middle checklist-table bg-white">
@@ -414,8 +427,9 @@
       </tr>
     </table>
     <?php endif; ?>
-</div>
 
+
+</div>
 </body>
 </html>
 

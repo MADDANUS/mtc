@@ -95,6 +95,7 @@ $routes->group('admin/mesin', ['filter' => 'role:admin,member,sheadprd,sheadmtc,
     $routes->get('export', 'MesinController::export');
     $routes->get('template', 'MesinController::template');
     $routes->post('import', 'MesinController::import');
+    $routes->get('download-all-qr', 'MesinController::downloadAllQr');
 });
 
 // Admin - Master User (admin only)

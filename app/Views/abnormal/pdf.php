@@ -4,27 +4,28 @@
   <meta charset="UTF-8">
   <title>PDF Export - Laporan Abnormal</title>
   <style>
-    body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    th, td { border: 1px solid #000; padding: 4px; }
+    * { box-sizing: border-box; }
+    body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; margin: 0; padding: 0; }
+    .pdf-container { padding: 10px 15px; width: 100%; }
+    table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; margin-bottom: 20px; table-layout: fixed !important; word-wrap: break-word; margin-left: 0 !important; margin-right: 0 !important; }
+    th, td { border: 1px solid #000; padding: 4px; font-size: 11px; }
     .text-center { text-align: center; }
     .text-start { text-align: left; }
     .text-end { text-align: right; }
     .fw-bold { font-weight: bold; }
     .bg-light { background-color: #f8f9fa; }
-    .page-title { text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; }
+    .page-title { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; }
   </style>
 </head>
 <body>
-
+<div class="pdf-container">
 <div class="page-title">
   LAPORAN ABNORMAL CONDITION<br>
   <span style="font-size: 12px; font-weight: normal;"><?= strtoupper($lokasiFilter) ?> - <?= strtoupper($kategoriFilter) ?></span>
 </div>
 
 
-<div class="card-body p-0">
-    <div class="table-responsive" style="border: 2px solid #cbd5e1 !important; border-radius: 8px;">
+
       <table class="table align-middle text-center abnormal-table" style="font-size: 0.8rem; border-collapse: collapse;">
         <thead>
           <tr class="table-light" style="background-color: #f2f2f2;">
@@ -108,9 +109,7 @@
           <?php endif; ?>
         </tbody>
       </table>
-    </div>
-  </div>
-</div>
+
 
 
 
@@ -136,6 +135,7 @@
     </td>
   </tr>
 </table>
+</div>
 </body>
 </html>
 

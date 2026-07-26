@@ -4,22 +4,24 @@
   <meta charset="UTF-8">
   <title>PDF Export - Checklist Control</title>
   <style>
-    body { font-family: 'DejaVu Sans', sans-serif; font-size: 12px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    th, td { border: 1px solid #000; padding: 4px; }
+    * { box-sizing: border-box; }
+    body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; margin: 0; padding: 0; }
+    .pdf-container { padding: 10px 15px; width: 100%; }
+    table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; margin-bottom: 20px; table-layout: fixed !important; word-wrap: break-word; margin-left: 0 !important; margin-right: 0 !important; }
+    th, td { border: 1px solid #000; padding: 4px; font-size: 11px; }
     .text-center { text-align: center; }
     .text-start { text-align: left; }
     .text-end { text-align: right; }
     .fw-bold { font-weight: bold; }
     .bg-light { background-color: #f8f9fa; }
-    .kop-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; background-color: #fff; }
+    .kop-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background-color: #fff; }
     .kop-table th, .kop-table td { border: 1px solid #000; padding: 6px 10px; vertical-align: middle; }
-    .kop-table-title { background-color: #92b0d6; text-align: center; font-weight: bold; font-size: 16px; letter-spacing: 1px; color: #000; }
+    .kop-table-title { background-color: #92b0d6; text-align: center; font-weight: bold; font-size: 14px; letter-spacing: 1px; color: #000; }
     .kop-logo { text-align: center; width: 12%; font-weight: bold; }
   </style>
 </head>
 <body>
-
+<div class="pdf-container">
 <table class="kop-table text-center">
   <tr>
     <td rowspan="4" class="kop-logo" style="width: 15%; padding-top: 15px;">
@@ -37,9 +39,9 @@
     <td colspan="3" class="fw-bold" style="font-size:14px; background-color: #f2f2f2;"><?= strtoupper($kategori) ?> (<?= strtoupper($lokasi) ?>)</td>
   </tr>
   <tr>
-    <td class="fw-bold" style="width: 25%;">NO. DOCUMENT</td>
-    <td class="fw-bold" style="width: 30%;">NO REVISI</td>
-    <td class="fw-bold" style="width: 30%;">HALAMAN</td>
+    <td class="fw-bold" style="width: 35%;">NO. DOCUMENT</td>
+    <td class="fw-bold" style="width: 25%;">NO REVISI</td>
+    <td class="fw-bold" style="width: 25%;">HALAMAN</td>
   </tr>
   <tr>
     <td>FM-MTN-09</td>
@@ -52,8 +54,7 @@
 </table>
 
 
-<div class="card-body p-0">
-    <div class="table-responsive" style="border: 1px solid var(--border-strong) !important; border-radius: var(--radius);">
+
       <table class="table align-middle text-center kontrol-table" style="font-size: 0.85rem; border-collapse: collapse !important;" style="font-size: 0.85rem; border-collapse: collapse !important;">
         <thead>
           <tr>
@@ -187,9 +188,7 @@
           <?php endif; ?>
         </tbody>
       </table>
-    </div>
-  </div>
-</div>
+
 
 <table style="width: 100%; border: none; text-align: center; margin-top: 30px;">
   <tr>
@@ -240,6 +239,7 @@
     </td>
   </tr>
 </table>
+</div>
 </body>
 </html>
 

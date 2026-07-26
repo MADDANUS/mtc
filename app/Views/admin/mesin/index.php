@@ -22,6 +22,10 @@
         </svg>
         Ekspor
       </a>
+      <!-- Link Download Semua QR -->
+      <a href="<?= site_url('admin/mesin/download-all-qr') ?>" target="_blank" class="btn btn-outline-info btn-sm d-flex align-items-center gap-1 py-2" title="Download Semua QR Code Mesin (PDF)">
+        <i class="bi bi-qr-code"></i> Download Semua QR
+      </a>
       <a href="<?= site_url('admin/mesin/create') ?>" class="btn btn-primary btn-sm py-2">+ Tambah Mesin</a>
     <?php endif; ?>
   </div>
