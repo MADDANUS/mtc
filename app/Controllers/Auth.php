@@ -36,7 +36,7 @@ class Auth extends BaseController
 
     public function logout()
     {
-        session()->destroy();
-        return redirect()->to('/login');
+        session()->remove(['user_id', 'nama', 'role', 'line', 'logged_in']);
+        return redirect()->to('/login')->with('success', 'Berhasil memutuskan koneksi. Selamat beristirahat!');
     }
 }

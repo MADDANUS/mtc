@@ -7,13 +7,12 @@
     </div>
     
     <div class="d-flex gap-2">
-        <form method="GET" action="<?= site_url('abnormal') ?>" class="d-flex flex-wrap gap-2 justify-content-end align-items-center" id="filterForm">
+        <form method="GET" action="<?= site_url('abnormal/overhaul') ?>" class="d-flex flex-wrap gap-2 justify-content-end align-items-center" id="filterForm">
             <input type="hidden" name="view" value="summary">
             <?php
-                $pdfUrl = site_url('abnormal/pdf-all-summary?bulan=' . urlencode($bulan));
+                $pdfUrl = site_url('abnormal/overhaul/pdf-all-summary?bulan=' . urlencode($bulan));
                 if (!empty($filterLokasi)) $pdfUrl .= '&filter_lokasi=' . urlencode($filterLokasi);
                 if (!empty($filterLine)) $pdfUrl .= '&filter_line=' . urlencode($filterLine);
-                if (!empty($filterKategori)) $pdfUrl .= '&filter_kategori=' . urlencode($filterKategori);
             ?>
             <?php if (!in_array(session()->get('role'), ['sheadprd', 'sheadmtc', 'leader'], true)): ?>
             <a href="<?= $pdfUrl ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Download PDF">
@@ -33,13 +32,12 @@
 
 <?php
 // Helper functions for column sorting
-$getSortUrl = function(string $column) use ($bulan, $filterLokasi, $filterLine, $filterKategori, $filterStatus, $sortBy, $order) {
+$getSortUrl = function(string $column) use ($bulan, $filterLokasi, $filterLine, $filterStatus, $sortBy, $order) {
     $params = [
         'view' => 'summary',
         'bulan' => $bulan,
         'filter_lokasi' => $filterLokasi,
         'filter_line' => $filterLine,
-        'filter_kategori' => $filterKategori,
         'filter_status' => $filterStatus,
     ];
 
@@ -50,7 +48,7 @@ $getSortUrl = function(string $column) use ($bulan, $filterLokasi, $filterLine, 
         $params['order'] = 'asc';
     }
 
-    return site_url('abnormal') . '?' . http_build_query($params);
+    return site_url('abnormal/overhaul') . '?' . http_build_query($params);
 };
 
 $getSortIcon = function(string $column) use ($sortBy, $order) {
@@ -81,11 +79,7 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                                 LINE <?= $getSortIcon('line') ?>
                             </a>
                         </th>
-                        <th style="width: 25%;">
-                            <a href="<?= $getSortUrl('kategori') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
-                                KATEGORI <?= $getSortIcon('kategori') ?>
-                            </a>
-                        </th>
+
                         <th class="fw-bold text-uppercase text-secondary align-middle" style="width: 25%; font-size: 0.72rem; letter-spacing: 0.08em;">
                             <a href="<?= $getSortUrl('statusText') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase">
                                 STATUS PERBAIKAN <?= $getSortIcon('statusText') ?>
@@ -113,15 +107,6 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                             </select>
                         </th>
                         <th class="py-2">
-                            <select name="filter_kategori" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Kategori..." onchange="document.getElementById('filterForm').submit();">
-                                <option value=""></option>
-                                <option value="all" <?= ($filterKategori ?? '') === 'all' ? 'selected' : '' ?>>Semua Kategori</option>
-                                <?php foreach ($availableCategories as $optCat): ?>
-                                    <option value="<?= esc($optCat) ?>" <?= ($filterKategori ?? '') === $optCat ? 'selected' : '' ?>><?= esc($optCat) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </th>
-                        <th class="py-2">
                             <select name="filter_status" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Status..." onchange="document.getElementById('filterForm').submit();">
                                 <option value=""></option>
                                 <option value="all" <?= ($filterStatus ?? '') === 'all' ? 'selected' : '' ?>>Semua Status</option>
@@ -130,7 +115,7 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                             </select>
                         </th>
                         <th class="pe-4 py-2 text-center align-middle">
-                            <a href="<?= site_url('abnormal') ?>" class="btn btn-sm btn-danger fw-bold px-3" title="Reset Filter" style="font-size: 0.75rem;">
+                            <a href="<?= site_url('abnormal/overhaul') ?>" class="btn btn-sm btn-danger fw-bold px-3" title="Reset Filter" style="font-size: 0.75rem;">
                                 <i class="bi bi-arrow-counterclockwise fw-bold"></i> Reset
                             </a>
                         </th>
@@ -146,7 +131,6 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                             <tr>
                                 <td class="ps-4 fw-bold text-dark"><?= esc($row['lokasi']) ?></td>
                                 <td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25"><?= esc($row['line']) ?></span></td>
-                                <td class="fw-medium text-dark"><?= esc($row['kategori']) ?></td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="badge <?= $row['badgeClass'] ?> rounded-pill px-3 py-2"><?= $row['statusText'] ?></span>
@@ -158,7 +142,7 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                                     </div>
                                 </td>
                                 <td class="pe-4 text-end">
-                                    <a href="<?= site_url('abnormal?lokasi=' . urlencode($row['lokasi']) . '&line=' . urlencode($row['line']) . '&kategori=' . urlencode($row['kategori']) . '&bulan=' . urlencode($bulan)) ?>" class="btn btn-sm btn-outline-danger fw-bold rounded-pill px-3">
+                                    <a href="<?= site_url('abnormal/overhaul?lokasi=' . urlencode($row['lokasi']) . '&search=' . urlencode($row['line']) . '&bulan=' . urlencode($bulan)) ?>" class="btn btn-sm btn-outline-danger fw-bold rounded-pill px-3">
                                         Lihat Data
                                     </a>
                                 </td>

@@ -6,10 +6,12 @@
   <a href="<?= site_url('kontrol?view=summary') ?>" class="btn btn-outline-secondary btn-sm me-3 shadow-sm rounded-pill px-3">
     <i class="bi bi-arrow-left me-1"></i> Kembali
   </a>
-  <div class="ms-auto">
-    <a href="<?= site_url('kontrol/pdf?lokasi=' . urlencode($lokasi) . '&kategori=' . urlencode($kategori) . '&bulan=' . urlencode($bulan) . '&line=' . urlencode($line)) ?>" target="_blank" class="btn btn-sm btn-outline-danger fw-semibold shadow-sm">
+  <div class="ms-auto d-flex gap-2">
+    <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
+<a href="<?= site_url('kontrol/pdf?lokasi=' . urlencode($lokasi) . '&kategori=' . urlencode($kategori) . '&bulan=' . urlencode($bulan) . '&line=' . urlencode($line)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Download PDF">
       <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
     </a>
+<?php endif; ?>
   </div>
 </div>
 
@@ -26,6 +28,34 @@
     <td class="kop-val text-start"><?= esc($bulanList[$bulan] ?? $bulan) ?></td>
   </tr>
 </table>
+
+<!-- KETERANGAN CHECK LIST -->
+<div class="d-flex justify-content-end mb-2">
+  <table class="table table-sm table-bordered text-center mb-0 bg-white shadow-sm" style="width: auto; font-size: 0.85rem;">
+    <thead class="table-light">
+      <tr>
+        <th colspan="3" class="py-1 px-4">KETERANGAN CHECK LIST</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="fw-bold text-success px-3">V</td>
+        <td class="px-2">:</td>
+        <td class="text-start fw-bold px-3">OK</td>
+      </tr>
+      <tr>
+        <td class="fw-bold text-warning px-3">Δ</td>
+        <td class="px-2">:</td>
+        <td class="text-start fw-bold px-3">PERLU TINDAKAN</td>
+      </tr>
+      <tr>
+        <td class="fw-bold text-danger px-3">X</td>
+        <td class="px-2">:</td>
+        <td class="text-start fw-bold px-3">TIDAK ADA</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 <!-- GRID TABEL KONTROL -->
 <div class="card border-0 shadow-sm bg-white overflow-hidden mb-4">

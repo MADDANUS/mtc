@@ -599,6 +599,11 @@
         backdrop-filter: blur(4px);
     }
 
+    /* ---- TOM SELECT OVERRIDES ---- */
+    .ts-dropdown {
+        z-index: 1060 !important; /* Mencegah tertutup oleh Bootstrap Modal (z-index: 1050) */
+    }
+
     /* ---- RESPONSIVE ---- */
     @media (max-width: 991.98px) {
         .sidebar { left: calc(-1 * var(--sidebar-w)); }
@@ -641,7 +646,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
       </a>
       
       <?php if (in_array($role, ['magang', 'member', 'admin'], true)): ?>
-        <a href="<?= site_url('checklist') ?>" class="menu-item <?= $seg1 === 'checklist' ? 'active' : '' ?>">
+        <a href="<?= site_url('checklist') ?>" class="menu-item <?= ($seg1 === 'checklist' || $seg1 === 'scan') ? 'active' : '' ?>">
           <i class="bi bi-clipboard-check-fill"></i>Pengecekan
         </a>
       <?php endif; ?>
@@ -682,7 +687,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
           <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.2rem; letter-spacing: 0.05em;">Preventive</div>
 
           <?php if (!in_array($role, ['sheadprd', 'sheadmtc'])): ?>
-          <a href="<?= site_url('riwayat/lokasi/mfg1?jenis_check=Preventive') ?>" class="menu-item <?= $isPreventiveMenu ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
+          <a href="<?= site_url('riwayat/lokasi/semua?jenis_check=Preventive') ?>" class="menu-item <?= $isPreventiveMenu ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
             <i class="bi bi-file-earmark-text"></i>Checklist Report
           </a>
           <?php endif; ?>
@@ -692,24 +697,23 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
           </a>
           <?php endif; ?>
           <?php if (!in_array($role, ['sheadprd', 'sheadmtc'])): ?>
-          <a href="<?= site_url('abnormal') ?>" class="menu-item <?= $seg1 === 'abnormal' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 10px;">
+          <a href="<?= site_url('abnormal') ?>" class="menu-item <?= ($seg1 === 'abnormal' && $seg2 !== 'overhaul') ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 10px;">
             <i class="bi bi-exclamation-triangle"></i>Laporan Abnormal
           </a>
           <?php endif; ?>
           <?php endif; ?>
 
           <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.2rem; letter-spacing: 0.05em;">Overhaul</div>
-          <?php 
-            $overhaulLokasi = 'mfg1';
-            if ($role === 'leader' && session()->get('lokasi')) {
-                $overhaulLokasi = strtolower(str_replace(' ', '', session()->get('lokasi')));
-            }
-          ?>
-          <a href="<?= site_url('riwayat/lokasi/' . $overhaulLokasi . '?jenis_check=Overhaul') ?>" class="menu-item <?= $isOverhaulMenu ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 10px;">
+          <a href="<?= site_url('riwayat/lokasi/semua?jenis_check=Overhaul') ?>" class="menu-item <?= $isOverhaulMenu ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
             <i class="bi bi-tools"></i>Inspection Report
           </a>
+          <?php if (!in_array($role, ['sheadprd', 'sheadmtc'])): ?>
+          <a href="<?= site_url('abnormal/overhaul') ?>" class="menu-item <?= ($seg1 === 'abnormal' && $seg2 === 'overhaul') ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 10px;">
+            <i class="bi bi-exclamation-triangle"></i>Laporan Abnormal
+          </a>
+          <?php endif; ?>
 
-          <?php if (in_array($role, ['member', 'sheadprd', 'sheadmtc', 'admin', 'leader'], true)): ?>
+          <?php if (in_array($role, ['member', 'admin'], true)): ?>
             <a href="<?= site_url('laporan/durasi') ?>" class="menu-item <?= $seg1 === 'laporan' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
               <i class="bi bi-bar-chart-line"></i>Laporan Durasi
             </a>
@@ -717,11 +721,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
         </div>
       </div>
 
-      <?php if (in_array($role, ['magang', 'member', 'admin'], true)): ?>
-      <a href="<?= site_url('scan') ?>" class="menu-item <?= $seg1 === 'scan' ? 'active' : '' ?>">
-        <i class="bi bi-qr-code-scan"></i>Scan QR Mesin
-      </a>
-      <?php endif; ?>
+
       
       <a href="<?= site_url('admin/jadwal') ?>" class="menu-item <?= $seg2 === 'jadwal' ? 'active' : '' ?>">
         <i class="bi bi-calendar-event"></i>Jadwal Preventive
@@ -783,8 +783,8 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
         <h1 class="topbar-title"><?= esc($title ?? 'Dashboard') ?></h1>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <a href="<?= site_url('logout') ?>" class="btn btn-sm btn-outline-secondary" style="color:var(--danger); border-color:var(--danger);">
-          <i class="bi bi-box-arrow-right"></i> Keluar
+        <a href="<?= site_url('logout') ?>" id="btn-logout" class="btn btn-sm btn-outline-secondary" style="color:var(--danger); border-color:var(--danger);">
+          <i class="bi bi-power"></i> Keluar
         </a>
       </div>
     </header>
@@ -792,18 +792,6 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
     <!-- Main Content Area -->
     <main class="content-area">
       <!-- Flash Alerts -->
-      <?php if (session()->getFlashdata('success')): ?>
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4" role="alert">
-          <i class="bi bi-check-circle-fill me-2"></i><?= esc(session()->getFlashdata('success')) ?>
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      <?php endif; ?>
-      <?php if (session()->getFlashdata('error')): ?>
-        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4" role="alert">
-          <i class="bi bi-exclamation-triangle-fill me-2"></i><?= esc(session()->getFlashdata('error')) ?>
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      <?php endif; ?>
       <?php if (isset($errors)): ?>
         <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4" role="alert">
           <i class="bi bi-exclamation-triangle-fill me-2"></i>

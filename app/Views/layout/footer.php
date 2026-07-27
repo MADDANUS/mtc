@@ -29,7 +29,55 @@
     }
     new TomSelect(el, config);
   });
+
+  // Logout confirmation
+  const btnLogout = document.getElementById('btn-logout');
+  if (btnLogout) {
+    btnLogout.addEventListener('click', function(e) {
+      e.preventDefault();
+      const href = this.getAttribute('href');
+      Swal.fire({
+        title: 'Yakin ingin keluar?',
+        text: 'Anda harus login kembali untuk masuk ke sistem.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Keluar!',
+        cancelButtonText: 'Batal'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.location.href = href;
+        }
+      });
+    });
+  }
 </script>
-  <script src="<?= base_url('js/table-pagination.js') ?>"></script>
+  <script src="<?= base_url('js/table-pagination.js?v=' . time()) ?>"></script>
+<script>
+  <?php if (session()->getFlashdata('success')): ?>
+    let audioSuccess = new Audio('<?= base_url('audio/success.ogg') ?>');
+    audioSuccess.play().catch(e => console.log("Audio autoplay prevented"));
+    Swal.fire({
+      icon: 'success',
+      title: 'Berhasil!',
+      text: '<?= addslashes(session()->getFlashdata('success')) ?>',
+      timer: 3000,
+      showConfirmButton: false
+    });
+  <?php endif; ?>
+  
+  <?php if (session()->getFlashdata('error')): ?>
+    let audioError = new Audio('<?= base_url('audio/error.ogg') ?>');
+    audioError.play().catch(e => console.log("Audio autoplay prevented"));
+    Swal.fire({
+      icon: 'error',
+      title: 'Oops...',
+      text: '<?= addslashes(session()->getFlashdata('error')) ?>',
+      timer: 3000,
+      showConfirmButton: false
+    });
+  <?php endif; ?>
+</script>
 </body>
 </html>

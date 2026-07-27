@@ -21,7 +21,9 @@ class LaporanAbnormalModel extends Model
         'progres_tanggal',
         'action',
         'repair_pic',
-        'keterangan'
+        'keterangan',
+        'foto_abnormal',
+        'foto_perbaikan',
     ];
     protected $useTimestamps = true;
     protected $returnType    = 'array';

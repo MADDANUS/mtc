@@ -42,7 +42,10 @@
 <body>
 <div class="pdf-container">
 
+<?php foreach ($allReports as $reportIndex => $report): ?>
 <?php
+  $header = $report['header'];
+  $details = $report['details'];
   $rawNamaTop   = $header['nama_pic'] ?: $header['nama_staff'];
   $namaTopParts = explode(' - ', $rawNamaTop);
   $namaTopOnly  = end($namaTopParts);
@@ -334,7 +337,7 @@
         </tr>
       <?php endforeach; ?>
       <?php if ($tbody_opened) echo "</tbody>"; ?>
-    </table>
+  </table>
 
   <?php if (!empty($header['note_recommendation'])): ?>
   <div style="margin-top:8px; border:1.5pt solid #000; padding:6px; background:#f8f9fa; font-size:11px;">
@@ -468,6 +471,11 @@
   <?php endif; ?>
 
 </div>
+
+  <?php if ($reportIndex < count($allReports) - 1): ?>
+    <div style="page-break-after: always;"></div>
+  <?php endif; ?>
+<?php endforeach; ?>
 
 </div>
 </body>

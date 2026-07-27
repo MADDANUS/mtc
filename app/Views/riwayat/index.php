@@ -37,13 +37,25 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
   <div class="d-flex flex-wrap align-items-center">
     <h3 class="fw-bold mb-0 me-2"><i class="bi bi-clock-history me-2 text-primary"></i>Riwayat <?= esc($jenisLabel ?? 'Pengecekan') ?></h3>
   </div>
-  <?php if (in_array(session()->get('role'), ['staff', 'admin'], true)): ?>
-    <div>
-      <a href="<?= site_url('checklist') ?>" class="btn btn-sm btn-primary">
+  <div class="d-flex gap-2">
+    <?php 
+      // Buat URL download dengan filter saat ini
+      $pdfParams = $selectedFilters ?? [];
+      // Hapus filter lokasi dari parameter GET karena sudah ada di URL segment
+      unset($pdfParams['lokasi']);
+      $downloadUrl = site_url("riwayat/download-pdf-all/{$lokasiSlug}") . '?' . http_build_query($pdfParams);
+    ?>
+    <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
+    <a href="<?= $downloadUrl ?>" class="btn btn-sm btn-outline-danger shadow-sm" target="_blank">
+      <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
+    </a>
+    <?php endif; ?>
+    <?php if (in_array(session()->get('role'), ['staff', 'admin'], true)): ?>
+      <a href="<?= site_url('checklist') ?>" class="btn btn-sm btn-primary shadow-sm">
         <i class="bi bi-plus-lg"></i> Buat Baru
       </a>
-    </div>
-  <?php endif; ?>
+    <?php endif; ?>
+  </div>
 </div>
 
 

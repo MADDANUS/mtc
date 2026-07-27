@@ -164,6 +164,85 @@ class RiwayatController extends BaseController
     }
 
     /**
+     * GET /riwayat/download-pdf-all/(:segment)
+     * Download tabel riwayat secara keseluruhan berdasarkan filter yang aktif
+     */
+    public function downloadPdfAll(string $lokasiSlug)
+    {
+        $lokasiName = $this->resolveLokasi($lokasiSlug);
+        
+        // Validasi lokasi khusus untuk Leader Produksi
+        if (session()->get('role') === 'leader') {
+            $userLokasi = session()->get('lokasi');
+            if ($userLokasi && $userLokasi !== $lokasiName) {
+                if ($lokasiName === null) {
+                    $lokasiName = $userLokasi;
+                    $lokasiSlug = strtolower(str_replace(' ', '', $userLokasi));
+                } else {
+                    return redirect()->to('/dashboard')->with('error', 'Akses ditolak.');
+                }
+            }
+        }
+
+        $transaksiModel = new TransaksiCheckModel();
+        $userLine = (session()->get('role') === 'leader') ? session()->get('line') : null;
+        
+        $filters = [
+            'lokasi'      => $lokasiName,
+            'id_mesin'    => $this->request->getGet('id_mesin') === 'all' ? null : ($this->request->getGet('id_mesin') ?: null),
+            'line'        => $userLine ?: ($this->request->getGet('line') === 'all' ? null : ($this->request->getGet('line') ?: null)),
+            'jenis_check' => $this->request->getGet('jenis_check') === 'all' ? null : ($this->request->getGet('jenis_check') ?: null),
+            'kategori'    => $this->request->getGet('kategori') === 'all' ? null : ($this->request->getGet('kategori') ?: null),
+            'bulan'       => $this->request->getGet('bulan') === 'all' ? null : ($this->request->getGet('bulan') ?: null),
+            'status'      => $this->request->getGet('status') === 'all' ? null : ($this->request->getGet('status') ?: null),
+            'pic'         => $this->request->getGet('pic') === 'all' ? null : ($this->request->getGet('pic') ?: null),
+            'sort_by'     => $this->request->getGet('sort_by') ?: 'id_transaksi',
+            'order'       => $this->request->getGet('order') ?: 'desc',
+        ];
+
+        $riwayat = $transaksiModel->getRiwayatFiltered($filters);
+        
+        // Fetch full details for each transaction
+        $detailModel = new \App\Models\TransaksiCheckDetailModel();
+        $allReports = [];
+        foreach ($riwayat as $row) {
+            $header = $transaksiModel->getDetailTransaksi($row['id_transaksi']);
+            if ($header) {
+                $details = $detailModel->getDetailByTransaksi($row['id_transaksi']);
+                $details = $detailModel->calculateRowspans($details, $header['jenis_check']);
+                $allReports[] = [
+                    'header' => $header,
+                    'details' => $details
+                ];
+            }
+        }
+        
+        $jenisLabel = $filters['jenis_check'] === 'Preventive' ? 'Checklist Report' : ($filters['jenis_check'] === 'Overhaul' ? 'Inspection Report' : 'Pengecekan');
+
+        $data = [
+            'title'      => "Riwayat {$jenisLabel} - {$lokasiName}",
+            'allReports' => $allReports,
+            'filters'    => $filters,
+            'lokasiName' => $lokasiName,
+            'jenisLabel' => $jenisLabel
+        ];
+
+        $html = view('riwayat/pdf_all_details', $data);
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $filename = "Summary_Riwayat_" . str_replace(' ', '_', $jenisLabel) . "_" . date('Ymd_His') . ".pdf";
+        $dompdf->stream($filename, ["Attachment" => true]);
+    }
+
+    /**
      * GET /riwayat/kategori/(:segment)
      * Fallback redirect untuk kompatibilitas tautan lama agar mengarah ke riwayat lokasi MFG 1.
      */
@@ -191,6 +270,16 @@ class RiwayatController extends BaseController
         }
 
         // Semua role bisa lihat semua riwayat (tidak ada pembatasan per user)
+        // KECUALI untuk Approver: jangan biarkan mereka melihat sebelum giliran mereka
+        $roleSession = session()->get('role');
+        $approvalStatus = $header['status'] ?? 'Pending';
+        
+        if ($roleSession === 'sheadprd' && $approvalStatus === 'Pending') {
+            return redirect()->to('/dashboard')->with('error', 'Dokumen ini belum siap (Masih menunggu Leader).');
+        }
+        if ($roleSession === 'sheadmtc' && in_array($approvalStatus, ['Pending', 'Approved L1'], true)) {
+            return redirect()->to('/dashboard')->with('error', 'Dokumen ini belum siap (Masih menunggu SHead Produksi).');
+        }
 
         $detailModel = new TransaksiCheckDetailModel();
         $details     = $detailModel->getDetailByTransaksi($id);
@@ -423,12 +512,24 @@ class RiwayatController extends BaseController
 
         // 3. Re-insert Details
         $parameterModel = new \App\Models\ParameterCheckModel();
+        $uploadPath = FCPATH . 'uploads/abnormal/';
         foreach ($hasilCheck as $idParameter => $hasil) {
+            $fotoAbnormal = null;
+            if ($hasil === 'Δ') {
+                $file = $this->request->getFile("foto_abnormal.{$idParameter}");
+                if ($file && $file->isValid() && !$file->hasMoved()) {
+                    $newName = time() . '_' . uniqid() . '.' . $file->getClientExtension();
+                    $file->move($uploadPath, $newName);
+                    $fotoAbnormal = $newName;
+                }
+            }
+
             $idDetail = $detailModel->insert([
                 'id_transaksi' => $id,
                 'id_parameter' => (int) $idParameter,
                 'hasil_check'  => $hasil !== '' ? $hasil : null,
                 'ulasan'       => $ulasan[$idParameter] ?? null,
+                'foto_abnormal'=> $fotoAbnormal,
             ]);
 
             // Save to laporan_abnormal ONLY if status is Δ (segitiga)
@@ -449,6 +550,7 @@ class RiwayatController extends BaseController
                     'abnormal_condition' => $abnormalDesc,
                     'pengecekan_tanggal' => date('Y-m-d', strtotime($waktuSelesai)),
                     'pengecekan_pic'     => session()->get('nama') ?: 'Admin', // who edited
+                    'foto_abnormal'      => $fotoAbnormal,
                     'created_at'         => $waktuSelesai,
                     'updated_at'         => $waktuSelesai,
                 ]);
@@ -747,6 +849,7 @@ class RiwayatController extends BaseController
                     'abnormal_condition' => $abnormalDesc,
                     'pengecekan_tanggal' => date('Y-m-d', strtotime($waktuSelesai)),
                     'pengecekan_pic'     => $transaksi['nama_pic'],
+                    'foto_abnormal'      => $d['foto_abnormal'] ?? null,
                     'created_at'         => date('Y-m-d H:i:s'),
                     'updated_at'         => date('Y-m-d H:i:s'),
                 ]);

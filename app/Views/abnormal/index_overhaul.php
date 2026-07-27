@@ -3,29 +3,47 @@
 
 
 <div class="d-flex align-items-center mb-3">
-  <a href="<?= site_url('abnormal?view=summary') ?>" class="btn btn-outline-secondary btn-sm me-3 shadow-sm rounded-pill px-3">
+  <a href="<?= site_url('abnormal/overhaul?view=summary') ?>" class="btn btn-outline-secondary btn-sm me-3 shadow-sm rounded-pill px-3">
     <i class="bi bi-arrow-left me-1"></i> Kembali
   </a>
-  <div class="ms-auto d-flex gap-2">
+  
+  <form method="GET" action="<?= site_url('abnormal/overhaul') ?>" class="d-flex gap-2 ms-auto align-items-center">
+      <?php if(!empty($searchFilter)): ?>
+          <input type="hidden" name="search" value="<?= esc($searchFilter) ?>">
+      <?php endif; ?>
+      <select name="lokasi" class="form-select form-select-sm border-0 shadow-sm fw-medium rounded-pill" style="width: auto;" onchange="this.form.submit()">
+          <option value="all" <?= ($lokasiFilter === 'all') ? 'selected' : '' ?>>Semua Area</option>
+          <option value="MFG 1" <?= ($lokasiFilter === 'MFG 1') ? 'selected' : '' ?>>MFG 1</option>
+          <option value="MFG 2" <?= ($lokasiFilter === 'MFG 2') ? 'selected' : '' ?>>MFG 2</option>
+      </select>
+      <select name="bulan" class="form-select form-select-sm border-0 shadow-sm fw-medium rounded-pill" style="width: auto;" onchange="this.form.submit()">
+          <option value="all" <?= ($bulanFilter === 'all') ? 'selected' : '' ?>>Semua Bulan</option>
+          <?php if(isset($bulanList)): ?>
+              <?php foreach ($bulanList as $val => $label): ?>
+                  <option value="<?= $val ?>" <?= $val === $bulanFilter ? 'selected' : '' ?>><?= $label ?></option>
+              <?php endforeach; ?>
+          <?php endif; ?>
+      </select>
+  </form>
+
+  <div class="ms-3 d-flex gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
-<a href="<?= site_url('abnormal/pdf?lokasi=' . urlencode($lokasiFilter) . '&kategori=' . urlencode($kategoriFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Download PDF">
+    <a href="<?= site_url('abnormal/overhaul/pdf?lokasi=' . urlencode($lokasiFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Download PDF">
       <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
     </a>
-<?php endif; ?>
+    <?php endif; ?>
   </div>
 </div>
 
 <table class="kop-table text-center shadow-sm">
   <tr>
-    <td colspan="6" class="kop-table-title" style="padding: 10px;">LAPORAN ABNORMAL CONDITION</td>
+    <td colspan="4" class="kop-table-title" style="padding: 10px;">LAPORAN ABNORMAL CONDITION OVERHAUL</td>
   </tr>
   <tr>
     <td class="kop-label text-start">AREA</td>
-    <td class="kop-val text-start"><?= esc($lokasiFilter) ?></td>
-    <td class="kop-label text-start">KATEGORI</td>
-    <td class="kop-val text-start"><?= esc($kategoriFilter) ?></td>
+    <td class="kop-val text-start"><?= $lokasiFilter === 'all' ? 'Semua Area' : esc($lokasiFilter) ?></td>
     <td class="kop-label text-start">BULAN</td>
-    <td class="kop-val text-start"><?= esc($bulanFilter) ?></td>
+    <td class="kop-val text-start"><?= $bulanFilter === 'all' ? 'Semua Bulan' : esc($bulanFilter) ?></td>
   </tr>
 </table>
 
@@ -166,7 +184,7 @@
         <h6 class="modal-title fw-bold" id="editAbnormalModalLabel"><i class="bi bi-pencil-square text-primary me-1.5"></i>Tindak Lanjut Abnormal Condition</h6>
         <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <form action="<?= site_url('abnormal/update') ?>" method="post" id="abnormalUpdateForm" novalidate onsubmit="return validateAbnormalForm(event)">
+      <form action="<?= site_url('abnormal/overhaul/update') ?>" method="post" id="abnormalUpdateForm" novalidate onsubmit="return validateAbnormalForm(event)">
         <?= csrf_field() ?>
         <input type="hidden" name="id_abnormal" id="modalIdAbnormal">
 
@@ -313,7 +331,7 @@
 
 <?= view('layout/footer') ?>
 
-<!-- MODAL UPLOAD FOTO PERBAIKAN -->
+<!-- MODAL UPLOAD FOTO PERBAIKAN (Overhaul) -->
 <div class="modal fade" id="fotoRepairModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content border-0 shadow-lg rounded-4">
@@ -345,20 +363,17 @@
 
 <script>
 (function() {
-    // ---- Foto Perbaikan Upload ----
     const fotoRepairModal = new bootstrap.Modal(document.getElementById('fotoRepairModal'));
     const fotoRepairInput = document.getElementById('fotoRepairInput');
     const fotoRepairPreviewWrap = document.getElementById('fotoRepairPreviewWrap');
     const fotoRepairPreviewImg = document.getElementById('fotoRepairPreviewImg');
     const fotoRepairMsg = document.getElementById('fotoRepairMsg');
 
-    // Open modal when camera button clicked
     document.addEventListener('click', function(e) {
         const btn = e.target.closest('.btn-foto-perbaikan');
         if (!btn) return;
         e.stopPropagation();
-        const idAbnormal = btn.getAttribute('data-id-abnormal');
-        document.getElementById('fotoRepairIdAbnormal').value = idAbnormal;
+        document.getElementById('fotoRepairIdAbnormal').value = btn.getAttribute('data-id-abnormal');
         fotoRepairInput.value = '';
         fotoRepairPreviewWrap.style.display = 'none';
         fotoRepairPreviewImg.src = '';
@@ -366,64 +381,39 @@
         fotoRepairModal.show();
     });
 
-    // Preview saat file dipilih
     fotoRepairInput.addEventListener('change', function() {
         if (this.files && this.files[0]) {
             const reader = new FileReader();
-            reader.onload = function(ev) {
-                fotoRepairPreviewImg.src = ev.target.result;
-                fotoRepairPreviewWrap.style.display = 'block';
-            };
+            reader.onload = ev => { fotoRepairPreviewImg.src = ev.target.result; fotoRepairPreviewWrap.style.display = 'block'; };
             reader.readAsDataURL(this.files[0]);
-        } else {
-            fotoRepairPreviewWrap.style.display = 'none';
-        }
+        } else { fotoRepairPreviewWrap.style.display = 'none'; }
     });
 
-    // Upload via AJAX
     document.getElementById('btnSimpanFotoRepair').addEventListener('click', function() {
         const idAbnormal = document.getElementById('fotoRepairIdAbnormal').value;
         const file = fotoRepairInput.files[0];
-        if (!file) {
-            fotoRepairMsg.innerHTML = '<span class="text-danger">Pilih foto terlebih dahulu.</span>';
-            return;
-        }
+        if (!file) { fotoRepairMsg.innerHTML = '<span class="text-danger">Pilih foto terlebih dahulu.</span>'; return; }
         const formData = new FormData();
         formData.append('id_abnormal', idAbnormal);
         formData.append('foto_perbaikan', file);
         formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
-
         const btn = document.getElementById('btnSimpanFotoRepair');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Mengupload...';
         fotoRepairMsg.innerHTML = '';
-
-        fetch('<?= site_url('abnormal/upload-foto-perbaikan') ?>', {
-            method: 'POST',
-            body: formData
-        })
+        fetch('<?= site_url('abnormal/upload-foto-perbaikan') ?>', { method: 'POST', body: formData })
         .then(res => res.json())
         .then(data => {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-upload me-1"></i> Upload';
             if (data.success) {
                 fotoRepairModal.hide();
-                // Ganti tombol kamera dengan thumbnail
                 const camBtn = document.querySelector('.btn-foto-perbaikan[data-id-abnormal="' + idAbnormal + '"]');
-                if (camBtn) {
-                    const td = camBtn.closest('td');
-                    td.innerHTML = '<a href="' + data.foto_url + '" target="_blank" title="Lihat Foto Perbaikan"><img src="' + data.foto_url + '" alt="Foto Perbaikan" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;"></a>';
-                }
+                if (camBtn) { camBtn.closest('td').innerHTML = '<a href="' + data.foto_url + '" target="_blank"><img src="' + data.foto_url + '" style="width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid #dee2e6;"></a>'; }
                 Swal.fire({ icon: 'success', title: 'Berhasil!', text: data.message, timer: 2000, showConfirmButton: false });
-            } else {
-                fotoRepairMsg.innerHTML = '<span class="text-danger">' + data.message + '</span>';
-            }
+            } else { fotoRepairMsg.innerHTML = '<span class="text-danger">' + data.message + '</span>'; }
         })
-        .catch(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-upload me-1"></i> Upload';
-            fotoRepairMsg.innerHTML = '<span class="text-danger">Terjadi kesalahan. Coba lagi.</span>';
-        });
+        .catch(() => { btn.disabled = false; btn.innerHTML = '<i class="bi bi-upload me-1"></i> Upload'; fotoRepairMsg.innerHTML = '<span class="text-danger">Terjadi kesalahan.</span>'; });
     });
 })();
 </script>

@@ -30,7 +30,7 @@ $isEdit = $isEdit ?? false;
 $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("checklist/{$lokasiSlug}/{$jenisSlug}/store");
 ?>
 
-<form id="checklistForm" action="<?= $editUrl ?>" method="post" novalidate>
+<form id="checklistForm" action="<?= $editUrl ?>" method="post" enctype="multipart/form-data" novalidate>
   <?= csrf_field() ?>
 
   <!-- HEADER FORM: Mesin, Staff, Waktu Mulai -->
@@ -258,11 +258,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                 <?php foreach ($rows as $r): ?>
                   <?php 
                     $itemIndex++;
-                    if (strtolower($categorySlug) === 'kasahara-tapping') {
-                        if ($itemIndex <= 32) $pageNo = 1;
-                        elseif ($itemIndex <= 68) $pageNo = 2;
-                        else $pageNo = 3;
-                    } elseif (strtolower($categorySlug) === 'double-milling') {
+                    if (strtolower($categorySlug) === 'double-milling') {
                         if ($itemIndex <= 36) $pageNo = 1;
                         else $pageNo = 2;
                     } elseif (strtolower($categorySlug) === 'double-center-drill') {
@@ -315,22 +311,37 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                       ?>
                       <div class="d-flex">
                         <div class="form-check form-check-inline">
-                          <input class="form-check-input" type="radio"
+                          <input class="form-check-input hasil-check-radio" type="radio"
                                  name="hasil_check[<?= (int) $r['id_parameter'] ?>]"
-                                 id="v_<?= (int) $r['id_parameter'] ?>" value="V" <?= $h === 'V' ? 'checked' : '' ?> required>
+                                 id="v_<?= (int) $r['id_parameter'] ?>" value="V" <?= $h === 'V' ? 'checked' : '' ?> required
+                                 data-param-id="<?= (int) $r['id_parameter'] ?>">
                           <label class="form-check-label text-success fw-bold" for="v_<?= (int) $r['id_parameter'] ?>">V</label>
                         </div>
                         <div class="form-check form-check-inline">
-                          <input class="form-check-input" type="radio"
+                          <input class="form-check-input hasil-check-radio" type="radio"
                                  name="hasil_check[<?= (int) $r['id_parameter'] ?>]"
-                                 id="d_<?= (int) $r['id_parameter'] ?>" value="Δ" <?= $h === 'Δ' ? 'checked' : '' ?> required>
+                                 id="d_<?= (int) $r['id_parameter'] ?>" value="Δ" <?= $h === 'Δ' ? 'checked' : '' ?> required
+                                 data-param-id="<?= (int) $r['id_parameter'] ?>">
                           <label class="form-check-label text-warning fw-bold" for="d_<?= (int) $r['id_parameter'] ?>">Δ</label>
                         </div>
                         <div class="form-check form-check-inline">
-                          <input class="form-check-input" type="radio"
+                          <input class="form-check-input hasil-check-radio" type="radio"
                                  name="hasil_check[<?= (int) $r['id_parameter'] ?>]"
-                                 id="x_<?= (int) $r['id_parameter'] ?>" value="X" <?= $h === 'X' ? 'checked' : '' ?> required>
+                                 id="x_<?= (int) $r['id_parameter'] ?>" value="X" <?= $h === 'X' ? 'checked' : '' ?> required
+                                 data-param-id="<?= (int) $r['id_parameter'] ?>">
                           <label class="form-check-label text-danger fw-bold" for="x_<?= (int) $r['id_parameter'] ?>">X</label>
+                        </div>
+                      </div>
+                      <!-- Foto Abnormal (muncul saat Δ dipilih) -->
+                      <div class="foto-abnormal-wrap mt-1" id="foto-wrap-<?= (int) $r['id_parameter'] ?>" style="display:<?= $h === 'Δ' ? 'block' : 'none' ?>;">
+                        <label class="form-label small fw-semibold text-warning mb-1"><i class="bi bi-camera-fill me-1"></i>Foto Abnormal <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control form-control-sm foto-abnormal-input"
+                               name="foto_abnormal[<?= (int) $r['id_parameter'] ?>]"
+                               id="foto-input-<?= (int) $r['id_parameter'] ?>"
+                               accept="image/*" capture="environment"
+                               <?= $h === 'Δ' ? 'required' : '' ?>>
+                        <div class="foto-preview mt-1" id="foto-preview-<?= (int) $r['id_parameter'] ?>" style="display:none;">
+                          <img src="" alt="Preview" style="max-width:100%; max-height:80px; border-radius:4px; border:1px solid #dee2e6;">
                         </div>
                       </div>
                     </td>
@@ -380,22 +391,37 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                       ?>
                       <div class="d-flex">
                         <div class="form-check form-check-inline">
-                          <input class="form-check-input" type="radio"
+                          <input class="form-check-input hasil-check-radio" type="radio"
                                  name="hasil_check[<?= (int) $r['id_parameter'] ?>]"
-                                 id="v_<?= (int) $r['id_parameter'] ?>" value="V" <?= $h === 'V' ? 'checked' : '' ?> required>
+                                 id="v_<?= (int) $r['id_parameter'] ?>" value="V" <?= $h === 'V' ? 'checked' : '' ?> required
+                                 data-param-id="<?= (int) $r['id_parameter'] ?>">
                           <label class="form-check-label text-success fw-bold" for="v_<?= (int) $r['id_parameter'] ?>">V</label>
                         </div>
                         <div class="form-check form-check-inline">
-                          <input class="form-check-input" type="radio"
+                          <input class="form-check-input hasil-check-radio" type="radio"
                                  name="hasil_check[<?= (int) $r['id_parameter'] ?>]"
-                                 id="d_<?= (int) $r['id_parameter'] ?>" value="Δ" <?= $h === 'Δ' ? 'checked' : '' ?> required>
+                                 id="d_<?= (int) $r['id_parameter'] ?>" value="Δ" <?= $h === 'Δ' ? 'checked' : '' ?> required
+                                 data-param-id="<?= (int) $r['id_parameter'] ?>">
                           <label class="form-check-label text-warning fw-bold" for="d_<?= (int) $r['id_parameter'] ?>">Δ</label>
                         </div>
                         <div class="form-check form-check-inline">
-                          <input class="form-check-input" type="radio"
+                          <input class="form-check-input hasil-check-radio" type="radio"
                                  name="hasil_check[<?= (int) $r['id_parameter'] ?>]"
-                                 id="x_<?= (int) $r['id_parameter'] ?>" value="X" <?= $h === 'X' ? 'checked' : '' ?> required>
+                                 id="x_<?= (int) $r['id_parameter'] ?>" value="X" <?= $h === 'X' ? 'checked' : '' ?> required
+                                 data-param-id="<?= (int) $r['id_parameter'] ?>">
                           <label class="form-check-label text-danger fw-bold" for="x_<?= (int) $r['id_parameter'] ?>">X</label>
+                        </div>
+                      </div>
+                      <!-- Foto Abnormal (muncul saat Δ dipilih) -->
+                      <div class="foto-abnormal-wrap mt-1" id="foto-wrap-<?= (int) $r['id_parameter'] ?>" style="display:<?= $h === 'Δ' ? 'block' : 'none' ?>;">
+                        <label class="form-label small fw-semibold text-warning mb-1"><i class="bi bi-camera-fill me-1"></i>Foto Abnormal <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control form-control-sm foto-abnormal-input"
+                               name="foto_abnormal[<?= (int) $r['id_parameter'] ?>]"
+                               id="foto-input-<?= (int) $r['id_parameter'] ?>"
+                               accept="image/*" capture="environment"
+                               <?= $h === 'Δ' ? 'required' : '' ?>>
+                        <div class="foto-preview mt-1" id="foto-preview-<?= (int) $r['id_parameter'] ?>" style="display:none;">
+                          <img src="" alt="Preview" style="max-width:100%; max-height:80px; border-radius:4px; border:1px solid #dee2e6;">
                         </div>
                       </div>
                     </td>
@@ -434,22 +460,9 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
         </table>
       </div>
       
-      <?php if (strtolower($jenisSlug) === 'overhaul' && strtolower($lokasiSlug) === 'mfg1'): ?>
-        <div class="card bg-light border-0 shadow-sm mt-3">
-            <div class="card-body">
-                <h6 class="fw-bold text-primary mb-3">Navigasi Form</h6>
-                <div class="d-grid gap-2">
-                    <button type="button" id="btnMesinCnc" class="btn btn-outline-primary active">1. Mesin CNC</button>
-                    <button type="button" id="btnBarFeeder" class="btn btn-outline-primary">2. Bar Feeder CNC</button>
-                </div>
-            </div>
-        </div>
-
-      <?php elseif (strtolower($jenisSlug) === 'overhaul' && strtolower($lokasiSlug) === 'mfg2' && $itemIndex > $perPage): ?>
+      <?php if (strtolower($jenisSlug) === 'overhaul' && strtolower($lokasiSlug) === 'mfg2' && $itemIndex > $perPage): ?>
         <?php 
-          if (strtolower($categorySlug) === 'kasahara-tapping') {
-              $totalPages = 3;
-          } elseif (strtolower($categorySlug) === 'double-milling') {
+          if (strtolower($categorySlug) === 'double-milling') {
               $totalPages = 2;
           } elseif (strtolower($categorySlug) === 'double-center-drill') {
               $totalPages = 2;
@@ -980,6 +993,54 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                     });
                 }
             });
+        }
+    });
+
+    // ====== FOTO ABNORMAL: Show/Hide & Preview ======
+    document.addEventListener('change', function(e) {
+        const radio = e.target;
+        if (!radio.classList.contains('hasil-check-radio')) return;
+
+        const paramId = radio.getAttribute('data-param-id');
+        const wrap = document.getElementById('foto-wrap-' + paramId);
+        const fileInput = document.getElementById('foto-input-' + paramId);
+        const previewWrap = document.getElementById('foto-preview-' + paramId);
+
+        if (radio.value === 'Δ') {
+            // Tampilkan input foto dan jadikan required
+            wrap.style.display = 'block';
+            fileInput.required = true;
+        } else {
+            // Sembunyikan, hapus required, bersihkan file
+            wrap.style.display = 'none';
+            fileInput.required = false;
+            fileInput.value = '';
+            if (previewWrap) {
+                previewWrap.style.display = 'none';
+                previewWrap.querySelector('img').src = '';
+            }
+        }
+    });
+
+    // Preview gambar saat file dipilih
+    document.addEventListener('change', function(e) {
+        const fileInput = e.target;
+        if (!fileInput.classList.contains('foto-abnormal-input')) return;
+
+        const paramId = fileInput.id.replace('foto-input-', '');
+        const previewWrap = document.getElementById('foto-preview-' + paramId);
+        if (!previewWrap) return;
+
+        if (fileInput.files && fileInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                previewWrap.querySelector('img').src = ev.target.result;
+                previewWrap.style.display = 'block';
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        } else {
+            previewWrap.style.display = 'none';
+            previewWrap.querySelector('img').src = '';
         }
     });
   </script>

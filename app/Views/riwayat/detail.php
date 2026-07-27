@@ -26,9 +26,11 @@
       <h5 class="mb-0 fw-bold text-uppercase"><i class="bi bi-clipboard-check me-2 text-primary"></i>Detail Checklist Report</h5>
     </div>
   <div class="ms-auto d-flex align-items-center gap-2">
-    <a href="<?= site_url('riwayat/download-pdf/' . $header['id_transaksi']) ?>" class="btn btn-sm btn-outline-danger shadow-sm" target="_blank">
+    <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
+<a href="<?= site_url('riwayat/download-pdf/' . $header['id_transaksi']) ?>" class="btn btn-sm btn-outline-danger shadow-sm" target="_blank">
       <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
     </a>
+<?php endif; ?>
   </div>
 </div>
 
@@ -133,6 +135,33 @@
 ?>
 
 
+
+<div class="d-flex justify-content-end mb-2">
+  <table class="table table-sm table-bordered text-center mb-0 bg-white shadow-sm" style="width: auto; font-size: 0.85rem;">
+    <thead class="table-light">
+      <tr>
+        <th colspan="3" class="py-1 px-4">KETERANGAN CHECK LIST</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="fw-bold text-success px-3">V</td>
+        <td class="px-2">:</td>
+        <td class="text-start fw-bold px-3">OK</td>
+      </tr>
+      <tr>
+        <td class="fw-bold text-warning px-3">Δ</td>
+        <td class="px-2">:</td>
+        <td class="text-start fw-bold px-3">PERLU TINDAKAN</td>
+      </tr>
+      <tr>
+        <td class="fw-bold text-danger px-3">X</td>
+        <td class="px-2">:</td>
+        <td class="text-start fw-bold px-3">TIDAK ADA</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 <div class="card-stat p-3" style="overflow: hidden;">
   <?php if (strtolower($header['jenis_check']) === 'overhaul'): ?>
@@ -323,7 +352,7 @@
         </div>
         <h6 class="mb-0 fw-bold text-dark">
           <?php if (!empty($header['approval_l2_by'])): ?>
-            <span class="text-decoration-underline" style="font-size:0.9rem;"><?= esc($header['approver_l2_nama']) ?></span>
+            <span class="text-decoration-underline" style="font-size:0.9rem;">Mr. Rohmad</span>
           <?php else: ?>
             <span class="text-muted">( Mr. Rohmad )</span>
           <?php endif; ?>
@@ -350,7 +379,7 @@
         </div>
         <h6 class="mb-0 fw-bold text-dark">
           <?php if ($header['status'] === 'Approved'): ?>
-            <span class="text-decoration-underline" style="font-size:0.9rem;"><?= esc($header['approver_nama']) ?></span>
+            <span class="text-decoration-underline" style="font-size:0.9rem;">Mr. Royadi</span>
           <?php else: ?>
             <span class="text-muted">( Mr. Royadi )</span>
           <?php endif; ?>
@@ -457,13 +486,8 @@
             <?php endforeach; ?>
           </select>
         <?php else: ?>
-          <?php if ($role === 'leader'): ?>
-            <select name="leader_nama" class="form-select form-select-sm searchable-select" required style="min-width: 200px;">
-              <option value="">-- Pilih Leader (Staff) --</option>
-              <?php foreach ($staffPic ?? [] as $pic): ?>
-                <option value="<?= esc($pic['nama_pic']) ?>"><?= esc($pic['nama_pic']) ?></option>
-              <?php endforeach; ?>
-            </select>
+          <?php if ($role === 'leader' || $role === 'admin'): ?>
+            <input type="text" name="leader_nama" class="form-control form-control-sm" placeholder="Ketik Nama Leader" required style="min-width: 200px;" value="<?= esc(session()->get('nama') ?? '') ?>">
           <?php endif; ?>
         <?php endif; ?>
         <button type="submit" class="btn btn-success px-4 py-2 fw-semibold shadow-sm">

@@ -7,8 +7,19 @@
     </div>
     
     <div class="d-flex gap-2">
-        <form method="GET" action="<?= site_url('kontrol') ?>" class="d-flex flex-wrap gap-2 justify-content-end" id="filterForm">
+        <form method="GET" action="<?= site_url('kontrol') ?>" class="d-flex flex-wrap gap-2 justify-content-end align-items-center" id="filterForm">
             <input type="hidden" name="view" value="summary">
+            <?php
+                $pdfUrl = site_url('kontrol/pdf-all-summary?bulan=' . urlencode($bulan));
+                if (!empty($filterLokasi)) $pdfUrl .= '&filter_lokasi=' . urlencode($filterLokasi);
+                if (!empty($filterLine)) $pdfUrl .= '&filter_line=' . urlencode($filterLine);
+                if (!empty($filterKategori)) $pdfUrl .= '&filter_kategori=' . urlencode($filterKategori);
+            ?>
+            <?php if (!in_array(session()->get('role'), ['sheadprd', 'sheadmtc', 'leader'], true)): ?>
+            <a href="<?= $pdfUrl ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Download PDF">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
+            </a>
+            <?php endif; ?>
             <select name="bulan" class="form-select border-0 shadow-sm fw-medium rounded-pill" style="width: auto;" onchange="this.form.submit()">
                 <?php foreach ($bulanList as $val => $label): ?>
                     <option value="<?= $val ?>" <?= $val === $bulan ? 'selected' : '' ?>><?= $label ?></option>

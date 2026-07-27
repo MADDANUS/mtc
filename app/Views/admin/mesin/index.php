@@ -32,11 +32,9 @@
 </div>
 
 <div class="card-stat p-3">
-  <?php if (empty($daftar)): ?>
-    <p class="text-muted mb-0">Belum ada data mesin.</p>
-  <?php else: ?>
+  <form method="get" action="<?= site_url('admin/mesin') ?>" id="filterForm">
     <div class="table-responsive">
-      <table class="table table-sm align-middle">
+      <table class="table table-sm align-middle paginated-table" data-rows-per-item="1">
         <thead>
           <tr>
             <th>No Mesin</th>
@@ -48,8 +46,63 @@
             <th>Jenis</th>
             <th class="text-end">Aksi</th>
           </tr>
+          <tr style="background: rgba(0,0,0,0.02);">
+            <td colspan="3">
+              <input type="text" name="q" class="form-control form-control-sm" placeholder="Cari No / Type / Serial..." value="<?= esc($filters['q'] ?? '') ?>">
+            </td>
+            <td>
+              <?php if (session()->get('role') === 'leader'): ?>
+                <input type="text" class="form-control form-control-sm" value="<?= esc(session()->get('lokasi')) ?>" readonly>
+                <input type="hidden" name="lokasi" value="<?= esc(session()->get('lokasi')) ?>">
+              <?php else: ?>
+                <select name="lokasi" class="form-select form-select-sm" onchange="this.form.submit()">
+                  <option value="all">Semua Lokasi</option>
+                  <option value="MFG 1" <?= ($filters['lokasi'] ?? '') === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
+                  <option value="MFG 2" <?= ($filters['lokasi'] ?? '') === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
+                </select>
+              <?php endif; ?>
+            </td>
+            <td>
+              <select name="line" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="all">Semua Line</option>
+                <?php foreach (['Line 1', 'Line 2', 'Line 3', 'CG', 'Second'] as $l): ?>
+                  <option value="<?= $l ?>" <?= ($filters['line'] ?? '') === $l ? 'selected' : '' ?>><?= $l ?></option>
+                <?php endforeach; ?>
+              </select>
+            </td>
+            <td></td>
+            <td>
+              <select name="jenis" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="all">Semua Jenis</option>
+                <?php 
+                  $machineCategories = [
+                      'THREAD', 'DOUBLE MILLING', 'MILLING', 'DOUBLE CENTER DRILL', 'OSL', 
+                      'KNURLING', 'BROTHER', 'BURNISHING', 'BUFFING', 'CENTERING GRINDING'
+                  ];
+                  foreach ($machineCategories as $cat): 
+                ?>
+                  <option value="<?= $cat ?>" <?= ($filters['jenis'] ?? '') === $cat ? 'selected' : '' ?>><?= $cat ?></option>
+                <?php endforeach; ?>
+              </select>
+            </td>
+            <td class="text-end">
+              <div class="d-flex gap-1 justify-content-end">
+                <button type="submit" class="btn btn-sm btn-primary py-1 px-2" title="Cari"><i class="bi bi-search"></i></button>
+                <a href="<?= site_url('admin/mesin') ?>" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Reset"><i class="bi bi-x-lg"></i></a>
+              </div>
+            </td>
+          </tr>
         </thead>
         <tbody>
+        <?php if (empty($daftar)): ?>
+          <tr>
+            <td colspan="8" class="text-center py-5">
+              <i class="bi bi-inboxes text-muted mb-2" style="font-size: 2rem; display: block;"></i>
+              <p class="text-muted mb-0">Tidak ada data mesin yang sesuai dengan filter.</p>
+              <a href="<?= site_url('admin/mesin') ?>" class="btn btn-sm btn-outline-secondary mt-3">Reset Filter</a>
+            </td>
+          </tr>
+        <?php else: ?>
           <?php foreach ($daftar as $m): ?>
             <tr>
               <td><?= esc($m['no_mesin']) ?></td>
@@ -81,10 +134,11 @@
               </td>
             </tr>
           <?php endforeach; ?>
+        <?php endif; ?>
         </tbody>
       </table>
     </div>
-  <?php endif; ?>
+  </form>
 </div>
 
 <!-- Modal QR Code -->

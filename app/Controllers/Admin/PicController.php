@@ -138,6 +138,21 @@ class PicController extends BaseController
         // Header
         $sheet->setCellValue('A1', 'ID PIC');
         $sheet->setCellValue('B1', 'Nama PIC');
+        $sheet->setCellValue('C1', 'Role PIC');
+        
+        // Header styling
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF0070C0']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+        ];
+        $sheet->getStyle('A1:C1')->applyFromArray($headerStyle);
+        
+        // Auto-size columns
+        foreach (range('A', 'C') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
         
         $filename = 'template_pic.xlsx';
         
@@ -174,6 +189,7 @@ class PicController extends BaseController
             for ($row = 2; $row <= $highestRow; $row++) {
                 $idPic   = trim($sheet->getCell('A' . $row)->getValue() ?? '');
                 $namaPic = trim($sheet->getCell('B' . $row)->getValue() ?? '');
+                $rolePic = trim($sheet->getCell('C' . $row)->getValue() ?? '');
                 
                 // Lewati baris kosong
                 if (empty($idPic) && empty($namaPic)) {
@@ -181,21 +197,23 @@ class PicController extends BaseController
                 }
                 
                 if (empty($idPic) || empty($namaPic)) {
-                    $errors[] = "Baris {$row}: Seluruh kolom wajib diisi.";
+                    $errors[] = "Baris {$row}: ID PIC dan Nama PIC wajib diisi.";
                     continue;
                 }
                 
-                $existing = $this->picModel->find($idPic);
+                $existing = $this->picModel->where('id_pic', $idPic)->first();
                 
                 if ($existing) {
                     $this->picModel->update($idPic, [
                         'nama_pic' => $namaPic,
+                        'role_pic' => empty($rolePic) ? null : $rolePic,
                     ]);
                     $successUpdate++;
                 } else {
                     $this->picModel->insert([
                         'id_pic'   => $idPic,
                         'nama_pic' => $namaPic,
+                        'role_pic' => empty($rolePic) ? null : $rolePic,
                     ]);
                     $successInsert++;
                 }

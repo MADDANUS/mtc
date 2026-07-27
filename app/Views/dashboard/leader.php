@@ -12,6 +12,31 @@
     </div>
 </div>
 
+<?php
+  $roleSession = session()->get('role');
+  $isApproverRole = in_array($roleSession, ['sheadprd', 'sheadmtc', 'leader'], true);
+?>
+
+<?php if ($isApproverRole): ?>
+<div class="row g-4 mb-4">
+  <div class="col-md-<?= in_array($roleSession, ['sheadprd', 'sheadmtc']) ? '6' : '12' ?>">
+    <div class="card-stat-premium grad-cyan p-4">
+      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-2">Inspection Report</div>
+      <div class="value display-5 fw-bolder mb-0"><?= count($pendingOverhaul) ?></div>
+      <i class="bi bi-clipboard-check watermark-icon"></i>
+    </div>
+  </div>
+  <?php if (in_array($roleSession, ['sheadprd', 'sheadmtc'])): ?>
+  <div class="col-md-6">
+    <div class="card-stat-premium grad-emerald p-4">
+      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-2">Checklist Control</div>
+      <div class="value display-5 fw-bolder mb-0"><?= count($pendingKontrol) ?></div>
+      <i class="bi bi-grid-3x3-gap watermark-icon"></i>
+    </div>
+  </div>
+  <?php endif; ?>
+</div>
+<?php else: ?>
 <div class="row g-4 mb-5">
   <div class="col-md-4">
     <div class="card-stat-premium grad-cyan p-4">
@@ -38,24 +63,29 @@
 
 
 
+<?php endif; ?>
+
 <?php
-  $roleSession = session()->get('role');
   $hasPendingOverhaul = !empty($pendingOverhaul);
   $hasPendingKontrol  = !empty($pendingKontrol);
+  $showCard = $isApproverRole || $hasPendingOverhaul || $hasPendingKontrol;
 ?>
 
-<?php if ($hasPendingOverhaul || $hasPendingKontrol): ?>
+<?php if ($showCard): ?>
 <div class="card border-0 border-start border-warning border-4 shadow-sm rounded-4 overflow-hidden mb-4">
   <div class="card-header bg-warning bg-opacity-10 pt-3 pb-2 px-4 d-flex align-items-center gap-2">
     <i class="bi bi-bell-fill text-warning fs-5"></i>
     <h5 class="fw-bold mb-0 text-dark">Menunggu Approval Anda</h5>
     <?php $totalPending = count($pendingOverhaul) + count($pendingKontrol); ?>
-    <span class="badge bg-warning text-dark ms-auto"><?= $totalPending ?> dokumen</span>
+    <?php if ($totalPending > 0): ?>
+      <span class="badge bg-warning text-dark ms-auto"><?= $totalPending ?> dokumen</span>
+    <?php endif; ?>
   </div>
   <div class="card-body p-4">
 
+    <!-- TABEL 1: INSPECTION REPORT (OVERHAUL) - DITAMPILKAN UNTUK SEMUA APPROVER -->
+    <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-clipboard-check me-2 text-primary"></i>Checklist Report / Inspection Report</h6>
     <?php if ($hasPendingOverhaul): ?>
-    <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-clipboard-check me-2 text-primary"></i>Checklist Report / Overhaul</h6>
     <div class="table-responsive mb-4">
       <table class="table table-hover align-middle mb-0 border rounded-3 overflow-hidden">
         <thead class="table-primary">
@@ -76,13 +106,22 @@
             <td class="text-muted small"><?= !empty($po['waktu_mulai']) ? date('d M Y', strtotime($po['waktu_mulai'])) : '-' ?></td>
             <td><?= esc($po['nama_pic'] ?? '-') ?></td>
             <td>
-              <?php $st = $po['status'] ?? 'Pending'; ?>
+              <?php 
+                $st = $po['status'] ?? 'Pending'; 
+                $myRole = session()->get('role');
+              ?>
               <?php if ($st === 'Pending'): ?>
-                <span class="badge bg-warning text-dark">Pending</span>
+                <span class="badge bg-warning text-dark">
+                  <?= in_array($myRole, ['leader', 'member']) ? 'Menunggu Approval Anda' : 'Pending (Leader)' ?>
+                </span>
               <?php elseif ($st === 'Approved L1'): ?>
-                <span class="badge bg-info text-dark">Approved L1</span>
+                <span class="badge bg-info text-dark">
+                  <?= $myRole === 'sheadprd' ? 'Menunggu Approval Anda' : 'Approved L1' ?>
+                </span>
               <?php elseif ($st === 'Approved L2'): ?>
-                <span class="badge bg-primary">Approved L2</span>
+                <span class="badge bg-primary">
+                  <?= $myRole === 'sheadmtc' ? 'Menunggu Approval Anda' : 'Approved L2' ?>
+                </span>
               <?php else: ?>
                 <span class="badge bg-secondary"><?= esc($st) ?></span>
               <?php endif; ?>
@@ -97,10 +136,16 @@
         </tbody>
       </table>
     </div>
+    <?php else: ?>
+      <div class="text-muted small fst-italic mb-4 p-3 bg-light rounded border border-light">
+        <i class="bi bi-check2-circle me-1 text-success"></i> Belum ada dokumen Inspection Report yang perlu di-approval.
+      </div>
     <?php endif; ?>
 
-    <?php if ($hasPendingKontrol): ?>
+    <!-- TABEL 2: CHECKLIST CONTROL BULANAN - HANYA UNTUK SHEAD (1 & 2) ATAU JIKA ADA ISINYA -->
+    <?php if (in_array(session()->get('role'), ['sheadprd', 'sheadmtc'], true) || $hasPendingKontrol): ?>
     <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-grid-3x3-gap me-2 text-success"></i>Checklist Control Bulanan</h6>
+    <?php if ($hasPendingKontrol): ?>
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0 border rounded-3 overflow-hidden">
         <thead class="table-success">
@@ -121,15 +166,24 @@
             <td><?= esc($pk['kategori'] ?? '-') ?></td>
             <td class="text-muted small"><?= esc($pk['bulan_tahun'] ?? '-') ?></td>
             <td>
-              <?php $pks = $pk['status'] ?? 'Pending'; ?>
-              <?php if ($pks === 'Pending'): ?>
-                <span class="badge bg-warning text-dark">Pending</span>
-              <?php elseif ($pks === 'Approved L1'): ?>
-                <span class="badge bg-info text-dark">Approved L1</span>
-              <?php elseif ($pks === 'Approved L2'): ?>
-                <span class="badge bg-primary">Approved L2</span>
+              <?php 
+                $st = $pk['status'] ?? 'Pending'; 
+                $myRole = session()->get('role');
+              ?>
+              <?php if ($st === 'Pending'): ?>
+                <span class="badge bg-warning text-dark">
+                  <?= in_array($myRole, ['leader', 'member']) ? 'Menunggu Approval Anda' : 'Pending (Leader)' ?>
+                </span>
+              <?php elseif ($st === 'Approved L1'): ?>
+                <span class="badge bg-info text-dark">
+                  <?= $myRole === 'sheadprd' ? 'Menunggu Approval Anda' : 'Approved L1' ?>
+                </span>
+              <?php elseif ($st === 'Approved L2'): ?>
+                <span class="badge bg-primary">
+                  <?= $myRole === 'sheadmtc' ? 'Menunggu Approval Anda' : 'Approved L2' ?>
+                </span>
               <?php else: ?>
-                <span class="badge bg-secondary"><?= esc($pks) ?></span>
+                <span class="badge bg-secondary"><?= esc($st) ?></span>
               <?php endif; ?>
             </td>
             <td class="text-end pe-3">
@@ -145,31 +199,19 @@
         </tbody>
       </table>
     </div>
+    <?php else: ?>
+      <div class="text-muted small fst-italic mb-2 p-3 bg-light rounded border border-light">
+        <i class="bi bi-check2-circle me-1 text-success"></i> Belum ada dokumen Checklist Control Bulanan yang perlu di-approval.
+      </div>
+    <?php endif; ?>
     <?php endif; ?>
 
   </div>
 </div>
 <?php endif; ?>
 
-<?php if (in_array($roleSession, ['sheadprd', 'sheadmtc'])): ?>
-<div class="card border-0 border-start border-success border-4 shadow-sm rounded-4 overflow-hidden mb-4">
-  <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
-    <div class="d-flex align-items-center gap-3">
-      <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-        <i class="bi bi-calendar2-check fs-4"></i>
-      </div>
-      <div>
-        <h5 class="fw-bold mb-1 text-dark">Fitur Checklist Control</h5>
-        <p class="text-muted mb-0 small">Pantau status dan data Checklist Control bulanan secara lengkap dari sini.</p>
-      </div>
-    </div>
-    <a href="<?= site_url('kontrol') ?>" class="btn btn-success fw-bold rounded-pill px-4">
-      Buka Checklist Control <i class="bi bi-arrow-right ms-1"></i>
-    </a>
-  </div>
-</div>
-<?php endif; ?>
 
+<?php if (!$isApproverRole): ?>
 <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
   <div class="card-header bg-white border-bottom-0 pt-4 pb-3 px-4 d-flex justify-content-between align-items-center">
     <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history text-primary me-2"></i>Pengecekan Terbaru (Semua PIC)</h5>
@@ -250,5 +292,6 @@
     <?php endif; ?>
   </div>
 </div>
+<?php endif; ?>
 
 <?= view('layout/footer') ?>

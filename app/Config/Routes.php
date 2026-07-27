@@ -49,7 +49,8 @@ $routes->group('riwayat', ['filter' => 'auth'], static function ($routes) {
     $routes->get('redirect-detail', 'RiwayatController::redirectDetail');
     $routes->get('lokasi/(:segment)', 'RiwayatController::lokasi/$1');
     $routes->get('kategori/(:segment)', 'RiwayatController::kategori/$1');
-    $routes->get('download-pdf/(:num)', 'RiwayatController::downloadPdf/$1');
+    $routes->get('download-pdf-all/(:segment)', 'RiwayatController::downloadPdfAll/$1', ['filter' => 'role:member,admin,magang']);
+    $routes->get('download-pdf/(:num)', 'RiwayatController::downloadPdf/$1', ['filter' => 'role:member,admin,magang']);
     $routes->get('(:num)', 'RiwayatController::detail/$1');
     $routes->post('approve/(:num)', 'RiwayatController::approve/$1', ['filter' => 'role:member,sheadprd,sheadmtc,admin,leader']);
     
@@ -68,7 +69,9 @@ $routes->group('scan', ['filter' => 'role:magang,member,admin'], static function
 // Checklist Control Bulanan (semua role login)
 $routes->group('kontrol', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/', 'KontrolController::index');
-    $routes->get('pdf', 'KontrolController::pdf');
+    $routes->get('pdf', 'KontrolController::pdf', ['filter' => 'role:member,admin']);
+    $routes->get('pdf-all-categories', 'KontrolController::pdfAllCategories', ['filter' => 'role:member,admin']);
+    $routes->get('pdf-all-summary', 'KontrolController::pdfAllSummary', ['filter' => 'role:member,admin']);
     $routes->post('update-cell', 'KontrolController::updateCell');
     $routes->post('approve', 'KontrolController::approveBulanan');
 });
@@ -76,13 +79,25 @@ $routes->group('kontrol', ['filter' => 'auth'], static function ($routes) {
 // Laporan Abnormal Condition (semua role login)
 $routes->group('abnormal', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/', 'AbnormalController::index');
-    $routes->get('pdf', 'AbnormalController::pdf');
+    $routes->get('pdf', 'AbnormalController::pdf', ['filter' => 'role:member,admin']);
+    $routes->get('pdf-all-categories', 'AbnormalController::pdfAllCategories', ['filter' => 'role:member,admin']);
+    $routes->get('pdf-all-summary', 'AbnormalController::pdfAllSummary', ['filter' => 'role:member,admin']);
     $routes->post('update', 'AbnormalController::update');
     $routes->post('approve', 'AbnormalController::approveBulanan');
+    
+    // Abnormal Khusus Overhaul
+    $routes->get('overhaul', 'AbnormalController::overhaul');
+    $routes->get('overhaul/pdf', 'AbnormalController::pdfOverhaul', ['filter' => 'role:member,admin']);
+    $routes->get('overhaul/pdf-all-summary', 'AbnormalController::pdfAllSummaryOverhaul', ['filter' => 'role:member,admin']);
+    $routes->post('overhaul/update', 'AbnormalController::updateOverhaul');
+    
+    // Upload Foto Perbaikan (semua yang bisa akses abnormal)
+    $routes->post('upload-foto-perbaikan', 'AbnormalController::uploadFotoPerbaikan');
 });
 
-// Laporan Durasi (member, sheadprd, sheadmtc, admin)
-$routes->get('laporan/durasi', 'LaporanController::durasi', ['filter' => 'role:member,sheadprd,sheadmtc,admin,leader']);
+// Laporan Durasi (member, admin)
+$routes->get('laporan/durasi', 'LaporanController::durasi', ['filter' => 'role:member,admin']);
+$routes->get('laporan/durasi-pdf', 'LaporanController::durasiPdf', ['filter' => 'role:member,admin']);
 
 // Admin - Master Mesin (admin = full CRUD, member/sheadprd/sheadmtc = view-only)
 $routes->group('admin/mesin', ['filter' => 'role:admin,member,sheadprd,sheadmtc,leader', 'namespace' => 'App\Controllers\Admin'], static function ($routes) {

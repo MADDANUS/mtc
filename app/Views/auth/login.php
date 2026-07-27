@@ -258,16 +258,7 @@
                 <p>Enter your credentials to initiate secure connection.</p>
             </div>
 
-            <?php if (session()->getFlashdata('error')) : ?>
-                <div class="alert alert-danger mb-4">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i><?= session()->getFlashdata('error') ?>
-                </div>
-            <?php endif; ?>
-            <?php if (session()->getFlashdata('success')) : ?>
-                <div class="alert alert-success mb-4">
-                    <i class="bi bi-check-circle-fill me-2"></i><?= session()->getFlashdata('success') ?>
-                </div>
-            <?php endif; ?>
+            <!-- Flash messages handled by SweetAlert below -->
 
             <form action="<?= site_url('login') ?>" method="post">
                 <div class="mb-4">
@@ -297,6 +288,7 @@
             </div>
         </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     const togglePassword = document.querySelector('#togglePassword');
     const password = document.querySelector('#password');
@@ -308,6 +300,30 @@
         icon.classList.toggle('bi-eye');
         icon.classList.toggle('bi-eye-slash');
     });
+
+    <?php if (session()->getFlashdata('success')): ?>
+        let audioSuccess = new Audio('<?= base_url('audio/success.ogg') ?>');
+        audioSuccess.play().catch(e => console.log("Audio autoplay prevented"));
+        Swal.fire({
+            icon: 'success',
+            title: 'Berhasil',
+            text: '<?= addslashes(session()->getFlashdata('success')) ?>',
+            timer: 3000,
+            showConfirmButton: false
+        });
+    <?php endif; ?>
+    
+    <?php if (session()->getFlashdata('error')): ?>
+        let audioError = new Audio('<?= base_url('audio/error.ogg') ?>');
+        audioError.play().catch(e => console.log("Audio autoplay prevented"));
+        Swal.fire({
+            icon: 'error',
+            title: 'Akses Ditolak',
+            text: '<?= addslashes(session()->getFlashdata('error')) ?>',
+            timer: 3000,
+            showConfirmButton: false
+        });
+    <?php endif; ?>
 </script>
 </body>
 </html>

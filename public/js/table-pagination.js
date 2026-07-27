@@ -21,7 +21,15 @@ document.addEventListener("DOMContentLoaded", function() {
             if (totalItems === 0) return;
         }
 
+        const storageKey = 'pagination_page_' + window.location.pathname + window.location.search;
         let currentPage = 1;
+        
+        // Restore from sessionStorage if exists
+        const savedPage = sessionStorage.getItem(storageKey);
+        if (savedPage) {
+            currentPage = parseInt(savedPage, 10) || 1;
+        }
+        
         let itemsPerPage = 15;
 
         // Create pagination controls container
@@ -106,6 +114,7 @@ document.addEventListener("DOMContentLoaded", function() {
         selectEl.addEventListener('change', function() {
             itemsPerPage = parseInt(this.value, 10);
             currentPage = 1;
+            sessionStorage.setItem(storageKey, currentPage);
             renderTable();
         });
 
@@ -113,6 +122,7 @@ document.addEventListener("DOMContentLoaded", function() {
             e.preventDefault();
             if (currentPage > 1) {
                 currentPage--;
+                sessionStorage.setItem(storageKey, currentPage);
                 renderTable();
             }
         });
@@ -122,6 +132,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const totalPages = Math.ceil(totalItems / itemsPerPage);
             if (currentPage < totalPages) {
                 currentPage++;
+                sessionStorage.setItem(storageKey, currentPage);
                 renderTable();
             }
         });

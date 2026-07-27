@@ -33,10 +33,7 @@ class ChecklistController extends BaseController
         'belt-cam'       => 'Belt Cam',
         // Overhaul
         'mesin-cnc-bar-feeder' => 'Mesin CNC & Bar Feeder',
-        'kasahara-milling'     => 'KASAHARA MILLING',
-        'kasahara-slothing'    => 'KASAHARA SLOTHING',
         'thread'               => 'THREAD',
-        'kasahara-tapping'     => 'KASAHARA TAPPING',
         'double-milling'       => 'DOUBLE MILLING',
         'milling'              => 'MILLING',
         'double-center-drill'  => 'DOUBLE CENTER DRILL',
@@ -130,10 +127,7 @@ class ChecklistController extends BaseController
             return redirect()->to($redirectUrl);
         } else if (strtolower($jenisSlug) === 'overhaul' && $lokasiName === 'MFG 2') {
             $categories = [
-                'kasahara-milling'     => 'KASAHARA MILLING',
-                'kasahara-slothing'    => 'KASAHARA SLOTHING',
                 'thread'               => 'THREAD',
-                'kasahara-tapping'     => 'KASAHARA TAPPING',
                 'double-milling'       => 'DOUBLE MILLING',
                 'milling'              => 'MILLING',
                 'double-center-drill'  => 'DOUBLE CENTER DRILL',
@@ -191,6 +185,29 @@ class ChecklistController extends BaseController
         $waktuMulai       = Time::now();
         $idMesin          = $this->request->getGet('id_mesin') ?: null;
 
+        // NEW LOGIC: Block if Jadwal Preventive is not created for this month, location, and category
+        if ($jenisDbName === 'Preventive') {
+            $jadwalModel = new \App\Models\JadwalPreventiveModel();
+            $bulanIni = date('Y-m'); // e.g., '2026-07'
+            
+            $cekJadwal = $jadwalModel->where('lokasi', $lokasiName)
+                                     ->where('kategori', $categoryName)
+                                     ->where('bulan_tahun', $bulanIni)
+                                     ->first();
+
+            if (!$cekJadwal) {
+                // If it came from QR scan with id_mesin, preserve the id_mesin in the redirect url if desired, 
+                // but redirecting back to category list is fine.
+                $redirectUrl = "/checklist/{$lokasiSlug}/{$jenisSlug}";
+                if ($idMesin) {
+                    $redirectUrl .= "?id_mesin=" . $idMesin;
+                }
+                
+                return redirect()->to($redirectUrl)
+                                 ->with('error', "Gagal! Jadwal Preventive untuk kategori {$categoryName} di bulan ini belum dibuat oleh Admin/Leader.");
+            }
+        }
+
         if (strtolower($jenisSlug) === 'overhaul') {
             if ($lokasiName === 'MFG 2') {
                 $daftarMesin = $this->mesinModel->where('lokasi', $lokasiName)
@@ -198,11 +215,9 @@ class ChecklistController extends BaseController
                                                 ->orderBy('no_mesin', 'ASC')
                                                 ->findAll();
             } else {
+                // MFG 1 - Overhaul (Mesin CNC & Bar Feeder)
                 $daftarMesin = $this->mesinModel->where('lokasi', $lokasiName)
-                                                ->groupStart()
-                                                ->where('jenis', null)
-                                                ->orWhere('jenis', '')
-                                                ->groupEnd()
+                                                ->where('jenis', 'CNC')
                                                 ->orderBy('no_mesin', 'ASC')
                                                 ->findAll();
             }
@@ -347,13 +362,27 @@ class ChecklistController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Gagal membuat header transaksi pengecekan.');
         }
 
+        $uploadPath = FCPATH . 'uploads/abnormal/';
         $detailData = [];
         foreach ($hasilCheck as $idParameter => $hasil) {
+            $fotoAbnormal = null;
+
+            // Jika hasil Δ, upload foto (wajib)
+            if ($hasil === 'Δ') {
+                $file = $this->request->getFile("foto_abnormal.{$idParameter}");
+                if ($file && $file->isValid() && !$file->hasMoved()) {
+                    $newName = time() . '_' . uniqid() . '.' . $file->getClientExtension();
+                    $file->move($uploadPath, $newName);
+                    $fotoAbnormal = $newName;
+                }
+            }
+
             $idDetail = $this->detailModel->insert([
-                'id_transaksi' => $idTransaksi,
-                'id_parameter' => (int) $idParameter,
-                'hasil_check'  => $hasil !== '' ? $hasil : null,
-                'ulasan'       => $ulasan[$idParameter] ?? null,
+                'id_transaksi'  => $idTransaksi,
+                'id_parameter'  => (int) $idParameter,
+                'hasil_check'   => $hasil !== '' ? $hasil : null,
+                'ulasan'        => $ulasan[$idParameter] ?? null,
+                'foto_abnormal' => $fotoAbnormal,
             ]);
             // (Logika laporan_abnormal dipindah ke proses Approval)
         }

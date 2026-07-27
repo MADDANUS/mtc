@@ -55,7 +55,7 @@
         <?php 
           $jenisVal = old('jenis', $mesin['jenis'] ?? '');
           $categories = [
-              'KASAHARA MILLING', 'KASAHARA SLOTHING', 'THREAD', 'KASAHARA TAPPING', 
+              'THREAD', 
               'DOUBLE MILLING', 'MILLING', 'DOUBLE CENTER DRILL', 'OSL', 
               'KNURLING', 'BROTHER', 'BURNISHING', 'BUFFING', 'CENTERING GRINDING'
           ];

@@ -1,1 +1,0 @@
-<?php define("ENVIRONMENT", "development"); require "system/bootstrap.php"; $db = \Config\Database::connect(); $builder = $db->table("transaksi_check")->where("id_mesin", 1)->where("jenis_check", "Checklist Report")->where("DATE_FORMAT(tanggal_check, '%Y-%m')", date("Y-m")); print_r($builder->countAllResults());

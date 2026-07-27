@@ -19,16 +19,55 @@ class MesinController extends BaseController
     public function index()
     {
         $role = session()->get('role');
-        $lokasi = session()->get('lokasi');
+        $lokasiUser = session()->get('lokasi');
         $builder = $this->model->orderBy('lokasi', 'ASC')->orderBy('no_mesin', 'ASC');
         
-        if ($role === 'leader' && $lokasi) {
-            $builder->where('lokasi', $lokasi);
+        // Filter by user role (Leader only sees their own location)
+        if ($role === 'leader' && $lokasiUser) {
+            $builder->where('lokasi', $lokasiUser);
         }
+
+        // Get filter inputs
+        $q = $this->request->getGet('q');
+        $lokasi = $this->request->getGet('lokasi');
+        $line = $this->request->getGet('line');
+        $jenis = $this->request->getGet('jenis');
+
+        if (!empty($q)) {
+            $builder->groupStart()
+                    ->like('no_mesin', $q)
+                    ->orLike('type_mesin', $q)
+                    ->orLike('serial_nomor', $q)
+                    ->groupEnd();
+        }
+
+        if (!empty($lokasi) && $lokasi !== 'all') {
+            // Ensure leader cannot override their own location restriction
+            if ($role !== 'leader' || ($role === 'leader' && $lokasi === $lokasiUser)) {
+                $builder->where('lokasi', $lokasi);
+            }
+        }
+
+        if (!empty($line) && $line !== 'all') {
+            $builder->where('line', $line);
+        }
+
+        if (!empty($jenis) && $jenis !== 'all') {
+            $builder->where('jenis', $jenis);
+        }
+
+        // Save current url with query params to session so we can return to it after edit/delete
+        session()->set('last_mesin_url', (string) current_url(true));
 
         return view('admin/mesin/index', [
             'title'  => 'Master Mesin',
             'daftar' => $builder->findAll(),
+            'filters' => [
+                'q' => $q,
+                'lokasi' => $lokasi,
+                'line' => $line,
+                'jenis' => $jenis
+            ]
         ]);
     }
 
@@ -56,14 +95,16 @@ class MesinController extends BaseController
             'jenis'           => $this->request->getPost('jenis') ?: null,
         ]);
 
-        return redirect()->to('/admin/mesin')->with('success', 'Mesin berhasil ditambahkan.');
+        $redirectUrl = session()->get('last_mesin_url') ?? '/admin/mesin';
+        return redirect()->to($redirectUrl)->with('success', 'Mesin berhasil ditambahkan.');
     }
 
     public function edit(int $id)
     {
         $mesin = $this->model->find($id);
         if (! $mesin) {
-            return redirect()->to('/admin/mesin')->with('error', 'Mesin tidak ditemukan.');
+            $redirectUrl = session()->get('last_mesin_url') ?? '/admin/mesin';
+            return redirect()->to($redirectUrl)->with('error', 'Mesin tidak ditemukan.');
         }
 
         return view('admin/mesin/form', [
@@ -74,8 +115,10 @@ class MesinController extends BaseController
 
     public function update(int $id)
     {
+        $redirectUrl = session()->get('last_mesin_url') ?? '/admin/mesin';
+
         if (! $this->model->find($id)) {
-            return redirect()->to('/admin/mesin')->with('error', 'Mesin tidak ditemukan.');
+            return redirect()->to($redirectUrl)->with('error', 'Mesin tidak ditemukan.');
         }
 
         if (! $this->validate($this->rules())) {
@@ -92,17 +135,19 @@ class MesinController extends BaseController
             'jenis'           => $this->request->getPost('jenis') ?: null,
         ]);
 
-        return redirect()->to('/admin/mesin')->with('success', 'Mesin berhasil diperbarui.');
+        return redirect()->to($redirectUrl)->with('success', 'Mesin berhasil diperbarui.');
     }
 
     public function delete(int $id)
     {
+        $redirectUrl = session()->get('last_mesin_url') ?? '/admin/mesin';
+
         if (! $this->model->find($id)) {
-            return redirect()->to('/admin/mesin')->with('error', 'Mesin tidak ditemukan.');
+            return redirect()->to($redirectUrl)->with('error', 'Mesin tidak ditemukan.');
         }
 
         $this->model->delete($id);
-        return redirect()->to('/admin/mesin')->with('success', 'Mesin berhasil dihapus.');
+        return redirect()->to($redirectUrl)->with('success', 'Mesin berhasil dihapus.');
     }
 
     public function export()
@@ -155,6 +200,21 @@ class MesinController extends BaseController
         $sheet->setCellValue('D1', 'Lokasi');
         $sheet->setCellValue('E1', 'Line');
         $sheet->setCellValue('F1', 'Bar Feeder Type');
+        $sheet->setCellValue('G1', 'Jenis');
+        
+        // Header styling
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF0070C0']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+        ];
+        $sheet->getStyle('A1:G1')->applyFromArray($headerStyle);
+        
+        // Auto-size columns
+        foreach (range('A', 'G') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
         
         $filename = 'template_mesin.xlsx';
         
@@ -195,6 +255,7 @@ class MesinController extends BaseController
                 $lokasi        = trim($sheet->getCell('D' . $row)->getValue() ?? '');
                 $line          = trim($sheet->getCell('E' . $row)->getValue() ?? '');
                 $barFeederType = trim($sheet->getCell('F' . $row)->getValue() ?? '');
+                $jenis         = trim($sheet->getCell('G' . $row)->getValue() ?? '');
                 
                 // Lewati baris kosong
                 if (empty($noMesin) && empty($typeMesin) && empty($serialNomor) && empty($lokasi)) {
@@ -202,7 +263,7 @@ class MesinController extends BaseController
                 }
                 
                 if (empty($noMesin) || empty($typeMesin) || empty($serialNomor) || empty($lokasi)) {
-                    $errors[] = "Baris {$row}: Seluruh kolom wajib diisi kecuali Bar Feeder Type.";
+                    $errors[] = "Baris {$row}: Seluruh kolom wajib diisi kecuali Bar Feeder Type dan Jenis.";
                     continue;
                 }
                 
@@ -220,6 +281,7 @@ class MesinController extends BaseController
                         'lokasi'          => $lokasi,
                         'line'            => empty($line) ? null : $line,
                         'bar_feeder_type' => empty($barFeederType) ? null : $barFeederType,
+                        'jenis'           => empty($jenis) ? null : $jenis,
                     ]);
                     $successUpdate++;
                 } else {
@@ -230,6 +292,7 @@ class MesinController extends BaseController
                         'lokasi'          => $lokasi,
                         'line'            => empty($line) ? null : $line,
                         'bar_feeder_type' => empty($barFeederType) ? null : $barFeederType,
+                        'jenis'           => empty($jenis) ? null : $jenis,
                     ]);
                     $successInsert++;
                 }

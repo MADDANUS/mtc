@@ -1,6 +1,19 @@
 <?= view('layout/header', ['title' => $title]) ?>
 
-<h3 class="fw-bold mb-3">Laporan Durasi Pengecekan (Efisiensi)</h3>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="fw-bold mb-0">Laporan Durasi Pengecekan (Efisiensi)</h3>
+  <?php
+      $pdfUrl = site_url('laporan/durasi-pdf');
+      if (!empty($selectedFilters)) {
+          $pdfUrl .= '?' . http_build_query($selectedFilters);
+      }
+  ?>
+  <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
+  <a href="<?= $pdfUrl ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Download PDF">
+      <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
+  </a>
+  <?php endif; ?>
+</div>
 
 <div class="card-stat p-3 mb-3" style="max-width:320px;">
   <div class="text-muted small">Rata-rata Durasi Semua Transaksi</div>

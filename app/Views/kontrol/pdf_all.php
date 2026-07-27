@@ -24,6 +24,19 @@
 </head>
 <body>
 <div class="pdf-container">
+
+<?php $totalGrids = count($allGrids); $currentIndex = 0; ?>
+<?php foreach ($allGrids as $item): ?>
+  <?php 
+    $kategori = $item['kategori'];
+    $grid = $item['grid'];
+    $hasSchedule = $item['hasSchedule'];
+    $columnDates = $item['columnDates'];
+    $approvalData = $item['approvalData'];
+    $itemLokasi = $item['lokasi'] ?? $lokasi;
+    $itemLine = $item['line'] ?? $line;
+    $currentIndex++;
+  ?>
 <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:0;">
 
   <!-- ROW 1: Logo (rowspan=4) + CHECKLIST CONTROL -->
@@ -42,7 +55,7 @@
 
   <!-- ROW 2: Kategori + Lokasi -->
   <tr>
-    <td colspan="8" style="border:1.5pt solid #000; text-align:center; font-weight:bold; font-size:13px; padding:4px;"><?= strtoupper($kategori) ?> (<?= strtoupper($lokasi) ?>)</td>
+    <td colspan="8" style="border:1.5pt solid #000; text-align:center; font-weight:bold; font-size:13px; padding:4px;"><?= strtoupper($kategori) ?> (<?= strtoupper($itemLokasi) ?><?= $itemLine ? ' / ' . strtoupper($itemLine) : '' ?>)</td>
   </tr>
 
   <!-- ROW 3: Label NO. DOCUMENT / NO. REVISI / HALAMAN -->
@@ -121,7 +134,7 @@
   <!-- BODY TABEL ISI -->
   <?php if (empty($grid)): ?>
   <tr>
-    <td colspan="9" style="border:1.5pt solid #000; text-align:center; padding:10px;">Belum ada data mesin terdaftar di <?= esc($lokasi) ?>.</td>
+    <td colspan="9" style="border:1.5pt solid #000; text-align:center; padding:10px;">Belum ada data mesin terdaftar di <?= esc($itemLokasi) ?>.</td>
   </tr>
   <?php else: ?>
     <?php $no = 1; foreach ($grid as $row): ?>
@@ -226,6 +239,13 @@
     </td>
   </tr>
 </table>
+
+<?php if ($currentIndex < $totalGrids): ?>
+  <div style="page-break-after: always;"></div>
+<?php endif; ?>
+
+<?php endforeach; ?>
+
 </div>
 </body>
 </html>

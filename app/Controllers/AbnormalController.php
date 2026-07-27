@@ -90,6 +90,154 @@ class AbnormalController extends BaseController
         return;
     }
 
+    public function pdfAllCategories()
+    {
+        $lokasiFilter   = $this->request->getGet('lokasi') ?: 'MFG 1';
+        $searchFilter   = $this->request->getGet('search') ?: '';
+        $bulanFilter    = $this->request->getGet('bulan') ?: date('Y-m');
+
+        if ($lokasiFilter === 'MFG 2') {
+            $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
+        } else {
+            $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
+        }
+
+        $allReportsData = [];
+        $db = \Config\Database::connect();
+        
+        foreach ($categories as $cat) {
+            $builder = $db->table('laporan_abnormal')
+                          ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
+                          ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
+                          ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
+                          ->where('master_mesin.lokasi', $lokasiFilter)
+                          ->where('transaksi_check.kategori', $cat);
+
+            if (!empty($bulanFilter)) {
+                $builder->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after');
+            }
+
+            if (!empty($searchFilter)) {
+                $builder->groupStart()
+                        ->like('laporan_abnormal.point_check', $searchFilter)
+                        ->orLike('laporan_abnormal.abnormal_condition', $searchFilter)
+                        ->orLike('master_mesin.no_mesin', $searchFilter)
+                        ->orLike('master_mesin.type_mesin', $searchFilter)
+                        ->groupEnd();
+            }
+
+            $reports = $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
+                               ->orderBy('laporan_abnormal.id_abnormal', 'DESC')
+                               ->get()
+                               ->getResultArray();
+
+            $allReportsData[] = [
+                'kategori' => $cat,
+                'reports'  => $reports
+            ];
+        }
+
+        $data = [
+            'title'          => "Laporan Abnormal - Semua Kategori - {$lokasiFilter}",
+            'allReportsData' => $allReportsData,
+            'lokasiFilter'   => $lokasiFilter,
+            'searchFilter'   => $searchFilter,
+            'bulanFilter'    => $bulanFilter
+        ];
+
+        $html = view('abnormal/pdf_all', $data);
+
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $filename = 'Laporan_Abnormal_Semua_Kategori_' . str_replace(' ', '_', $lokasiFilter) . '_' . $bulanFilter . '.pdf';
+        $dompdf->stream($filename, ['Attachment' => true]);
+        return;
+    }
+
+    public function pdfAllSummary()
+    {
+        $bulanFilter = $this->request->getGet('bulan') ?: date('Y-m');
+        $filterLokasi = $this->request->getGet('filter_lokasi') === 'all' ? '' : ($this->request->getGet('filter_lokasi') ?: '');
+        $filterLine = $this->request->getGet('filter_line') === 'all' ? '' : ($this->request->getGet('filter_line') ?: '');
+        $filterKategori = $this->request->getGet('filter_kategori') === 'all' ? '' : ($this->request->getGet('filter_kategori') ?: '');
+        
+        $lokasiList = ['MFG 1', 'MFG 2'];
+        
+        $allReportsData = [];
+        $db = \Config\Database::connect();
+        
+        foreach ($lokasiList as $lokasi) {
+            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
+            
+            $categories = ($lokasi === 'MFG 2') 
+                ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'] 
+                : ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
+                
+            foreach ($categories as $cat) {
+                if (!empty($filterKategori) && $cat !== $filterKategori) continue;
+                
+                $builder = $db->table('laporan_abnormal')
+                              ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
+                              ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
+                              ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
+                              ->where('master_mesin.lokasi', $lokasi)
+                              ->where('transaksi_check.kategori', $cat);
+
+                if (!empty($bulanFilter)) {
+                    $builder->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after');
+                }
+
+                if (!empty($filterLine)) {
+                    $builder->where('master_mesin.line', $filterLine);
+                }
+
+                $reports = $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
+                                   ->orderBy('laporan_abnormal.id_abnormal', 'DESC')
+                                   ->get()
+                                   ->getResultArray();
+
+                // Skip if no data
+                if (empty($reports)) continue;
+
+                $allReportsData[] = [
+                    'lokasi'   => $lokasi,
+                    'kategori' => $cat,
+                    'reports'  => $reports
+                ];
+            }
+        }
+
+        $data = [
+            'title'          => "Laporan Abnormal - Ringkasan Semua Area",
+            'allReportsData' => $allReportsData,
+            'lokasiFilter'   => 'SEMUA AREA',
+            'searchFilter'   => '',
+            'bulanFilter'    => $bulanFilter
+        ];
+
+        $html = view('abnormal/pdf_all', $data);
+
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $filename = 'Laporan_Abnormal_Ringkasan_Semua_Area_' . $bulanFilter . '.pdf';
+        $dompdf->stream($filename, ['Attachment' => true]);
+        return;
+    }
+
     public function index()
     {
         // Jika parameter view=summary atau tidak ada parameter spesifik, tampilkan halaman ringkasan
@@ -163,6 +311,8 @@ class AbnormalController extends BaseController
             }
         }
 
+        $masterPic = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
+
         return view('abnormal/index', [
             'title'          => 'Laporan Abnormal Condition',
             'reports'        => $reports,
@@ -173,6 +323,7 @@ class AbnormalController extends BaseController
             'categories'     => $categories,
             'bulanList'      => $bulanList,
             'allFilled'      => $allFilled,
+            'masterPic'      => $masterPic,
         ]);
     }
 
@@ -350,7 +501,409 @@ class AbnormalController extends BaseController
         return redirect()->back()->with('error', 'Gagal memperbarui Laporan Abnormal.');
     }
 
+    /**
+     * GET /abnormal/overhaul
+     */
+    public function overhaul()
+    {
+        $viewType     = $this->request->getGet('view') ?: 'list';
+        if ($viewType === 'summary') {
+            return $this->summaryOverhaul();
+        }
+
+        $lokasiFilter = $this->request->getGet('lokasi') ?: 'MFG 1';
+        $searchFilter = $this->request->getGet('search') ?: '';
+        $bulanFilter  = $this->request->getGet('bulan') ?: date('Y-m');
+
+        $db = \Config\Database::connect();
+        $builder = $db->table('laporan_abnormal')
+                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
+                      ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
+                      ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left');
+                      
+        $builder->where('transaksi_check.jenis_check', 'Overhaul');
+
+        if (!empty($lokasiFilter) && $lokasiFilter !== 'all') {
+            $builder->where('master_mesin.lokasi', $lokasiFilter);
+        }
+
+        if (!empty($bulanFilter) && $bulanFilter !== 'all') {
+            $builder->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after');
+        }
+
+        if (!empty($searchFilter)) {
+            $builder->groupStart()
+                    ->like('laporan_abnormal.point_check', $searchFilter)
+                    ->orLike('laporan_abnormal.abnormal_condition', $searchFilter)
+                    ->orLike('master_mesin.no_mesin', $searchFilter)
+                    ->orLike('master_mesin.type_mesin', $searchFilter)
+                    ->groupEnd();
+        }
+
+        $reports = $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
+                           ->orderBy('laporan_abnormal.id_abnormal', 'DESC')
+                           ->get()
+                           ->getResultArray();
+
+        $masterPic = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
+
+        $bulanList = [];
+        for ($i = 0; $i < 12; $i++) {
+            $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
+            $val  = $time->format('Y-m');
+            $label = $time->toLocalizedString('MMMM yyyy');
+            $bulanList[$val] = $label;
+        }
+
+        $data = [
+            'title'          => 'Laporan Abnormal Overhaul',
+            'reports'        => $reports,
+            'lokasiFilter'   => $lokasiFilter,
+            'searchFilter'   => $searchFilter,
+            'bulanFilter'    => $bulanFilter,
+            'masterPic'      => $masterPic,
+            'bulanList'      => $bulanList,
+        ];
+
+        return view('abnormal/index_overhaul', $data);
+    }
+
+    protected function summaryOverhaul()
+    {
+        $bulanFilter    = $this->request->getGet('bulan') ?: date('Y-m');
+        $filterLokasi   = $this->request->getGet('filter_lokasi') ?: '';
+        $filterLine     = $this->request->getGet('filter_line') ?: '';
+        $filterStatus   = $this->request->getGet('filter_status') ?: '';
+        $sortBy         = $this->request->getGet('sort_by') ?: 'lokasi';
+        $order          = $this->request->getGet('order') ?: 'asc';
+
+        $db = \Config\Database::connect();
+        
+        $linesByLokasi = [
+            'MFG 1' => ['Brother', 'Milling', 'Kasahara', 'Knurling', 'Osl', 'Centering Grinding', 'Double Milling', 'Double Center Drill'],
+            'MFG 2' => ['Brother', 'Osl', 'Kasahara', 'Buffing', 'Thread', 'Burnishing']
+        ];
+
+        $bulan = date('Y-m');
+        if (!empty($bulanFilter)) {
+            $bulan = $bulanFilter;
+        }
+
+        $builder = $db->table('laporan_abnormal')
+                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
+                      ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
+                      ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left');
+                      
+        $builder->where('transaksi_check.jenis_check', 'Overhaul');
+
+        if (!empty($bulan)) {
+            $builder->like('laporan_abnormal.pengecekan_tanggal', $bulan . '-', 'after');
+        }
+
+        $reports = $builder->get()->getResultArray();
+
+        $abnormalData = [];
+        foreach ($reports as $r) {
+            $lokasi = trim($r['lokasi']);
+            $line = trim($r['type_mesin']);
+            
+            if (!isset($abnormalData[$lokasi])) $abnormalData[$lokasi] = [];
+            if (!isset($abnormalData[$lokasi][$line])) $abnormalData[$lokasi][$line] = ['totalOpen' => 0, 'totalAll' => 0];
+
+            $abnormalData[$lokasi][$line]['totalAll']++;
+            if (empty($r['action'])) {
+                $abnormalData[$lokasi][$line]['totalOpen']++;
+            }
+        }
+
+        $bulanList = [];
+        for ($i = 0; $i < 12; $i++) {
+            $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
+            $val  = $time->format('Y-m');
+            $label = $time->toLocalizedString('MMMM yyyy');
+            $bulanList[$val] = $label;
+        }
+
+        $summaryRows = [];
+        foreach ($linesByLokasi as $lokasi => $lines) {
+            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue; 
+            
+            foreach ($lines as $line) {
+                if (!empty($filterLine) && $line !== $filterLine) continue; 
+
+                $abData = $abnormalData[$lokasi][$line] ?? ['totalOpen' => 0, 'totalAll' => 0];
+                $totalOpen = $abData['totalOpen'];
+                $totalAll  = $abData['totalAll'];
+                
+                if ($totalAll == 0) continue; 
+                
+                if ($totalOpen > 0) {
+                    $badgeClass = 'bg-danger';
+                    $statusText = 'Belum Perbaikan';
+                } else {
+                    $badgeClass = 'bg-success';
+                    $statusText = 'Sudah Perbaikan';
+                }
+                
+                if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
+
+                $summaryRows[] = [
+                    'lokasi'      => $lokasi,
+                    'line'        => $line,
+                    'totalOpen'   => $totalOpen,
+                    'statusText'  => $statusText,
+                    'badgeClass'  => $badgeClass
+                ];
+            }
+        }
+
+        usort($summaryRows, function($a, $b) use ($sortBy, $order) {
+            $valA = $a[$sortBy] ?? '';
+            $valB = $b[$sortBy] ?? '';
+            
+            if ($valA == $valB) return 0;
+            
+            $cmp = ($valA < $valB) ? -1 : 1;
+            return ($order === 'asc') ? $cmp : -$cmp;
+        });
+
+        $availableLines = [];
+        if (!empty($filterLokasi)) {
+            $availableLines = isset($linesByLokasi[$filterLokasi]) ? array_unique($linesByLokasi[$filterLokasi]) : [];
+        } else {
+            foreach ($linesByLokasi as $lines) {
+                $availableLines = array_merge($availableLines, $lines);
+            }
+            $availableLines = array_unique($availableLines);
+        }
+        sort($availableLines);
+
+        return view('abnormal/summary_overhaul', [
+            'title'            => 'Ringkasan Laporan Abnormal Overhaul',
+            'bulan'            => $bulan,
+            'bulanList'        => $bulanList,
+            'summaryRows'      => $summaryRows,
+            'filterLokasi'     => $filterLokasi,
+            'filterLine'       => $filterLine,
+            'filterStatus'     => $filterStatus,
+            'sortBy'           => $sortBy,
+            'order'            => $order,
+            'availableLines'   => $availableLines,
+        ]);
+    }
+
+    public function pdfOverhaul()
+    {
+        $lokasiFilter   = $this->request->getGet('lokasi') ?: 'MFG 1';
+        $searchFilter   = $this->request->getGet('search') ?: '';
+        $bulanFilter    = $this->request->getGet('bulan') ?: date('Y-m');
+
+        $db = \Config\Database::connect();
+        $builder = $db->table('laporan_abnormal')
+                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
+                      ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
+                      ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
+                      ->where('transaksi_check.jenis_check', 'Overhaul');
+
+        if (!empty($lokasiFilter) && $lokasiFilter !== 'all') {
+            $builder->where('master_mesin.lokasi', $lokasiFilter);
+        }
+
+        if (!empty($bulanFilter) && $bulanFilter !== 'all') {
+            $builder->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after');
+        }
+
+        if (!empty($searchFilter)) {
+            $builder->groupStart()
+                    ->like('laporan_abnormal.point_check', $searchFilter)
+                    ->orLike('laporan_abnormal.abnormal_condition', $searchFilter)
+                    ->orLike('master_mesin.no_mesin', $searchFilter)
+                    ->orLike('master_mesin.type_mesin', $searchFilter)
+                    ->groupEnd();
+        }
+
+        $reports = $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
+                           ->orderBy('laporan_abnormal.id_abnormal', 'DESC')
+                           ->get()
+                           ->getResultArray();
+
+        $data = [
+            'title'          => 'Laporan Abnormal Overhaul',
+            'reports'        => $reports,
+            'lokasiFilter'   => $lokasiFilter,
+            'searchFilter'   => $searchFilter,
+            'bulanFilter'    => $bulanFilter,
+            'isOverhaul'     => true,
+            'kategoriFilter' => 'Overhaul' // Dummy untuk file PDF jika diperlukan
+        ];
+
+        $html = view('abnormal/pdf', $data);
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->set_option('isRemoteEnabled', true);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+        $filenameLokasi = $lokasiFilter === 'all' ? 'Semua_Area' : str_replace(' ', '_', $lokasiFilter);
+        $filenameBulan = $bulanFilter === 'all' ? 'Semua_Bulan' : $bulanFilter;
+        $dompdf->stream('Laporan_Abnormal_Overhaul_' . $filenameLokasi . '_' . $filenameBulan . '.pdf', ['Attachment' => true]);
+        return;
+    }
+
+    public function pdfAllSummaryOverhaul()
+    {
+        $bulanFilter = $this->request->getGet('bulan') ?: date('Y-m');
+        $db = \Config\Database::connect();
+        
+        $linesByLokasi = [
+            'MFG 1' => ['Brother', 'Milling', 'Kasahara', 'Knurling', 'Osl', 'Centering Grinding', 'Double Milling', 'Double Center Drill'],
+            'MFG 2' => ['Brother', 'Osl', 'Kasahara', 'Buffing', 'Thread', 'Burnishing']
+        ];
+        
+        $allData = [];
+        
+        foreach (['MFG 1', 'MFG 2'] as $lokasi) {
+            $builder = $db->table('laporan_abnormal')
+                          ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi')
+                          ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
+                          ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
+                          ->where('transaksi_check.jenis_check', 'Overhaul')
+                          ->where('master_mesin.lokasi', $lokasi)
+                          ->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after');
+                          
+            $reports = $builder->get()->getResultArray();
+            
+            $abnormalData = [];
+            foreach ($reports as $r) {
+                $line = trim($r['type_mesin']);
+                if (!isset($abnormalData[$line])) $abnormalData[$line] = ['totalOpen' => 0, 'totalAll' => 0];
+                $abnormalData[$line]['totalAll']++;
+                if (empty($r['action'])) {
+                    $abnormalData[$line]['totalOpen']++;
+                }
+            }
+            
+            $summaryRows = [];
+            $lines = $linesByLokasi[$lokasi] ?? [];
+            foreach ($lines as $line) {
+                $abData = $abnormalData[$line] ?? ['totalOpen' => 0, 'totalAll' => 0];
+                $totalOpen = $abData['totalOpen'];
+                $totalAll  = $abData['totalAll'];
+                
+                if ($totalAll == 0) continue; 
+                
+                $summaryRows[] = [
+                    'line'        => $line,
+                    'totalOpen'   => $totalOpen,
+                    'totalAll'    => $totalAll
+                ];
+            }
+            $allData[$lokasi] = $summaryRows;
+        }
+
+        $allAbnormal = $db->table('laporan_abnormal')
+                             ->select('SUM(CASE WHEN laporan_abnormal.action IS NULL OR laporan_abnormal.action = \'\' THEN 1 ELSE 0 END) as totalOpen,
+                                     COUNT(laporan_abnormal.id_abnormal) as totalAll')
+                             ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
+                             ->where('transaksi_check.jenis_check', 'Overhaul')
+                             ->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after')
+                             ->get()->getRowArray();
+                             
+        $totalAllAbnormal = $allAbnormal['totalAll'] ?? 0;
+        $totalOpenAbnormal = $allAbnormal['totalOpen'] ?? 0;
+        $totalCloseAbnormal = $totalAllAbnormal - $totalOpenAbnormal;
+        $achievement = $totalAllAbnormal > 0 ? round(($totalCloseAbnormal / $totalAllAbnormal) * 100) : 100;
+
+        $data = [
+            'bulanFilter' => $bulanFilter,
+            'allData' => $allData,
+            'totalAllAbnormal' => $totalAllAbnormal,
+            'totalOpenAbnormal' => $totalOpenAbnormal,
+            'totalCloseAbnormal' => $totalCloseAbnormal,
+            'achievement' => $achievement,
+            'isOverhaul' => true
+        ];
+
+        $html = view('abnormal/pdf_all_summary', $data);
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->set_option('isRemoteEnabled', true);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        $filename = 'Laporan_Abnormal_Overhaul_Ringkasan_' . $bulanFilter . '.pdf';
+        $dompdf->stream($filename, ['Attachment' => true]);
+        return;
+    }
+
+    public function updateOverhaul()
+    {
+        $idAbnormal = (int) $this->request->getPost('id_abnormal');
+        if ($idAbnormal <= 0) {
+            return redirect()->back()->with('error', 'Laporan Abnormal tidak valid.');
+        }
+
+        $data = [
+            'type_sparepart'  => $this->request->getPost('type_sparepart') ?: null,
+            'progres_stock'   => $this->request->getPost('progres_stock') ?: null,
+            'progres_tanggal' => $this->request->getPost('progres_tanggal') ?: null,
+            'action'          => $this->request->getPost('action') ?: null,
+            'repair_pic'      => $this->request->getPost('repair_pic') ?: null,
+            'keterangan'      => $this->request->getPost('keterangan') ?: null,
+        ];
+
+        if ($this->abnormalModel->update($idAbnormal, $data)) {
+            return redirect()->to('/abnormal/overhaul')->with('success', 'Rencana perbaikan Laporan Abnormal Overhaul berhasil diperbarui.');
+        }
+
+        return redirect()->back()->with('error', 'Gagal memperbarui Laporan Abnormal Overhaul.');
+    }
+
+    /**
+     * POST /abnormal/upload-foto-perbaikan
+     * Upload foto setelah perbaikan (AJAX, JSON response)
+     */
+    public function uploadFotoPerbaikan()
+    {
+        $idAbnormal = (int) $this->request->getPost('id_abnormal');
+        if ($idAbnormal <= 0) {
+            return $this->response->setJSON(['success' => false, 'message' => 'ID tidak valid.']);
+        }
+
+        $file = $this->request->getFile('foto_perbaikan');
+        if (!$file || !$file->isValid() || $file->hasMoved()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'File tidak valid.']);
+        }
+
+        // Validasi tipe file (gambar saja)
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!in_array($file->getMimeType(), $allowedTypes)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Hanya file gambar yang diizinkan (jpg, png, gif, webp).']);
+        }
+
+        $uploadPath = FCPATH . 'uploads/abnormal/';
+        $newName = 'repair_' . time() . '_' . uniqid() . '.' . $file->getClientExtension();
+        $file->move($uploadPath, $newName);
+
+        // Simpan nama file ke laporan_abnormal
+        $existing = $this->abnormalModel->find($idAbnormal);
+        
+        // Hapus foto lama jika ada
+        if (!empty($existing['foto_perbaikan'])) {
+            $oldPath = $uploadPath . $existing['foto_perbaikan'];
+            if (file_exists($oldPath)) {
+                @unlink($oldPath);
+            }
+        }
+
+        if ($this->abnormalModel->update($idAbnormal, ['foto_perbaikan' => $newName, 'updated_at' => date('Y-m-d H:i:s')])) {
+            return $this->response->setJSON([
+                'success'   => true,
+                'message'   => 'Foto perbaikan berhasil diupload.',
+                'foto_url'  => base_url('uploads/abnormal/' . $newName),
+                'foto_name' => $newName,
+            ]);
+        }
+
+        return $this->response->setJSON(['success' => false, 'message' => 'Gagal menyimpan foto.']);
+    }
+
 }
-
-
-

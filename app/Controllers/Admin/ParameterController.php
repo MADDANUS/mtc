@@ -241,6 +241,20 @@ class ParameterController extends BaseController
         $sheet->setCellValue('H1', 'Standard Check');
         $sheet->setCellValue('I1', 'Urutan');
         
+        // Header styling
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF0070C0']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+        ];
+        $sheet->getStyle('A1:I1')->applyFromArray($headerStyle);
+        
+        // Auto-size columns
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+        
         $filename = 'template_parameter.xlsx';
         
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

@@ -87,4 +87,54 @@ class LaporanController extends BaseController
             'userLine'        => $userLine,
         ]);
     }
+
+    public function durasiPdf()
+    {
+        $role = session()->get('role');
+        $lokasiName = ($role === 'leader') ? session()->get('lokasi') : ($this->request->getGet('lokasi') === 'all' ? null : ($this->request->getGet('lokasi') ?: null));
+        $userLine = ($role === 'leader') ? session()->get('line') : null;
+
+        $filters = [
+            'lokasi'      => $lokasiName,
+            'id_mesin'    => $this->request->getGet('id_mesin') === 'all' ? null : ($this->request->getGet('id_mesin') ?: null),
+            'line'        => $userLine ?: ($this->request->getGet('line') === 'all' ? null : ($this->request->getGet('line') ?: null)),
+            'jenis_check' => $this->request->getGet('jenis_check') === 'all' ? null : ($this->request->getGet('jenis_check') ?: null),
+            'bulan'       => $this->request->getGet('bulan') === 'all' ? null : ($this->request->getGet('bulan') ?: null),
+            'pic'         => $this->request->getGet('pic') === 'all' ? null : ($this->request->getGet('pic') ?: null),
+            'sort_by'     => $this->request->getGet('sort_by') ?: 'id_transaksi',
+            'order'       => $this->request->getGet('order') ?: 'desc',
+        ];
+        
+        $laporan = (new TransaksiCheckModel())->getLaporanDurasi($filters);
+
+        $totalDurasi = 0;
+        $count       = 0;
+        foreach ($laporan as $l) {
+            if ($l['durasi_detik'] !== null) {
+                $totalDurasi += (int) $l['durasi_detik'];
+                $count++;
+            }
+        }
+        $rataDetik = $count > 0 ? intdiv($totalDurasi, $count) : 0;
+        
+        $html = view('laporan/durasi_pdf', [
+            'title'           => 'Laporan Durasi Pengecekan',
+            'laporan'         => $laporan,
+            'rataDetik'       => $rataDetik,
+            'selectedFilters' => $filters
+        ]);
+
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $filename = 'Laporan_Durasi_Pengecekan.pdf';
+        $dompdf->stream($filename, ['Attachment' => true]);
+        return;
+    }
 }

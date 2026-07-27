@@ -8,7 +8,7 @@ class TransaksiCheckDetailModel extends Model
 {
     protected $table         = 'transaksi_check_detail';
     protected $primaryKey    = 'id_detail';
-    protected $allowedFields = ['id_transaksi', 'id_parameter', 'hasil_check', 'ulasan'];
+    protected $allowedFields = ['id_transaksi', 'id_parameter', 'hasil_check', 'ulasan', 'foto_abnormal'];
     protected $useTimestamps = true;
     protected $returnType    = 'array';
 

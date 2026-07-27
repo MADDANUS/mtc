@@ -26,13 +26,18 @@
             '07' => 'JULI', '08' => 'AGUSTUS', '09' => 'SEPTEMBER',
             '10' => 'OKTOBER', '11' => 'NOVEMBER', '12' => 'DESEMBER'
         ];
-        if ($bulanFilter === 'all') {
-            $bulanNama = 'SEMUA';
-        } else {
-            $bulanVal = substr($bulanFilter, 5, 2);
-            $bulanNama = isset($bulanIndo[$bulanVal]) ? $bulanIndo[$bulanVal] : '';
-        }
+        $bulanVal = substr($bulanFilter, 5, 2);
+        $bulanNama = isset($bulanIndo[$bulanVal]) ? $bulanIndo[$bulanVal] : '';
       ?>
+
+<?php $totalReports = count($allReportsData); $currentIndex = 0; ?>
+<?php foreach ($allReportsData as $item): ?>
+  <?php 
+    $kategoriFilter = $item['kategori'];
+    $itemLokasi = $item['lokasi'] ?? $lokasiFilter;
+    $reports = $item['reports'];
+    $currentIndex++;
+  ?>
       <table class="table align-middle text-center abnormal-table" style="font-size: 0.8rem; border-collapse: collapse;">
         <thead>
           <tr style="background-color: #f7e600;">
@@ -43,7 +48,7 @@
           </tr>
           <tr style="background-color: #f2f2f2;">
             <th colspan="7" style="text-align: left; border: 1.5pt solid #000; padding: 4px; font-style: italic; font-size: 11px;">
-              JENIS PREVENTIVE : <?= strtoupper($kategoriFilter) ?> <?= $bulanNama === 'SEMUA' ? 'SEMUA BULAN' : 'BULAN ' . $bulanNama ?>
+              AREA : <?= strtoupper($itemLokasi) ?> | JENIS PREVENTIVE : <?= strtoupper($kategoriFilter) ?> | BULAN <?= $bulanNama ?>
             </th>
             <th colspan="4" style="text-align: right; border: 1.5pt solid #000; padding: 4px; font-style: italic; font-size: 11px;">
               Rev.:0/2911/24
@@ -134,7 +139,11 @@
         </tbody>
       </table>
 
+<?php if ($currentIndex < $totalReports): ?>
+  <div style="page-break-after: always;"></div>
+<?php endif; ?>
 
+<?php endforeach; ?>
 
 
 

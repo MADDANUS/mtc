@@ -180,6 +180,243 @@ class KontrolController extends BaseController
         return;
     }
 
+    public function pdfAllCategories()
+    {
+        $lokasi   = $this->request->getGet('lokasi') ?: 'MFG 1';
+        $bulan    = $this->request->getGet('bulan') ?: date('Y-m');
+        $line     = $this->request->getGet('line') ?: null;
+
+        if ($lokasi === 'MFG 2') {
+            $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
+        } else {
+            $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
+        }
+
+        $availableLines = [];
+        if ($lokasi === 'MFG 1') {
+            $availableLines = ['Line 1', 'Line 2', 'Line 3'];
+        } elseif ($lokasi === 'MFG 2') {
+            $availableLines = ['CG', 'Second'];
+        }
+
+        if (empty($line) && !empty($availableLines)) {
+            $line = $availableLines[0];
+        }
+
+        $allGrids = [];
+        $db = \Config\Database::connect();
+        
+        foreach ($categories as $cat) {
+            $grid = $this->kontrolModel->getGridData($lokasi, $cat, $bulan, $line);
+            $schedule = $db->table('jadwal_preventive')
+                           ->where('lokasi', $lokasi)
+                           ->where('kategori', $cat)
+                           ->where('bulan_tahun', $bulan)
+                           ->get()
+                           ->getRowArray();
+                           
+            $columnDates = [];
+            $hasSchedule = false;
+            $tglRencanaStr = '-';
+            if ($schedule) {
+                $hasSchedule = true;
+                $tglRencanaStr = date('d-m-Y', strtotime($schedule['tanggal_rencana']));
+                
+                $tglRencanaTs = strtotime($schedule['tanggal_rencana']);
+                $dayOfWeek      = (int) date('N', $tglRencanaTs);
+                $mondayTs       = strtotime('-' . ($dayOfWeek - 1) . ' days', $tglRencanaTs);
+
+                for ($d = 0; $d < 5; $d++) {
+                    $columnDates[$d + 1] = date('Y-m-d', strtotime("+$d days", $mondayTs));
+                }
+            }
+
+            $approvalQuery = $db->table('approval_bulanan a')
+                           ->select('a.*, u1.nama as l1_name, u2.nama as l2_name, u3.nama as final_name')
+                           ->join('users u1', 'u1.id = a.approved_l1_by', 'left')
+                           ->join('users u2', 'u2.id = a.approved_l2_by', 'left')
+                           ->join('users u3', 'u3.id = a.approved_final_by', 'left')
+                           ->where('a.type', 'kontrol')
+                           ->where('a.lokasi', $lokasi)
+                           ->where('a.kategori', $cat)
+                           ->where('a.bulan_tahun', $bulan);
+
+            if ($line) {
+                $approvalQuery->where('a.line', $line);
+            } else {
+                $approvalQuery->where('a.line', 'NONE');
+            }
+            
+            $approval = $approvalQuery->get()->getRowArray() ?: [];
+
+            $allGrids[] = [
+                'kategori'    => $cat,
+                'grid'        => $grid,
+                'hasSchedule' => $hasSchedule,
+                'tglRencana'  => $tglRencanaStr,
+                'columnDates' => $columnDates,
+                'approvalData'=> $approval
+            ];
+        }
+        
+        $bulanList = [];
+        for ($i = 0; $i < 12; $i++) {
+            $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
+            $bulanList[$time->format('Y-m')] = $time->toLocalizedString('MMMM yyyy');
+        }
+
+        $data = [
+            'title'      => "Checklist Control - {$lokasi} - Semua Kategori",
+            'lokasi'     => $lokasi,
+            'bulan'      => $bulan,
+            'line'       => $line,
+            'allGrids'   => $allGrids,
+            'bulanList'  => $bulanList
+        ];
+
+        $html = view('kontrol/pdf_all', $data);
+
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $filename = 'Checklist_Control_Semua_Kategori_' . str_replace(' ', '_', $lokasi) . '_' . $bulan . '.pdf';
+        $dompdf->stream($filename, ['Attachment' => true]);
+        return;
+    }
+
+    public function pdfAllSummary()
+    {
+        $bulan = $this->request->getGet('bulan') ?: date('Y-m');
+        $filterLokasi = $this->request->getGet('filter_lokasi') === 'all' ? '' : ($this->request->getGet('filter_lokasi') ?: '');
+        $filterLine = $this->request->getGet('filter_line') === 'all' ? '' : ($this->request->getGet('filter_line') ?: '');
+        $filterKategori = $this->request->getGet('filter_kategori') === 'all' ? '' : ($this->request->getGet('filter_kategori') ?: '');
+        
+        $lokasiList = [
+            'MFG 1' => ['Line 1', 'Line 2', 'Line 3'],
+            'MFG 2' => ['CG', 'Second']
+        ];
+        
+        $allGrids = [];
+        $db = \Config\Database::connect();
+        
+        foreach ($lokasiList as $lokasi => $lines) {
+            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
+            
+            $categories = ($lokasi === 'MFG 2') 
+                ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'] 
+                : ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
+                
+            foreach ($lines as $line) {
+                if (!empty($filterLine) && $line !== $filterLine) continue;
+                
+                foreach ($categories as $cat) {
+                    if (!empty($filterKategori) && $cat !== $filterKategori) continue;
+                    
+                    $grid = $this->kontrolModel->getGridData($lokasi, $cat, $bulan, $line);
+                    
+                    if (empty($grid)) continue;
+
+                    // Skip if completely unfilled (no PIC assigned)
+                    $hasData = false;
+                    foreach ($grid as $row) {
+                        if ($row['pic_nama'] !== 'PIC' && !empty($row['pic_nama'])) {
+                            $hasData = true;
+                            break;
+                        }
+                    }
+                    if (!$hasData) continue;
+                    $schedule = $db->table('jadwal_preventive')
+                                   ->where('lokasi', $lokasi)
+                                   ->where('kategori', $cat)
+                                   ->where('bulan_tahun', $bulan)
+                                   ->get()
+                                   ->getRowArray();
+                                   
+                    $columnDates = [];
+                    $hasSchedule = false;
+                    $tglRencanaStr = '-';
+                    if ($schedule) {
+                        $hasSchedule = true;
+                        $tglRencanaStr = date('d-m-Y', strtotime($schedule['tanggal_rencana']));
+                        
+                        $tglRencanaTs = strtotime($schedule['tanggal_rencana']);
+                        $dayOfWeek      = (int) date('N', $tglRencanaTs);
+                        $mondayTs       = strtotime('-' . ($dayOfWeek - 1) . ' days', $tglRencanaTs);
+
+                        for ($d = 0; $d < 5; $d++) {
+                            $columnDates[$d + 1] = date('Y-m-d', strtotime("+$d days", $mondayTs));
+                        }
+                    }
+
+                    $approvalQuery = $db->table('approval_bulanan a')
+                                   ->select('a.*, u1.nama as l1_name, u2.nama as l2_name, u3.nama as final_name')
+                                   ->join('users u1', 'u1.id = a.approved_l1_by', 'left')
+                                   ->join('users u2', 'u2.id = a.approved_l2_by', 'left')
+                                   ->join('users u3', 'u3.id = a.approved_final_by', 'left')
+                                   ->where('a.type', 'kontrol')
+                                   ->where('a.lokasi', $lokasi)
+                                   ->where('a.kategori', $cat)
+                                   ->where('a.bulan_tahun', $bulan);
+
+                    if ($line) {
+                        $approvalQuery->where('a.line', $line);
+                    } else {
+                        $approvalQuery->where('a.line', 'NONE');
+                    }
+                    
+                    $approval = $approvalQuery->get()->getRowArray() ?: [];
+
+                    $allGrids[] = [
+                        'lokasi'      => $lokasi,
+                        'line'        => $line,
+                        'kategori'    => $cat,
+                        'grid'        => $grid,
+                        'hasSchedule' => $hasSchedule,
+                        'tglRencana'  => $tglRencanaStr,
+                        'columnDates' => $columnDates,
+                        'approvalData'=> $approval
+                    ];
+                }
+            }
+        }
+        
+        $bulanList = [];
+        for ($i = 0; $i < 12; $i++) {
+            $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
+            $bulanList[$time->format('Y-m')] = $time->toLocalizedString('MMMM yyyy');
+        }
+
+        $data = [
+            'title'      => "Checklist Control - Ringkasan Semua Area",
+            'lokasi'     => 'SEMUA AREA',
+            'bulan'      => $bulan,
+            'line'       => null,
+            'allGrids'   => $allGrids,
+            'bulanList'  => $bulanList
+        ];
+
+        $html = view('kontrol/pdf_all', $data);
+
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $filename = 'Checklist_Control_Ringkasan_Semua_Area_' . $bulan . '.pdf';
+        $dompdf->stream($filename, ['Attachment' => true]);
+        return;
+    }
+
     public function index()
     {
         // Jika parameter view=summary atau tidak ada parameter spesifik, tampilkan halaman ringkasan
@@ -290,6 +527,14 @@ class KontrolController extends BaseController
         $approval = $approvalQuery->get()->getRowArray();
 
         $approvalStatus = $approval ? $approval['status'] : 'Pending';
+
+        $roleSession = session()->get('role');
+        if ($roleSession === 'sheadprd' && $approvalStatus === 'Pending') {
+            return redirect()->to('/kontrol')->with('error', 'Dokumen belum siap untuk Anda (Masih menunggu persetujuan Leader).');
+        }
+        if ($roleSession === 'sheadmtc' && in_array($approvalStatus, ['Pending', 'Approved L1'], true)) {
+            return redirect()->to('/kontrol')->with('error', 'Dokumen belum siap untuk Anda (Masih menunggu persetujuan SHead Produksi).');
+        }
 
         return view('kontrol/index', [
             'title'          => 'Checklist Control Bulanan',
@@ -411,6 +656,14 @@ class KontrolController extends BaseController
                     
                     $status = $approvalData[$lokasi][$line][$kategori] ?? '';
                     
+                    // Filter based on role
+                    $roleSession = session()->get('role');
+                    if ($roleSession === 'sheadprd' && (empty($status) || $status === 'Pending')) {
+                        continue;
+                    }
+                    if ($roleSession === 'sheadmtc' && (empty($status) || in_array($status, ['Pending', 'Approved L1'], true))) {
+                        continue;
+                    }
                     $badgeClass = 'bg-secondary';
                     $statusText = 'Belum Selesai';
                     
