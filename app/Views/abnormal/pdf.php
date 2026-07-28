@@ -104,7 +104,30 @@
                 <td class="fw-bold font-monospace text-secondary" style="background-color: #f8fafc;"><?= $no++ ?></td>
                 <td class="text-start fw-bold text-dark ps-3"><?= esc($r['no_mesin']) ?></td>
                 <td><?= esc($r['point_check']) ?></td>
-                <td class="text-danger fw-semibold"><?= esc($r['abnormal_condition']) ?></td>
+                <td class="text-danger fw-semibold">
+                  <?= esc($r['abnormal_condition']) ?>
+                  <?php 
+                    if (!empty($r['foto_abnormal'])):
+                      $imgPath = FCPATH . 'uploads/abnormal/' . $r['foto_abnormal'];
+                      if (file_exists($imgPath)):
+                        $type = pathinfo($imgPath, PATHINFO_EXTENSION);
+                        $base64 = base64_encode(file_get_contents($imgPath));
+                        $src = 'data:image/' . $type . ';base64,' . $base64;
+                  ?>
+                    <br><img src="<?= $src ?>" style="max-height: 50px; margin-top: 2px; border: 1px solid #ccc;">
+                  <?php endif; endif; ?>
+                  
+                  <?php 
+                    if (!empty($r['foto_abnormal_2'])):
+                      $imgPath = FCPATH . 'uploads/abnormal/' . $r['foto_abnormal_2'];
+                      if (file_exists($imgPath)):
+                        $type = pathinfo($imgPath, PATHINFO_EXTENSION);
+                        $base64 = base64_encode(file_get_contents($imgPath));
+                        $src = 'data:image/' . $type . ';base64,' . $base64;
+                  ?>
+                    <br><img src="<?= $src ?>" style="max-height: 50px; margin-top: 2px; border: 1px solid #ccc;">
+                  <?php endif; endif; ?>
+                </td>
                 <td><?= esc($r['type_sparepart']) ?: '<span class="text-muted small">-</span>' ?></td>
                 
                 <!-- Pengecekan -->
@@ -124,7 +147,30 @@
                   <?php endif; ?>
                 </td>
                 <td class="font-monospace"><?= $r['progres_tanggal'] ? date('d-m-Y', strtotime($r['progres_tanggal'])) : '<span class="text-muted">-</span>' ?></td>
-                <td class="text-start"><?= esc($r['action']) ?: '<span class="text-muted">-</span>' ?></td>
+                <td class="text-start">
+                  <?= esc($r['action']) ?: '<span class="text-muted">-</span>' ?>
+                  <?php 
+                    if (!empty($r['foto_perbaikan'])):
+                      $imgPath = FCPATH . 'uploads/abnormal/' . $r['foto_perbaikan'];
+                      if (file_exists($imgPath)):
+                        $type = pathinfo($imgPath, PATHINFO_EXTENSION);
+                        $base64 = base64_encode(file_get_contents($imgPath));
+                        $src = 'data:image/' . $type . ';base64,' . $base64;
+                  ?>
+                    <br><img src="<?= $src ?>" style="max-height: 50px; margin-top: 2px; border: 1px solid #ccc;">
+                  <?php endif; endif; ?>
+
+                  <?php 
+                    if (!empty($r['foto_perbaikan_2'])):
+                      $imgPath = FCPATH . 'uploads/abnormal/' . $r['foto_perbaikan_2'];
+                      if (file_exists($imgPath)):
+                        $type = pathinfo($imgPath, PATHINFO_EXTENSION);
+                        $base64 = base64_encode(file_get_contents($imgPath));
+                        $src = 'data:image/' . $type . ';base64,' . $base64;
+                  ?>
+                    <br><img src="<?= $src ?>" style="max-height: 50px; margin-top: 2px; border: 1px solid #ccc;">
+                  <?php endif; endif; ?>
+                </td>
                 <td><span class="fw-semibold text-dark"><?= esc($r['repair_pic']) ?: '<span class="text-muted">-</span>' ?></span></td>
                 
                 <td><?= esc($r['keterangan']) ?: '<span class="text-muted">-</span>' ?></td>

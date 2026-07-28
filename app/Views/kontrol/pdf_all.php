@@ -58,18 +58,16 @@
     <td colspan="8" style="border:1.5pt solid #000; text-align:center; font-weight:bold; font-size:13px; padding:4px;"><?= strtoupper($kategori) ?> (<?= strtoupper($itemLokasi) ?><?= $itemLine ? ' / ' . strtoupper($itemLine) : '' ?>)</td>
   </tr>
 
-  <!-- ROW 3: Label NO. DOCUMENT / NO. REVISI / HALAMAN -->
+  <!-- ROW 3: Label NO. DOCUMENT / NO. REVISI -->
   <tr>
-    <td colspan="3" style="border:1.5pt solid #000; text-align:center; font-weight:bold; padding:3px 4px;">NO. DOCUMENT</td>
-    <td colspan="3" style="border:1.5pt solid #000; text-align:center; font-weight:bold; padding:3px 4px;">NO. REVISI</td>
-    <td colspan="2" style="border:1.5pt solid #000; text-align:center; font-weight:bold; padding:3px 4px;">HALAMAN</td>
+    <td colspan="4" style="border:1.5pt solid #000; text-align:center; font-weight:bold; padding:3px 4px;">NO. DOCUMENT</td>
+    <td colspan="4" style="border:1.5pt solid #000; text-align:center; font-weight:bold; padding:3px 4px;">NO. REVISI</td>
   </tr>
 
-  <!-- ROW 4: Nilai FM-MTN-09 / 0 / 1 DARI 4 -->
+  <!-- ROW 4: Nilai FM-MTN-09 / 0 -->
   <tr>
-    <td colspan="3" style="border:1.5pt solid #000; text-align:center; padding:3px 4px;">FM-MTN-09</td>
-    <td colspan="3" style="border:1.5pt solid #000; text-align:center; padding:3px 4px;">0</td>
-    <td colspan="2" style="border:1.5pt solid #000; text-align:center; padding:3px 4px;">1 DARI 1</td>
+    <td colspan="4" style="border:1.5pt solid #000; text-align:center; padding:3px 4px;">FM-MTN-09</td>
+    <td colspan="4" style="border:1.5pt solid #000; text-align:center; padding:3px 4px;">0</td>
   </tr>
 
   <!-- ROW 5: Rev - full width colspan=9 (termasuk kolom logo) -->
@@ -102,6 +100,7 @@
 
 <table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:0;">
 
+  <thead>
   <!-- HEADER ISI Row 1: NO | MESIN | WAKTU(5) | OUT OF PLAN | ULASAN -->
   <tr>
     <th rowspan="3" style="border:1.5pt solid #000; width:5%; text-align:center; vertical-align:middle; background-color:#f2f2f2; font-weight:700; padding:3px;">NO</th>
@@ -130,18 +129,21 @@
     </th>
     <?php endfor; ?>
   </tr>
-
+  </thead>
   <!-- BODY TABEL ISI -->
   <?php if (empty($grid)): ?>
+  <tbody>
   <tr>
     <td colspan="9" style="border:1.5pt solid #000; text-align:center; padding:10px;">Belum ada data mesin terdaftar di <?= esc($itemLokasi) ?>.</td>
   </tr>
+  </tbody>
   <?php else: ?>
     <?php $no = 1; foreach ($grid as $row): ?>
       <?php $m = $row['mesin']; $idMesin = (int)$m['id_mesin']; ?>
+      <tbody style="page-break-inside: avoid;">
       <!-- BARIS STATUS CHECK -->
-      <tr>
-        <td rowspan="2" style="border:1.5pt solid #000; text-align:center; vertical-align:middle; font-weight:bold;"><?= $no++ ?></td>
+      <tr style="page-break-after: avoid;">
+        <td style="border:1.5pt solid #000; border-bottom:none; text-align:center; vertical-align:middle; font-weight:bold;"><?= $no++ ?></td>
         <td style="border:1.5pt solid #000; text-align:left; font-weight:bold; padding-left:6px; padding-top:2px; padding-bottom:2px;"><?= esc($m['jenis']) ?> <?= esc($m['no_mesin']) ?></td>
         <?php for ($p = 1; $p <= 5; $p++): ?>
           <?php
@@ -168,10 +170,26 @@
           <?php else: ?>-<?php endif; ?>
         </td>
         <!-- Ulasan -->
-        <td style="border:1.5pt solid #000; text-align:left; padding:2px 4px; font-size:0.75rem;"><?= esc($row['ulasan']) ?: '-' ?></td>
+        <td style="border:1.5pt solid #000; text-align:left; padding:2px 4px; font-size:0.75rem;">
+          <?= esc($row['ulasan']) ?: '-' ?>
+          <?php if (!empty($row['photos'])): ?>
+            <?php foreach ($row['photos'] as $ph): ?>
+              <?php 
+                $imgPath = FCPATH . 'uploads/abnormal/' . $ph;
+                if (file_exists($imgPath)): 
+                  $type = pathinfo($imgPath, PATHINFO_EXTENSION);
+                  $base64 = base64_encode(file_get_contents($imgPath));
+                  $src = 'data:image/' . $type . ';base64,' . $base64;
+              ?>
+                <br><img src="<?= $src ?>" style="max-height: 50px; margin-top: 2px; border: 1px solid #ccc;">
+              <?php endif; ?>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </td>
       </tr>
       <!-- BARIS PIC -->
       <tr>
+        <td style="border:1.5pt solid #000; border-top:none; text-align:center;"></td>
         <td style="border:1.5pt solid #000; text-align:left; font-size:0.7rem; padding:1px 6px; color:#555;">PIC</td>
         <?php for ($p = 1; $p <= 5; $p++): ?>
           <?php
@@ -185,6 +203,7 @@
         <td style="border:1.5pt solid #000;"></td>
         <td style="border:1.5pt solid #000;"></td>
       </tr>
+      </tbody>
     <?php endforeach; ?>
   <?php endif; ?>
 </table>
@@ -231,7 +250,7 @@
         <div style="height: 20px; margin-bottom: 20px;"></div>
       <?php endif; ?>
       <div style="font-weight: bold; text-decoration: underline; font-size: 0.9rem;">
-        <?= isset($approvalData['approved_final_by']) ? 'Mr. Muryanto' : '( Mr. Muryanto )' ?>
+        <?= isset($approvalData['approved_final_by']) ? 'Mr. Royadi' : '( Mr. Royadi )' ?>
       </div>
       <div style="font-size: 0.8rem; color: #555;">
         Tanggal: <?= isset($approvalData['approved_final_at']) ? date('d-m-Y H:i', strtotime($approvalData['approved_final_at'])) : '( ......................... )' ?>

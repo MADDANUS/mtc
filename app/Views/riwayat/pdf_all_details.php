@@ -70,20 +70,18 @@
           <div>The Future</div><div>In Our Hands</div>
         </div>
       </td>
-      <td colspan="3" class="kop-table-title" style="padding:5px;">INSPECTION REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?></td>
+      <td colspan="2" class="kop-table-title" style="padding:5px;">INSPECTION REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?></td>
     </tr>
     <tr>
-      <td style="width:35%; font-weight:bold; text-align:center;">NO. DOCUMENT</td>
-      <td style="width:25%; font-weight:bold; text-align:center;">NO REVISI</td>
-      <td style="width:25%; font-weight:bold; text-align:center;">HALAMAN</td>
+      <td style="width:45%; font-weight:bold; text-align:center;">NO. DOCUMENT</td>
+      <td style="width:40%; font-weight:bold; text-align:center;">NO REVISI</td>
     </tr>
     <tr>
       <td style="text-align:center;">FM-MTN-11</td>
       <td style="text-align:center;">0</td>
-      <td style="text-align:center;">1 DARI 1</td>
     </tr>
     <tr>
-      <td colspan="3" style="font-size:10px; padding:1px 5px; border-top:1.5pt solid #000; text-align:left;">Rev.:0/291124</td>
+      <td colspan="2" style="font-size:10px; padding:1px 5px; border-top:1.5pt solid #000; text-align:left;">Rev.:0/291124</td>
     </tr>
   </table>
 
@@ -115,10 +113,22 @@
   <!-- KETERANGAN CHECK LIST - standalone, tidak dipaksa full width -->
   <table class="keterangan-table">
     <tr>
-      <td style="text-align:center; font-weight:bold; padding:2px 10px; background-color:#f2f2f2; font-size:8px;">KETERANGAN CHECK LIST</td>
-      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">V : OK</td>
-      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">&#916; : PERLU TINDAKAN</td>
-      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">X : TIDAK ADA</td>
+      <td colspan="3" style="text-align:center; font-weight:bold; padding:2px 10px; background-color:#f2f2f2; font-size:8px;">KETERANGAN CHECK LIST</td>
+    </tr>
+    <tr>
+      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">V</td>
+      <td style="text-align:center; font-weight:bold; padding:2px 5px; font-size:8px;">:</td>
+      <td style="text-align:left; font-weight:bold; padding:2px 10px; font-size:8px;">OK</td>
+    </tr>
+    <tr>
+      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">&#916;</td>
+      <td style="text-align:center; font-weight:bold; padding:2px 5px; font-size:8px;">:</td>
+      <td style="text-align:left; font-weight:bold; padding:2px 10px; font-size:8px;">PERLU TINDAKAN</td>
+    </tr>
+    <tr>
+      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">X</td>
+      <td style="text-align:center; font-weight:bold; padding:2px 5px; font-size:8px;">:</td>
+      <td style="text-align:left; font-weight:bold; padding:2px 10px; font-size:8px;">TIDAK ADA</td>
     </tr>
   </table>
 
@@ -151,33 +161,25 @@
         <?php endif; ?>
         <tr>
           <?php if (!empty($d['show_no'])): ?>
-            <td style="text-align:center; font-weight:bold; border-bottom:none;"><?= esc($d['dynamic_no'] ?? '') ?></td>
-          <?php else: ?>
-            <td style="border-top:none; border-bottom:none;"></td>
+            <td rowspan="<?= $d['no_rowspan'] ?? 1 ?>" style="text-align:center; font-weight:bold; vertical-align:middle;"><?= esc($d['dynamic_no'] ?? '') ?></td>
           <?php endif; ?>
 
           <?php if (!empty($d['sub_item_check'])): ?>
             <?php if (!empty($d['show_bagian'])): ?>
-              <td style="border-bottom:none;"><?= esc($d['bagian_check']) ?></td>
-            <?php else: ?>
-              <td style="border-top:none; border-bottom:none;"></td>
+              <td rowspan="<?= $d['bagian_rowspan'] ?? 1 ?>" style="vertical-align:middle;"><?= esc($d['bagian_check']) ?></td>
             <?php endif; ?>
-            <td><?= esc($d['sub_item_check']) ?></td>
+            <td style="vertical-align:middle;"><?= esc($d['sub_item_check']) ?></td>
           <?php else: ?>
-            <td colspan="2"><?= esc($d['bagian_check']) ?></td>
+            <td colspan="2" style="vertical-align:middle;"><?= esc($d['bagian_check']) ?></td>
           <?php endif; ?>
 
           <?php if (!empty($d['show_point'])): ?>
-            <td style="text-align:center; border-bottom:none;"><?= esc($d['point_check'] ?? '') ?></td>
-          <?php else: ?>
-            <td style="border-top:none; border-bottom:none;"></td>
+            <td rowspan="<?= $d['point_rowspan'] ?? 1 ?>" style="text-align:center; vertical-align:middle;"><?= esc($d['point_check'] ?? '') ?></td>
           <?php endif; ?>
 
           <?php if (strtolower($header['lokasi_check']) !== 'mfg 2'): ?>
             <?php if (!empty($d['show_standard'])): ?>
-              <td style="text-align:center; border-bottom:none;"><?= nl2br(esc($d['standard_check'] ?? '')) ?></td>
-            <?php else: ?>
-              <td style="border-top:none; border-bottom:none;"></td>
+              <td rowspan="<?= $d['standard_rowspan'] ?? 1 ?>" style="text-align:center; vertical-align:middle;"><?= nl2br(esc($d['standard_check'] ?? '')) ?></td>
             <?php endif; ?>
           <?php endif; ?>
 
@@ -192,7 +194,30 @@
               <span style="color:#aaa;">-</span>
             <?php endif; ?>
           </td>
-          <td><?= esc($d['ulasan'] ?? '-') ?></td>
+          <td>
+            <?= esc($d['ulasan'] ?? '-') ?>
+            <?php 
+              if (!empty($d['foto_abnormal'])):
+                $imgPath = FCPATH . 'uploads/abnormal/' . $d['foto_abnormal'];
+                if (file_exists($imgPath)):
+                  $type = pathinfo($imgPath, PATHINFO_EXTENSION);
+                  $base64 = base64_encode(file_get_contents($imgPath));
+                  $src = 'data:image/' . $type . ';base64,' . $base64;
+            ?>
+              <br><img src="<?= $src ?>" style="max-height: 80px; margin-top: 5px; border: 1px solid #ccc;">
+            <?php endif; endif; ?>
+
+            <?php 
+              if (!empty($d['foto_abnormal_2'])):
+                $imgPath = FCPATH . 'uploads/abnormal/' . $d['foto_abnormal_2'];
+                if (file_exists($imgPath)):
+                  $type = pathinfo($imgPath, PATHINFO_EXTENSION);
+                  $base64 = base64_encode(file_get_contents($imgPath));
+                  $src = 'data:image/' . $type . ';base64,' . $base64;
+            ?>
+              <br><img src="<?= $src ?>" style="max-height: 80px; margin-top: 5px; border: 1px solid #ccc;">
+            <?php endif; endif; ?>
+          </td>
         </tr>
       <?php endforeach; ?>
       <?php if ($ov_tbody_opened) echo "</tbody>"; ?>
@@ -238,15 +263,13 @@
     </tr>
     <!-- ROW 2: Label dokumen -->
     <tr>
-      <td colspan="2" style="font-weight:bold; text-align:center; width:29%;">NO. DOCUMENT</td>
-      <td colspan="2" style="font-weight:bold; text-align:center; width:29%;">NO REVISI</td>
-      <td colspan="2" style="font-weight:bold; text-align:center; width:29%;">HALAMAN</td>
+      <td colspan="3" style="font-weight:bold; text-align:center; width:45%;">NO. DOCUMENT</td>
+      <td colspan="3" style="font-weight:bold; text-align:center; width:40%;">NO REVISI</td>
     </tr>
     <!-- ROW 3: Nilai dokumen -->
     <tr>
-      <td colspan="2" style="text-align:center;">FM-MTN-11</td>
-      <td colspan="2" style="text-align:center;">0</td>
-      <td colspan="2" style="text-align:center;">1 DARI 1</td>
+      <td colspan="3" style="text-align:center;">FM-MTN-11</td>
+      <td colspan="3" style="text-align:center;">0</td>
     </tr>
     <!-- ROW 4: Rev -->
     <tr>
@@ -287,10 +310,22 @@
   <!-- KETERANGAN CHECK LIST - standalone agar tidak dipaksa full width -->
   <table class="keterangan-table">
     <tr>
-      <td style="text-align:center; font-weight:bold; padding:2px 10px; background-color:#f2f2f2; font-size:8px;">KETERANGAN CHECK LIST</td>
-      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">V : OK</td>
-      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">&#916; : PERLU TINDAKAN</td>
-      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">X : TIDAK ADA</td>
+      <td colspan="3" style="text-align:center; font-weight:bold; padding:2px 10px; background-color:#f2f2f2; font-size:8px;">KETERANGAN CHECK LIST</td>
+    </tr>
+    <tr>
+      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">V</td>
+      <td style="text-align:center; font-weight:bold; padding:2px 5px; font-size:8px;">:</td>
+      <td style="text-align:left; font-weight:bold; padding:2px 10px; font-size:8px;">OK</td>
+    </tr>
+    <tr>
+      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">&#916;</td>
+      <td style="text-align:center; font-weight:bold; padding:2px 5px; font-size:8px;">:</td>
+      <td style="text-align:left; font-weight:bold; padding:2px 10px; font-size:8px;">PERLU TINDAKAN</td>
+    </tr>
+    <tr>
+      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">X</td>
+      <td style="text-align:center; font-weight:bold; padding:2px 5px; font-size:8px;">:</td>
+      <td style="text-align:left; font-weight:bold; padding:2px 10px; font-size:8px;">TIDAK ADA</td>
     </tr>
   </table>
 
@@ -314,12 +349,10 @@
         <?php endif; ?>
         <tr>
           <?php if (!empty($d['show_bagian'])): ?>
-            <td style="vertical-align:top; border-bottom:none;"><?= esc($d['bagian_check'] ?? '') ?></td>
-          <?php else: ?>
-            <td style="border-top:none; border-bottom:none;"></td>
+            <td rowspan="<?= $d['bagian_rowspan'] ?? 1 ?>" style="vertical-align:top;"><?= esc($d['bagian_check'] ?? '') ?></td>
           <?php endif; ?>
 
-          <td style="text-align:center;"><?= esc($d['point_check'] ?? '') ?></td>
+          <td style="text-align:center; vertical-align:middle;"><?= esc($d['point_check'] ?? '') ?></td>
           <td style="text-align:center;"><?= esc($d['standard_check'] ?? '') ?></td>
 
           <td style="text-align:center;">
@@ -333,7 +366,30 @@
               <span style="color:#aaa;">-</span>
             <?php endif; ?>
           </td>
-          <td><?= esc($d['ulasan'] ?? '') ?></td>
+          <td>
+            <?= esc($d['ulasan'] ?? '') ?>
+            <?php 
+              if (!empty($d['foto_abnormal'])):
+                $imgPath = FCPATH . 'uploads/abnormal/' . $d['foto_abnormal'];
+                if (file_exists($imgPath)):
+                  $type = pathinfo($imgPath, PATHINFO_EXTENSION);
+                  $base64 = base64_encode(file_get_contents($imgPath));
+                  $src = 'data:image/' . $type . ';base64,' . $base64;
+            ?>
+              <br><img src="<?= $src ?>" style="max-height: 80px; margin-top: 5px; border: 1px solid #ccc;">
+            <?php endif; endif; ?>
+
+            <?php 
+              if (!empty($d['foto_abnormal_2'])):
+                $imgPath = FCPATH . 'uploads/abnormal/' . $d['foto_abnormal_2'];
+                if (file_exists($imgPath)):
+                  $type = pathinfo($imgPath, PATHINFO_EXTENSION);
+                  $base64 = base64_encode(file_get_contents($imgPath));
+                  $src = 'data:image/' . $type . ';base64,' . $base64;
+            ?>
+              <br><img src="<?= $src ?>" style="max-height: 80px; margin-top: 5px; border: 1px solid #ccc;">
+            <?php endif; endif; ?>
+          </td>
         </tr>
       <?php endforeach; ?>
       <?php if ($tbody_opened) echo "</tbody>"; ?>

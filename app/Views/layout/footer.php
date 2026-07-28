@@ -22,10 +22,16 @@
     let maxItems = el.getAttribute('data-max-items');
     let config = {
       create: false,
-      sortField: { field: "text", direction: "asc" }
+      plugins: []
     };
+    if (el.getAttribute('data-no-sort') !== 'true') {
+      config.sortField = { field: "text", direction: "asc" };
+    }
     if (maxItems) {
         config.maxItems = parseInt(maxItems);
+    }
+    if (!el.hasAttribute('multiple')) {
+        config.plugins.push('dropdown_input');
     }
     new TomSelect(el, config);
   });

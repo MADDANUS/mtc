@@ -130,7 +130,7 @@ class LaporanController extends BaseController
 
         $dompdf = new \Dompdf\Dompdf($options);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
         $filename = 'Laporan_Durasi_Pengecekan.pdf';

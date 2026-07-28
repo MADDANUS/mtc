@@ -62,6 +62,12 @@
         -webkit-font-smoothing: antialiased;
     }
 
+    /* Fix TomSelect shrinking in table cells */
+    th .ts-wrapper {
+        min-width: 110px;
+        width: 100% !important;
+    }
+
     /* ---- LAYOUT ---- */
     .app-container { display: flex; min-height: 100vh; }
 

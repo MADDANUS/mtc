@@ -6,27 +6,7 @@
   <a href="<?= site_url('abnormal/overhaul?view=summary') ?>" class="btn btn-outline-secondary btn-sm me-3 shadow-sm rounded-pill px-3">
     <i class="bi bi-arrow-left me-1"></i> Kembali
   </a>
-  
-  <form method="GET" action="<?= site_url('abnormal/overhaul') ?>" class="d-flex gap-2 ms-auto align-items-center">
-      <?php if(!empty($searchFilter)): ?>
-          <input type="hidden" name="search" value="<?= esc($searchFilter) ?>">
-      <?php endif; ?>
-      <select name="lokasi" class="form-select form-select-sm border-0 shadow-sm fw-medium rounded-pill" style="width: auto;" onchange="this.form.submit()">
-          <option value="all" <?= ($lokasiFilter === 'all') ? 'selected' : '' ?>>Semua Area</option>
-          <option value="MFG 1" <?= ($lokasiFilter === 'MFG 1') ? 'selected' : '' ?>>MFG 1</option>
-          <option value="MFG 2" <?= ($lokasiFilter === 'MFG 2') ? 'selected' : '' ?>>MFG 2</option>
-      </select>
-      <select name="bulan" class="form-select form-select-sm border-0 shadow-sm fw-medium rounded-pill" style="width: auto;" onchange="this.form.submit()">
-          <option value="all" <?= ($bulanFilter === 'all') ? 'selected' : '' ?>>Semua Bulan</option>
-          <?php if(isset($bulanList)): ?>
-              <?php foreach ($bulanList as $val => $label): ?>
-                  <option value="<?= $val ?>" <?= $val === $bulanFilter ? 'selected' : '' ?>><?= $label ?></option>
-              <?php endforeach; ?>
-          <?php endif; ?>
-      </select>
-  </form>
-
-  <div class="ms-3 d-flex gap-2">
+  <div class="ms-auto d-flex gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
     <a href="<?= site_url('abnormal/overhaul/pdf?lokasi=' . urlencode($lokasiFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Download PDF">
       <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
@@ -35,17 +15,41 @@
   </div>
 </div>
 
+<form id="filterForm" method="GET" action="<?= site_url('abnormal/overhaul') ?>">
+    <?php if(!empty($searchFilter)): ?>
+        <input type="hidden" name="search" value="<?= esc($searchFilter) ?>">
+    <?php endif; ?>
+</form>
+
 <table class="kop-table text-center shadow-sm">
   <tr>
     <td colspan="4" class="kop-table-title" style="padding: 10px;">LAPORAN ABNORMAL CONDITION OVERHAUL</td>
   </tr>
   <tr>
-    <td class="kop-label text-start">AREA</td>
-    <td class="kop-val text-start"><?= $lokasiFilter === 'all' ? 'Semua Area' : esc($lokasiFilter) ?></td>
-    <td class="kop-label text-start">BULAN</td>
-    <td class="kop-val text-start"><?= $bulanFilter === 'all' ? 'Semua Bulan' : esc($bulanFilter) ?></td>
+    <td colspan="2" class="kop-label text-center" style="width: 50%;">AREA</td>
+    <td colspan="2" class="kop-label text-center" style="width: 50%;">BULAN</td>
+  </tr>
+  <tr>
+    <td colspan="2" class="kop-val text-center p-2">
+        <select name="lokasi" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white text-center mx-auto searchable-select" style="width: 80%; font-size: 0.8rem; text-align: center; text-align-last: center;" onchange="document.getElementById('filterForm').submit();">
+            <option value="all" <?= ($lokasiFilter === 'all') ? 'selected' : '' ?>>Semua Area</option>
+            <option value="MFG 1" <?= ($lokasiFilter === 'MFG 1') ? 'selected' : '' ?>>MFG 1</option>
+            <option value="MFG 2" <?= ($lokasiFilter === 'MFG 2') ? 'selected' : '' ?>>MFG 2</option>
+        </select>
+    </td>
+    <td colspan="2" class="kop-val text-center p-2">
+        <select name="bulan" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white text-center mx-auto searchable-select" data-no-sort="true" style="width: 80%; font-size: 0.8rem; text-align: center; text-align-last: center;" onchange="document.getElementById('filterForm').submit();">
+            <option value="all" <?= ($bulanFilter === 'all') ? 'selected' : '' ?>>Semua Bulan</option>
+            <?php if(isset($bulanList)): ?>
+                <?php foreach ($bulanList as $val => $label): ?>
+                    <option value="<?= $val ?>" <?= $val === $bulanFilter ? 'selected' : '' ?>><?= $label ?></option>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </select>
+    </td>
   </tr>
 </table>
+
 
 <!-- ABNORMAL TABLE CARD -->
 <div class="card border-0 shadow-sm bg-white overflow-hidden mb-4">
@@ -62,7 +66,7 @@
             <th colspan="2" style="width: 10%; font-weight:800; border-bottom: 2px solid #cbd5e1 !important;">PENGECEKAN</th>
             <th colspan="4" style="width: 22%; font-weight:800; border-bottom: 2px solid #cbd5e1 !important;">RENCANA PERBAIKAN</th>
             <th rowspan="3" style="width: 6%; font-weight:800; border-bottom: 2px solid #cbd5e1 !important;">KETERANGAN</th>
-            <th colspan="2" style="width: 10%; font-weight:800; border-bottom: 2px solid #cbd5e1 !important;">FOTO</th>
+
           </tr>
           <tr class="table-light">
             <th rowspan="2" style="font-weight:800; border-bottom: 2px solid #cbd5e1 !important;">TANGGAL</th>
@@ -70,8 +74,7 @@
             <th colspan="2" style="font-weight:800; border-bottom: 2px solid #cbd5e1 !important;">PROGRES</th>
             <th rowspan="2" style="font-weight:800; border-bottom: 2px solid #cbd5e1 !important;">ACTION</th>
             <th rowspan="2" style="font-weight:800; border-bottom: 2px solid #cbd5e1 !important;">PIC</th>
-            <th rowspan="2" style="font-weight:800; border-bottom: 2px solid #cbd5e1 !important;">ABNORMAL</th>
-            <th rowspan="2" style="font-weight:800; border-bottom: 2px solid #cbd5e1 !important;">PERBAIKAN</th>
+
           </tr>
           <tr class="table-light">
             <th style="font-weight:800; border-bottom: 2px solid #cbd5e1 !important;">STOCK</th>
@@ -110,7 +113,21 @@
                 <td class="fw-bold font-monospace text-secondary" style="background-color: #f8fafc;"><?= $no++ ?></td>
                 <td class="text-start fw-bold text-dark ps-3"><?= esc($r['no_mesin']) ?> - <?= esc($r['type_mesin']) ?></td>
                 <td><?= esc($r['point_check']) ?></td>
-                <td class="text-danger fw-semibold"><?= esc($r['abnormal_condition']) ?></td>
+                <td class="text-danger fw-semibold">
+                  <?= esc($r['abnormal_condition']) ?>
+                  <div class="d-flex justify-content-center align-items-center gap-1 mt-1">
+                    <?php if (!empty($r['foto_abnormal'])): ?>
+                      <a href="<?= base_url('uploads/abnormal/' . $r['foto_abnormal']) ?>" target="_blank" title="Lihat Foto Abnormal 1">
+                        <img src="<?= base_url('uploads/abnormal/' . $r['foto_abnormal']) ?>" alt="Foto Abnormal 1" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
+                      </a>
+                    <?php endif; ?>
+                    <?php if (!empty($r['foto_abnormal_2'])): ?>
+                      <a href="<?= base_url('uploads/abnormal/' . $r['foto_abnormal_2']) ?>" target="_blank" title="Lihat Foto Abnormal 2">
+                        <img src="<?= base_url('uploads/abnormal/' . $r['foto_abnormal_2']) ?>" alt="Foto Abnormal 2" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
+                      </a>
+                    <?php endif; ?>
+                  </div>
+                </td>
                 <td><?= esc($r['type_sparepart']) ?: '<span class="text-muted small">-</span>' ?></td>
                 
                 <!-- Pengecekan -->
@@ -130,41 +147,40 @@
                   <?php endif; ?>
                 </td>
                 <td class="font-monospace"><?= $r['progres_tanggal'] ? date('d-m-Y', strtotime($r['progres_tanggal'])) : '<span class="text-muted">-</span>' ?></td>
-                <td class="text-start"><?= esc($r['action']) ?: '<span class="text-muted">-</span>' ?></td>
+                <td class="text-start" onclick="event.stopPropagation()">
+                  <?= esc($r['action']) ?: '<span class="text-muted">-</span>' ?>
+                  <div class="d-flex justify-content-start align-items-center gap-1 mt-1">
+                    <!-- Slot 1 -->
+                    <?php if (!empty($r['foto_perbaikan'])): ?>
+                      <a href="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan']) ?>" target="_blank" title="Lihat Foto Perbaikan 1">
+                        <img src="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan']) ?>" alt="Foto Perbaikan 1" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
+                      </a>
+                    <?php else: ?>
+                      <?php if ($canEdit): ?>
+                        <button type="button" class="btn btn-sm btn-outline-success btn-foto-perbaikan py-0 px-1" data-id-abnormal="<?= $r['id_abnormal'] ?>" data-slot="1" title="Upload Foto Perbaikan 1">
+                          <i class="bi bi-camera-fill" style="font-size:0.75rem;"></i> 1
+                        </button>
+                      <?php endif; ?>
+                    <?php endif; ?>
+
+                    <!-- Slot 2 -->
+                    <?php if (!empty($r['foto_perbaikan_2'])): ?>
+                      <a href="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan_2']) ?>" target="_blank" title="Lihat Foto Perbaikan 2">
+                        <img src="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan_2']) ?>" alt="Foto Perbaikan 2" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
+                      </a>
+                    <?php else: ?>
+                      <?php if ($canEdit && !empty($r['foto_perbaikan'])): ?>
+                        <button type="button" class="btn btn-sm btn-outline-secondary btn-foto-perbaikan py-0 px-1" data-id-abnormal="<?= $r['id_abnormal'] ?>" data-slot="2" title="Upload Foto Perbaikan 2">
+                          <i class="bi bi-camera" style="font-size:0.75rem;"></i> 2
+                        </button>
+                      <?php endif; ?>
+                    <?php endif; ?>
+                  </div>
+                </td>
                 <td><span class="fw-semibold text-dark"><?= esc($r['repair_pic']) ?: '<span class="text-muted">-</span>' ?></span></td>
                 
                 <td><?= esc($r['keterangan']) ?: '<span class="text-muted">-</span>' ?></td>
                 
-                <!-- Foto Abnormal -->
-                <td class="text-center p-1">
-                  <?php if (!empty($r['foto_abnormal'])): ?>
-                    <a href="<?= base_url('uploads/abnormal/' . $r['foto_abnormal']) ?>" target="_blank" title="Lihat Foto Abnormal">
-                      <img src="<?= base_url('uploads/abnormal/' . $r['foto_abnormal']) ?>" alt="Foto Abnormal"
-                           style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
-                    </a>
-                  <?php else: ?>
-                    <span class="text-muted small">-</span>
-                  <?php endif; ?>
-                </td>
-                
-                <!-- Foto Perbaikan -->
-                <td class="text-center p-1" onclick="event.stopPropagation()">
-                  <?php if (!empty($r['foto_perbaikan'])): ?>
-                    <a href="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan']) ?>" target="_blank" title="Lihat Foto Perbaikan">
-                      <img src="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan']) ?>" alt="Foto Perbaikan"
-                           style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
-                    </a>
-                  <?php else: ?>
-                    <?php if ($canEdit): ?>
-                      <button type="button" class="btn btn-sm btn-outline-success btn-foto-perbaikan py-0 px-1"
-                              data-id-abnormal="<?= $r['id_abnormal'] ?>" title="Upload Foto Perbaikan">
-                        <i class="bi bi-camera-fill" style="font-size:0.75rem;"></i>
-                      </button>
-                    <?php else: ?>
-                      <span class="text-muted small">-</span>
-                    <?php endif; ?>
-                  <?php endif; ?>
-                </td>
               </tr>
             <?php endforeach; ?>
           <?php endif; ?>
@@ -331,94 +347,281 @@
 
 <?= view('layout/footer') ?>
 
-<!-- MODAL UPLOAD FOTO PERBAIKAN (Overhaul) -->
-<div class="modal fade" id="fotoRepairModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-sm">
-    <div class="modal-content border-0 shadow-lg rounded-4">
-      <div class="modal-header border-bottom-0 pb-0 pt-4 px-4">
-        <h6 class="modal-title fw-bold"><i class="bi bi-camera-fill text-success me-2"></i>Upload Foto Perbaikan</h6>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body px-4 pt-3 pb-2">
-        <p class="small text-muted mb-3">Upload 1 foto sebagai bukti perbaikan selesai.</p>
-        <input type="hidden" id="fotoRepairIdAbnormal" value="">
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Pilih Foto <span class="text-danger">*</span></label>
-          <input type="file" class="form-control form-control-sm" id="fotoRepairInput" accept="image/*" capture="environment">
-          <div id="fotoRepairPreviewWrap" style="display:none; margin-top:8px;">
-            <img id="fotoRepairPreviewImg" src="" alt="Preview" style="max-width:100%; border-radius:6px; border:1px solid #dee2e6;">
-          </div>
+<!-- ====== FOTO PERBAIKAN MODAL FULLSCREEN ====== -->
+<div class="modal fade" id="fotoRepairModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen m-0">
+    <div class="modal-content bg-dark text-white border-0" style="height:100vh;display:flex;flex-direction:column;">
+
+      <!-- Header -->
+      <div style="flex:0 0 auto;background:#111;padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #333;">
+        <i class="bi bi-camera-fill text-success" style="font-size:1.3rem;"></i>
+        <span class="fw-bold fs-5 me-auto">Foto Perbaikan</span>
+        <div class="btn-group" role="group">
+          <button type="button" id="rBtnModeCamera" class="btn btn-success btn-sm px-3">
+            <i class="bi bi-camera-fill me-1"></i>Kamera
+          </button>
+          <button type="button" id="rBtnModeUpload" class="btn btn-outline-secondary btn-sm px-3">
+            <i class="bi bi-images me-1"></i>Galeri
+          </button>
         </div>
-        <div id="fotoRepairMsg" class="small"></div>
+        <button type="button" id="rBtnClose" class="btn-close btn-close-white ms-2"></button>
+        <input type="hidden" id="rIdAbnormal" value="">
       </div>
-      <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
-        <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-3" data-bs-dismiss="modal">Batal</button>
-        <button type="button" class="btn btn-success btn-sm px-4 rounded-3" id="btnSimpanFotoRepair">
-          <i class="bi bi-upload me-1"></i> Upload
-        </button>
+
+      <!-- Camera Panel -->
+      <div id="rPanelCamera" style="flex:1 1 auto;position:relative;overflow:hidden;background:#000;">
+        <div id="rCamLoading" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;">
+          <div class="spinner-border text-success mb-3" style="width:3.5rem;height:3.5rem;"></div>
+          <span style="font-size:1.1rem;">Membuka kamera...</span>
+        </div>
+        <div id="rCamError" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;color:#dc3545;padding:2rem;text-align:center;">
+          <i class="bi bi-camera-video-off" style="font-size:5rem;"></i>
+          <p class="mt-3 fs-5" id="rCamErrorMsg">Kamera tidak dapat diakses.</p>
+          <small style="color:#888;">Gunakan tab <b>Galeri</b> untuk upload dari file lokal.</small>
+        </div>
+        <video id="rCamVideo" autoplay playsinline muted
+               style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none;background:#000;"></video>
+        <img id="rCamPreview" src="" alt=""
+             style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none;background:#000;">
+        <div id="rSizeBadge" style="position:absolute;bottom:12px;right:12px;background:rgba(0,0,0,.65);color:#fff;font-size:.78rem;padding:4px 12px;border-radius:20px;display:none;"></div>
       </div>
+
+      <!-- Upload Panel -->
+      <div id="rPanelUpload" style="flex:1 1 auto;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:#111;overflow-y:auto;">
+        <label for="rFileInput" id="rDropZone"
+               style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;max-width:520px;min-height:200px;border:2px dashed #555;border-radius:16px;padding:2rem;cursor:pointer;background:rgba(255,255,255,.03);">
+          <i class="bi bi-images text-success" style="font-size:5rem;"></i>
+          <span class="mt-3 fw-semibold" style="font-size:1.2rem;">Ketuk untuk pilih foto</span>
+          <small style="color:#888;margin-top:6px;">JPG · PNG · HEIC · WEBP</small>
+        </label>
+        <input type="file" id="rFileInput" accept="image/*" class="d-none">
+        <div id="rUploadPreviewWrap" style="display:none;width:100%;max-width:700px;margin-top:20px;text-align:center;">
+          <img id="rUploadPreviewImg" src="" alt="Preview"
+               style="max-width:100%;max-height:52vh;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.6);">
+          <div id="rUploadInfo" style="margin-top:10px;color:#28a745;font-size:.9rem;"></div>
+        </div>
+        <div id="rUploadCompressing" style="display:none;margin-top:20px;text-align:center;">
+          <div class="spinner-border text-success" style="width:2.5rem;height:2.5rem;"></div>
+          <p style="margin-top:12px;color:#aaa;">Mengompresi foto...</p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="flex:0 0 auto;background:#111;border-top:1px solid #333;padding:20px 24px;display:flex;align-items:center;justify-content:center;gap:16px;min-height:110px;">
+        <div id="rActLive" style="display:none;text-align:center;">
+          <button type="button" id="rBtnShutter" class="btn btn-success rounded-circle"
+                  style="width:90px;height:90px;font-size:2.5rem;box-shadow:0 0 0 8px rgba(40,167,69,.2);">
+            <i class="bi bi-circle-fill"></i>
+          </button>
+          <p style="color:rgba(255,255,255,.45);font-size:.85rem;margin:10px 0 0;">Tekan untuk foto</p>
+        </div>
+        <div id="rActConfirm" style="display:none;gap:14px;justify-content:center;flex-wrap:wrap;">
+          <button type="button" id="rBtnRetake" class="btn btn-outline-light btn-lg px-5">
+            <i class="bi bi-arrow-repeat me-2"></i>Foto Ulang
+          </button>
+          <button type="button" id="rBtnUseCamera" class="btn btn-success btn-lg px-5">
+            <i class="bi bi-cloud-upload me-2"></i>Upload Foto
+          </button>
+        </div>
+        <div id="rActUseUpload" style="display:none;">
+          <button type="button" id="rBtnUseUpload" class="btn btn-success btn-lg px-5">
+            <i class="bi bi-cloud-upload me-2"></i>Upload Foto Ini
+          </button>
+        </div>
+        <div id="rActUploading" style="display:none;text-align:center;">
+          <div class="spinner-border text-success" style="width:2.5rem;height:2.5rem;"></div>
+          <p style="color:#aaa;margin:10px 0 0;font-size:.9rem;">Mengupload...</p>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 
 <script>
-(function() {
-    const fotoRepairModal = new bootstrap.Modal(document.getElementById('fotoRepairModal'));
-    const fotoRepairInput = document.getElementById('fotoRepairInput');
-    const fotoRepairPreviewWrap = document.getElementById('fotoRepairPreviewWrap');
-    const fotoRepairPreviewImg = document.getElementById('fotoRepairPreviewImg');
-    const fotoRepairMsg = document.getElementById('fotoRepairMsg');
+(function () {
+    // Kompresi config
+    const MAX_W = 1440, MAX_H = 1440, JPEG_Q = 0.84;
 
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('.btn-foto-perbaikan');
-        if (!btn) return;
-        e.stopPropagation();
-        document.getElementById('fotoRepairIdAbnormal').value = btn.getAttribute('data-id-abnormal');
-        fotoRepairInput.value = '';
-        fotoRepairPreviewWrap.style.display = 'none';
-        fotoRepairPreviewImg.src = '';
-        fotoRepairMsg.innerHTML = '';
-        fotoRepairModal.show();
+    let _rStream = null, _rBlob = null, _rUploadBlob = null, _rIdAbnormal = null, _rSlotAbnormal = 1;
+
+    const modalEl    = document.getElementById('fotoRepairModal');
+    const rModal     = new bootstrap.Modal(modalEl);
+    const rVideo     = document.getElementById('rCamVideo');
+    const rPreview   = document.getElementById('rCamPreview');
+    const rLoading   = document.getElementById('rCamLoading');
+    const rError     = document.getElementById('rCamError');
+    const rErrMsg    = document.getElementById('rCamErrorMsg');
+    const rSizeBadge = document.getElementById('rSizeBadge');
+    const panelCam   = document.getElementById('rPanelCamera');
+    const panelUpl   = document.getElementById('rPanelUpload');
+    const rFileInput = document.getElementById('rFileInput');
+    const rDropZone  = document.getElementById('rDropZone');
+    const rUpPrevWrap= document.getElementById('rUploadPreviewWrap');
+    const rUpPrevImg = document.getElementById('rUploadPreviewImg');
+    const rUpInfo    = document.getElementById('rUploadInfo');
+    const rUpCompr   = document.getElementById('rUploadCompressing');
+    const rActLive   = document.getElementById('rActLive');
+    const rActConf   = document.getElementById('rActConfirm');
+    const rActUpl    = document.getElementById('rActUseUpload');
+    const rActUpling = document.getElementById('rActUploading');
+    const btnModeCam = document.getElementById('rBtnModeCamera');
+    const btnModeUpl = document.getElementById('rBtnModeUpload');
+    const btnClose   = document.getElementById('rBtnClose');
+    const btnShutter = document.getElementById('rBtnShutter');
+    const btnRetake  = document.getElementById('rBtnRetake');
+    const btnUseCam  = document.getElementById('rBtnUseCamera');
+    const btnUseUpl  = document.getElementById('rBtnUseUpload');
+
+    function fmt(b) { return b<1048576 ? (b/1024).toFixed(0)+' KB' : (b/1048576).toFixed(1)+' MB'; }
+
+    function compressVideo(v, cb) {
+        const w=v.videoWidth, h=v.videoHeight; if(!w||!h) return;
+        const s=Math.min(MAX_W/w,MAX_H/h,1), cw=Math.round(w*s), ch=Math.round(h*s);
+        const t=document.createElement('canvas'); t.width=cw; t.height=ch;
+        t.getContext('2d').drawImage(v,0,0,cw,ch);
+        t.toBlob(b=>cb(b,cw,ch),'image/jpeg',JPEG_Q);
+    }
+    function compressImg(img, cb) {
+        const w=img.naturalWidth, h=img.naturalHeight;
+        const s=Math.min(MAX_W/w,MAX_H/h,1), cw=Math.round(w*s), ch=Math.round(h*s);
+        const t=document.createElement('canvas'); t.width=cw; t.height=ch;
+        t.getContext('2d').drawImage(img,0,0,cw,ch);
+        t.toBlob(b=>cb(b,cw,ch),'image/jpeg',JPEG_Q);
+    }
+
+    function s(el,v){el.style.display=v;} function h(el){el.style.display='none';}
+
+    function stopStream(){if(_rStream){_rStream.getTracks().forEach(t=>t.stop());_rStream=null;}}
+
+    function setCamState(state){
+        s(rLoading,  state==='loading'    ?'flex':'none');
+        s(rError,    state==='error'      ?'flex':'none');
+        s(rVideo,    state==='live'       ?'block':'none');
+        s(rPreview,  state==='confirm'    ?'block':'none');
+        s(rSizeBadge,state==='confirm'    ?'block':'none');
+        s(rActLive,  state==='live'       ?'block':'none');
+        s(rActConf,  state==='confirm'    ?'flex':'none');
+        h(rActUpl); h(rActUpling);
+    }
+
+    async function startCamera(){
+        setCamState('loading'); _rBlob=null; stopStream();
+        try {
+            _rStream = await navigator.mediaDevices.getUserMedia({
+                video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}
+            });
+            rVideo.srcObject=_rStream;
+            rVideo.onloadedmetadata=()=>{rVideo.play();setCamState('live');};
+        } catch(err){
+            stopStream(); rErrMsg.textContent='Kamera tidak dapat diakses: '+err.message; setCamState('error');
+        }
+    }
+
+    btnShutter.addEventListener('click',function(){
+        if(!_rStream) return;
+        setCamState('loading'); // show spinner while compressing
+        compressVideo(rVideo,(blob,cw,ch)=>{
+            _rBlob=blob; stopStream();
+            rPreview.src=URL.createObjectURL(blob);
+            rSizeBadge.textContent=cw+'×'+ch+' · '+fmt(blob.size);
+            setCamState('confirm');
+        });
+    });
+    btnRetake.addEventListener('click',()=>{_rBlob=null;startCamera();});
+
+    // Upload mode
+    function setUploadState(state){
+        s(rDropZone,  state!=='ready'       ?'flex':'none');
+        s(rUpCompr,   state==='compressing' ?'flex':'none');
+        s(rUpPrevWrap,state==='ready'       ?'block':'none');
+        s(rActUpl,    state==='ready'       ?'block':'none');
+        h(rActLive); h(rActConf); h(rActUpling);
+    }
+
+    rFileInput.addEventListener('change',function(){
+        const file=this.files[0]; if(!file) return;
+        _rUploadBlob=null; setUploadState('compressing');
+        const url=URL.createObjectURL(file);
+        const img=new Image();
+        img.onload=()=>{
+            URL.revokeObjectURL(url);
+            compressImg(img,(blob,cw,ch)=>{
+                _rUploadBlob=blob;
+                rUpPrevImg.src=URL.createObjectURL(blob);
+                rUpInfo.innerHTML='<i class="bi bi-check-circle-fill me-1"></i>Dikompres: <b>'+cw+'×'+ch+'</b> · <b>'+fmt(blob.size)+'</b> <span style="color:#888;">(dari '+fmt(file.size)+')</span>';
+                setUploadState('ready');
+            });
+        };
+        img.src=url;
     });
 
-    fotoRepairInput.addEventListener('change', function() {
-        if (this.files && this.files[0]) {
-            const reader = new FileReader();
-            reader.onload = ev => { fotoRepairPreviewImg.src = ev.target.result; fotoRepairPreviewWrap.style.display = 'block'; };
-            reader.readAsDataURL(this.files[0]);
-        } else { fotoRepairPreviewWrap.style.display = 'none'; }
-    });
+    // Mode switch
+    function switchMode(mode){
+        if(mode==='camera'){
+            s(panelCam,'block'); h(panelUpl);
+            btnModeCam.className='btn btn-success btn-sm px-3';
+            btnModeUpl.className='btn btn-outline-secondary btn-sm px-3';
+            startCamera();
+        } else {
+            stopStream(); h(panelCam); s(panelUpl,'flex');
+            btnModeCam.className='btn btn-outline-secondary btn-sm px-3';
+            btnModeUpl.className='btn btn-success btn-sm px-3';
+            _rUploadBlob=null; rFileInput.value=''; setUploadState('idle');
+        }
+    }
+    btnModeCam.addEventListener('click',()=>switchMode('camera'));
+    btnModeUpl.addEventListener('click',()=>switchMode('upload'));
 
-    document.getElementById('btnSimpanFotoRepair').addEventListener('click', function() {
-        const idAbnormal = document.getElementById('fotoRepairIdAbnormal').value;
-        const file = fotoRepairInput.files[0];
-        if (!file) { fotoRepairMsg.innerHTML = '<span class="text-danger">Pilih foto terlebih dahulu.</span>'; return; }
-        const formData = new FormData();
-        formData.append('id_abnormal', idAbnormal);
-        formData.append('foto_perbaikan', file);
-        formData.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
-        const btn = document.getElementById('btnSimpanFotoRepair');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Mengupload...';
-        fotoRepairMsg.innerHTML = '';
-        fetch('<?= site_url('abnormal/upload-foto-perbaikan') ?>', { method: 'POST', body: formData })
-        .then(res => res.json())
-        .then(data => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-upload me-1"></i> Upload';
-            if (data.success) {
-                fotoRepairModal.hide();
-                const camBtn = document.querySelector('.btn-foto-perbaikan[data-id-abnormal="' + idAbnormal + '"]');
-                if (camBtn) { camBtn.closest('td').innerHTML = '<a href="' + data.foto_url + '" target="_blank"><img src="' + data.foto_url + '" style="width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid #dee2e6;"></a>'; }
-                Swal.fire({ icon: 'success', title: 'Berhasil!', text: data.message, timer: 2000, showConfirmButton: false });
-            } else { fotoRepairMsg.innerHTML = '<span class="text-danger">' + data.message + '</span>'; }
+    // Upload via AJAX
+    function doUpload(blob){
+        if(!blob||!_rIdAbnormal) return;
+        h(rActConf); h(rActUpl); s(rActUpling,'block');
+        const fd=new FormData();
+        fd.append('id_abnormal',_rIdAbnormal);
+        fd.append('foto_slot', _rSlotAbnormal);
+        fd.append('foto_perbaikan',new File([blob],'repair_'+Date.now()+'.jpg',{type:'image/jpeg'}));
+        fd.append('<?= csrf_token() ?>','<?= csrf_hash() ?>');
+        fetch('<?= site_url('abnormal/upload-foto-perbaikan') ?>',{method:'POST',body:fd})
+        .then(r=>r.json())
+        .then(data=>{
+            if(data.success){
+                rModal.hide();
+                Swal.fire({icon:'success',title:'Berhasil!',text:data.message,timer:1500,showConfirmButton:false}).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                h(rActUpling); s(rActConf,'flex');
+                Swal.fire({icon:'error',title:'Gagal',text:data.message});
+            }
         })
-        .catch(() => { btn.disabled = false; btn.innerHTML = '<i class="bi bi-upload me-1"></i> Upload'; fotoRepairMsg.innerHTML = '<span class="text-danger">Terjadi kesalahan.</span>'; });
+        .catch(()=>{
+            h(rActUpling); s(rActConf,'flex');
+            Swal.fire({icon:'error',title:'Error',text:'Terjadi kesalahan. Coba lagi.'});
+        });
+    }
+
+    btnUseCam.addEventListener('click',()=>doUpload(_rBlob));
+    btnUseUpl.addEventListener('click',()=>doUpload(_rUploadBlob));
+
+    // Close
+    btnClose.addEventListener('click',()=>{stopStream();rModal.hide();});
+    modalEl.addEventListener('hidden.bs.modal',()=>{
+        stopStream(); _rBlob=null; _rUploadBlob=null;
+        rPreview.src=''; setCamState('loading');
+    });
+
+    // Open modal trigger
+    document.addEventListener('click',function(e){
+        const btn=e.target.closest('.btn-foto-perbaikan');
+        if(!btn) return; e.stopPropagation();
+        _rIdAbnormal=btn.getAttribute('data-id-abnormal');
+        _rSlotAbnormal=btn.getAttribute('data-slot') || 1;
+        document.getElementById('rIdAbnormal').value=_rIdAbnormal;
+        rModal.show(); switchMode('camera');
     });
 })();
 </script>
-
-
 
 
 

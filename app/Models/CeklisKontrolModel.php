@@ -92,6 +92,21 @@ class CeklisKontrolModel extends Model
             $row['out_of_plan'] = $rowOutOfPlan; // date or null
             $row['ulasan']      = $rowUlasan ?: '';
 
+            // Fetch abnormal photos for this machine in this month
+            $db = \Config\Database::connect();
+            $photos = $db->table('laporan_abnormal')
+                         ->select('laporan_abnormal.foto_abnormal, laporan_abnormal.foto_abnormal_2')
+                         ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi')
+                         ->where('laporan_abnormal.id_mesin', $idMesin)
+                         ->where('transaksi_check.kategori', $kategori)
+                         ->like('laporan_abnormal.pengecekan_tanggal', $bulanTahun, 'after') // YYYY-MM
+                         ->get()->getResultArray();
+            $row['photos'] = [];
+            foreach ($photos as $ph) {
+                if (!empty($ph['foto_abnormal']) && !in_array($ph['foto_abnormal'], $row['photos'])) $row['photos'][] = $ph['foto_abnormal'];
+                if (!empty($ph['foto_abnormal_2']) && !in_array($ph['foto_abnormal_2'], $row['photos'])) $row['photos'][] = $ph['foto_abnormal_2'];
+            }
+
             $grid[] = $row;
         }
 

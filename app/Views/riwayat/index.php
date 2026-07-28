@@ -117,7 +117,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
           <!-- NEW FILTER ROW -->
           <tr class="bg-white">
             <th class="p-1"></th>
-            <th class="p-1">
+            <th class="p-1" style="min-width: 130px;">
               <select name="pic" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari PIC..." onchange="this.form.submit()" style="font-size: 0.75rem;">
                 <option value=""></option>
                 <option value="all">Semua PIC</option>
@@ -126,7 +126,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
                 <?php endforeach; ?>
               </select>
             </th>
-            <th class="p-1">
+            <th class="p-1" style="min-width: 130px;">
               <select class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Lokasi..." onchange="window.location.href='<?= site_url('riwayat/lokasi/') ?>' + (this.value === 'all' ? 'semua' : this.value) + '?jenis_check=<?= urlencode($selectedFilters['jenis_check'] ?? '') ?>'" style="font-size: 0.75rem;">
                 <option value=""></option>
                 <option value="all" <?= $lokasiSlug === 'semua' ? 'selected' : '' ?>>Semua Lokasi</option>
@@ -134,7 +134,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
                 <option value="mfg2" <?= $lokasiSlug === 'mfg2' ? 'selected' : '' ?>>MFG 2</option>
               </select>
             </th>
-            <th class="p-1">
+            <th class="p-1" style="min-width: 110px;">
               <?php if (!empty($userLine)): ?>
                 <input type="text" class="form-control form-control-sm border-1 bg-light fw-bold text-uppercase px-2" value="<?= esc($userLine) ?>" readonly disabled>
                 <input type="hidden" name="line" value="<?= esc($userLine) ?>">
@@ -148,7 +148,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
                 </select>
               <?php endif; ?>
             </th>
-            <th class="p-1">
+            <th class="p-1" style="min-width: 130px;">
               <select name="id_mesin" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Mesin..." onchange="this.form.submit()" style="font-size: 0.75rem;">
                 <option value=""></option>
                 <option value="all">Semua Mesin</option>
@@ -157,7 +157,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
                 <?php endforeach; ?>
               </select>
             </th>
-            <th class="p-1">
+            <th class="p-1" style="min-width: 140px;">
               <select name="kategori" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Kategori..." onchange="this.form.submit()" style="font-size: 0.75rem;">
                 <option value=""></option>
                 <option value="all">Semua Kategori</option>
@@ -166,8 +166,8 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
                 <?php endforeach; ?>
               </select>
             </th>
-            <th class="p-1">
-              <select name="bulan" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Bulan..." onchange="this.form.submit()" style="font-size: 0.75rem;">
+            <th class="p-1" style="min-width: 140px;">
+              <select name="bulan" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-no-sort="true" data-placeholder="Cari Bulan..." onchange="this.form.submit()" style="font-size: 0.75rem;">
                 <option value=""></option>
                 <option value="all">Semua Bulan</option>
                 <?php if (!empty($bulanList)) foreach ($bulanList as $val => $label): ?>
@@ -175,13 +175,16 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
                 <?php endforeach; ?>
               </select>
             </th>
-            <th class="p-1">
+            <th class="p-1" style="min-width: 120px;">
               <select name="status" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Status..." onchange="this.form.submit()" style="font-size: 0.75rem;">
                 <option value=""></option>
                 <option value="all">Semua Status</option>
                 <option value="Pending" <?= isset($selectedFilters['status']) && $selectedFilters['status'] === 'Pending' ? 'selected' : '' ?>>Pending</option>
-                <option value="Approved L1" <?= isset($selectedFilters['status']) && $selectedFilters['status'] === 'Approved L1' ? 'selected' : '' ?>>Aprv L1</option>
-                <option value="Approved L2" <?= isset($selectedFilters['status']) && $selectedFilters['status'] === 'Approved L2' ? 'selected' : '' ?>>Aprv L2</option>
+                <?php $isPreventive = in_array(strtolower($selectedFilters['jenis_check'] ?? ''), ['preventive', 'checklist report', 'checklist-report']); ?>
+                <?php if (!$isPreventive): ?>
+                  <option value="Approved L1" <?= isset($selectedFilters['status']) && $selectedFilters['status'] === 'Approved L1' ? 'selected' : '' ?>>Aprv L1</option>
+                  <option value="Approved L2" <?= isset($selectedFilters['status']) && $selectedFilters['status'] === 'Approved L2' ? 'selected' : '' ?>>Aprv L2</option>
+                <?php endif; ?>
                 <option value="Approved" <?= isset($selectedFilters['status']) && $selectedFilters['status'] === 'Approved' ? 'selected' : '' ?>>Final</option>
               </select>
             </th>
@@ -245,11 +248,14 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
               </td>
               <td>
                 <div class="d-flex gap-1">
-                  <a href="<?= site_url('riwayat/' . $r['id_transaksi']) ?>" class="btn btn-sm btn-outline-primary py-1 px-2">
+                  <?php 
+                    $qs = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] . '&from_lokasi=' . $lokasiSlug : '?from_lokasi=' . $lokasiSlug; 
+                  ?>
+                  <a href="<?= site_url('riwayat/' . $r['id_transaksi']) . $qs ?>" class="btn btn-sm btn-outline-primary py-1 px-2">
                     Detail
                   </a>
                   <?php if (session()->get('role') === 'admin'): ?>
-                    <a href="<?= site_url('riwayat/edit/' . $r['id_transaksi']) ?>" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Edit Riwayat">
+                    <a href="<?= site_url('riwayat/edit/' . $r['id_transaksi']) . $qs ?>" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Edit Riwayat">
                       <i class="bi bi-pencil"></i>
                     </a>
                     <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" onclick="confirmDelete(<?= $r['id_transaksi'] ?>)" title="Hapus Riwayat">

@@ -94,9 +94,11 @@ class RiwayatController extends BaseController
         // Tapi di master_parameter_check cuma ada "Preventive" dan "Overhaul".
         $jenisDb = (in_array(strtolower($filters['jenis_check']), ['preventive', 'checklist report'])) ? 'Preventive' : 'Overhaul';
         
-        $dbCategories = $parameterModel->select('kategori')
-            ->where('lokasi', $lokasiName)
-            ->where('jenis_check', $jenisDb)
+        $catQuery = $parameterModel->select('kategori');
+        if ($lokasiName !== null) {
+            $catQuery->where('lokasi', $lokasiName);
+        }
+        $dbCategories = $catQuery->where('jenis_check', $jenisDb)
             ->distinct()
             ->findAll();
 
@@ -114,14 +116,18 @@ class RiwayatController extends BaseController
             $availableLines = ['Line 1', 'Line 2', 'Line 3'];
         } elseif ($lokasiName === 'MFG 2') {
             $availableLines = ['CG', 'Second'];
+        } else {
+            $availableLines = ['Line 1', 'Line 2', 'Line 3', 'CG', 'Second'];
         }
 
         // Ambil daftar PIC dinamis berdasarkan transaksi yang ada
         $db = \Config\Database::connect();
         $picQuery = $db->table('transaksi_check')
                        ->select('transaksi_check.nama_pic, users.nama as nama_staff')
-                       ->join('users', 'users.id = transaksi_check.id_user')
-                       ->where('transaksi_check.lokasi_check', $lokasiName);
+                       ->join('users', 'users.id = transaksi_check.id_user');
+        if ($lokasiName !== null) {
+            $picQuery->where('transaksi_check.lokasi_check', $lokasiName);
+        }
         if (!empty($filters['jenis_check'])) {
             $picQuery->where('transaksi_check.jenis_check', $filters['jenis_check']);
         }
@@ -138,13 +144,30 @@ class RiwayatController extends BaseController
         $availablePics = array_unique($availablePics);
         sort($availablePics);
 
-        // List bulan untuk dropdown filter
+        // List bulan dinamis dari database (berdasarkan waktu_mulai)
+        $bulanQuery = $db->table('transaksi_check')
+            ->select("DATE_FORMAT(waktu_mulai, '%Y-%m') as bulan", false);
+        if ($lokasiName !== null) {
+            $bulanQuery->where('lokasi_check', $lokasiName);
+        }
+        if (!empty($filters['jenis_check'])) {
+            $bulanQuery->where('jenis_check', $filters['jenis_check']);
+        }
+        $rawBulan = $bulanQuery->distinct()->orderBy('bulan', 'DESC')->get()->getResultArray();
         $bulanList = [];
-        for ($i = 0; $i < 12; $i++) {
-            $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
-            $val  = $time->format('Y-m');
-            $label = $time->toLocalizedString('MMMM yyyy');
-            $bulanList[$val] = $label;
+        foreach ($rawBulan as $row) {
+            $val = $row['bulan'];
+            if ($val) {
+                $time = \CodeIgniter\I18n\Time::parse($val . '-01');
+                $label = $time->toLocalizedString('MMMM yyyy');
+                $bulanList[$val] = $label;
+            }
+        }
+        // Tetap tambahkan bulan ini jika belum ada (opsional)
+        $currentMonthVal = \CodeIgniter\I18n\Time::now()->format('Y-m');
+        if (!isset($bulanList[$currentMonthVal])) {
+            $bulanList[$currentMonthVal] = \CodeIgniter\I18n\Time::now()->toLocalizedString('MMMM yyyy');
+            krsort($bulanList); // sort keys descending
         }
 
         return view('riwayat/index', [
@@ -235,7 +258,7 @@ class RiwayatController extends BaseController
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
         $filename = "Summary_Riwayat_" . str_replace(' ', '_', $jenisLabel) . "_" . date('Ymd_His') . ".pdf";
@@ -295,6 +318,12 @@ class RiwayatController extends BaseController
             'header'      => $header,
             'details'     => $details,
             'durasiDetik' => $durasiDetik,
+            'leaderPicList' => (function() use ($header) {
+                $lineSlug = strtolower(str_replace(' ', '', $header['line'] ?? ''));
+                if ($lineSlug === 'second') $lineSlug = 'sc';
+                $roleName = 'leader' . str_replace('line', '', $lineSlug);
+                return (new \App\Models\PicModel())->where('role_pic', $roleName)->findAll();
+            })(),
             'staffPic'    => (new \App\Models\PicModel())->where('role_pic', 'Staff')->findAll(),
             'from'        => $this->request->getGet('from'),
             'cb_lokasi'   => $this->request->getGet('lokasi'),
@@ -323,13 +352,18 @@ class RiwayatController extends BaseController
                  ->getRowArray();
 
         if ($tx) {
-            $qs = http_build_query([
+            $qsArray = [
                 'from'     => 'kontrol',
                 'lokasi'   => $lokasi,
                 'line'     => $line,
                 'kategori' => $kategori,
                 'bulan'    => $bulan,
-            ]);
+            ];
+            $qsSummary = $this->request->getGet('qs_summary');
+            if ($qsSummary) {
+                $qsArray['qs_summary'] = $qsSummary;
+            }
+            $qs = http_build_query($qsArray);
             return redirect()->to('/riwayat/' . $tx['id_transaksi'] . '?' . $qs);
         } else {
             // Fallback ke daftar riwayat jika tidak ada transaksi
@@ -507,6 +541,17 @@ class RiwayatController extends BaseController
 
         // 2. Delete existing detail & laporan_abnormal
         $detailModel = new TransaksiCheckDetailModel();
+        
+        // Simpan foto lama sebelum dihapus agar tidak hilang jika tidak ada upload baru
+        $oldDetails = $detailModel->where('id_transaksi', $id)->findAll();
+        $oldPhotos = [];
+        foreach ($oldDetails as $od) {
+            $oldPhotos[$od['id_parameter']] = [
+                'f1' => $od['foto_abnormal'],
+                'f2' => $od['foto_abnormal_2']
+            ];
+        }
+
         // Delete cascading will handle laporan_abnormal
         $detailModel->where('id_transaksi', $id)->delete();
 
@@ -514,22 +559,32 @@ class RiwayatController extends BaseController
         $parameterModel = new \App\Models\ParameterCheckModel();
         $uploadPath = FCPATH . 'uploads/abnormal/';
         foreach ($hasilCheck as $idParameter => $hasil) {
-            $fotoAbnormal = null;
+            $fotoAbnormal = $oldPhotos[$idParameter]['f1'] ?? null;
+            $fotoAbnormal2 = $oldPhotos[$idParameter]['f2'] ?? null;
+
             if ($hasil === 'Δ') {
                 $file = $this->request->getFile("foto_abnormal.{$idParameter}");
                 if ($file && $file->isValid() && !$file->hasMoved()) {
-                    $newName = time() . '_' . uniqid() . '.' . $file->getClientExtension();
+                    $newName = time() . '_1_' . uniqid() . '.' . $file->getClientExtension();
                     $file->move($uploadPath, $newName);
                     $fotoAbnormal = $newName;
+                }
+
+                $file2 = $this->request->getFile("foto_abnormal_2.{$idParameter}");
+                if ($file2 && $file2->isValid() && !$file2->hasMoved()) {
+                    $newName2 = time() . '_2_' . uniqid() . '.' . $file2->getClientExtension();
+                    $file2->move($uploadPath, $newName2);
+                    $fotoAbnormal2 = $newName2;
                 }
             }
 
             $idDetail = $detailModel->insert([
-                'id_transaksi' => $id,
-                'id_parameter' => (int) $idParameter,
-                'hasil_check'  => $hasil !== '' ? $hasil : null,
-                'ulasan'       => $ulasan[$idParameter] ?? null,
-                'foto_abnormal'=> $fotoAbnormal,
+                'id_transaksi'   => $id,
+                'id_parameter'   => (int) $idParameter,
+                'hasil_check'    => $hasil !== '' ? $hasil : null,
+                'ulasan'         => $ulasan[$idParameter] ?? null,
+                'foto_abnormal'  => $fotoAbnormal,
+                'foto_abnormal_2'=> $fotoAbnormal2,
             ]);
 
             // Save to laporan_abnormal ONLY if status is Δ (segitiga)
@@ -551,6 +606,7 @@ class RiwayatController extends BaseController
                     'pengecekan_tanggal' => date('Y-m-d', strtotime($waktuSelesai)),
                     'pengecekan_pic'     => session()->get('nama') ?: 'Admin', // who edited
                     'foto_abnormal'      => $fotoAbnormal,
+                    'foto_abnormal_2'    => $fotoAbnormal2,
                     'created_at'         => $waktuSelesai,
                     'updated_at'         => $waktuSelesai,
                 ]);
@@ -850,6 +906,7 @@ class RiwayatController extends BaseController
                     'pengecekan_tanggal' => date('Y-m-d', strtotime($waktuSelesai)),
                     'pengecekan_pic'     => $transaksi['nama_pic'],
                     'foto_abnormal'      => $d['foto_abnormal'] ?? null,
+                    'foto_abnormal_2'    => $d['foto_abnormal_2'] ?? null,
                     'created_at'         => date('Y-m-d H:i:s'),
                     'updated_at'         => date('Y-m-d H:i:s'),
                 ]);

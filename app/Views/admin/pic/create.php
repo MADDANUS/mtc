@@ -33,6 +33,11 @@
                         <select name="role_pic" class="form-select" required>
                             <option value="Staff" <?= old('role_pic') === 'Staff' ? 'selected' : '' ?>>Staff</option>
                             <option value="Magang" <?= old('role_pic') === 'Magang' ? 'selected' : '' ?>>Magang</option>
+                            <option value="leader1" <?= old('role_pic') === 'leader1' ? 'selected' : '' ?>>Leader Line 1</option>
+                            <option value="leader2" <?= old('role_pic') === 'leader2' ? 'selected' : '' ?>>Leader Line 2</option>
+                            <option value="leader3" <?= old('role_pic') === 'leader3' ? 'selected' : '' ?>>Leader Line 3</option>
+                            <option value="leadercg" <?= old('role_pic') === 'leadercg' ? 'selected' : '' ?>>Leader CG</option>
+                            <option value="leadersc" <?= old('role_pic') === 'leadersc' ? 'selected' : '' ?>>Leader SC</option>
                         </select>
                     </div>
 

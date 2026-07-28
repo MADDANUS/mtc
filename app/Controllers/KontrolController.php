@@ -174,7 +174,7 @@ class KontrolController extends BaseController
         $dompdf = new \Dompdf\Dompdf();
         $dompdf->set_option('isRemoteEnabled', true);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
         $dompdf->stream('Ceklis_Kontrol_' . str_replace(' ', '_', $kategori) . '_' . str_replace(' ', '_', $lokasi) . '.pdf', ['Attachment' => true]);
         return;
@@ -282,7 +282,7 @@ class KontrolController extends BaseController
 
         $dompdf = new \Dompdf\Dompdf($options);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
         $filename = 'Checklist_Control_Semua_Kategori_' . str_replace(' ', '_', $lokasi) . '_' . $bulan . '.pdf';
@@ -409,7 +409,7 @@ class KontrolController extends BaseController
 
         $dompdf = new \Dompdf\Dompdf($options);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
         $filename = 'Checklist_Control_Ringkasan_Semua_Area_' . $bulan . '.pdf';
@@ -551,6 +551,12 @@ class KontrolController extends BaseController
             'allChecked'     => $allChecked,
             'approvalStatus' => $approvalStatus,
             'approvalData'   => $approval,
+            'leaderPicList'  => (function() use ($line) {
+                $lineSlug = strtolower(str_replace(' ', '', $line ?? ''));
+                if ($lineSlug === 'second') $lineSlug = 'sc';
+                $roleName = 'leader' . str_replace('line', '', $lineSlug);
+                return (new \App\Models\PicModel())->where('role_pic', $roleName)->findAll();
+            })(),
         ]);
     }
 

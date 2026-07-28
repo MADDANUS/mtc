@@ -86,7 +86,7 @@
                 </select>
               </th>
               <th class="p-1">
-                <select name="bulan" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Bulan..." onchange="this.form.submit()" style="font-size: 0.75rem;">
+                <select name="bulan" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-no-sort="true" data-placeholder="Cari Bulan..." onchange="this.form.submit()" style="font-size: 0.75rem;">
                   <option value=""></option>
                   <option value="all">Semua Bulan</option>
                   <?php if (!empty($bulanList)) foreach ($bulanList as $val => $label): ?>
@@ -132,7 +132,12 @@
                     -
                   <?php endif; ?>
                 </td>
-                <td><a href="<?= site_url('riwayat/' . $l['id_transaksi']) ?>" class="btn btn-sm btn-outline-primary">Detail</a></td>
+                <td>
+                  <?php 
+                    $qsDurasi = !empty($_SERVER['QUERY_STRING']) ? '&' . $_SERVER['QUERY_STRING'] : '';
+                  ?>
+                  <a href="<?= site_url('riwayat/' . $l['id_transaksi']) . '?from=durasi' . $qsDurasi ?>" class="btn btn-sm btn-outline-primary">Detail</a>
+                </td>
               </tr>
             <?php endforeach; ?>
             <?php if(empty($laporan)): ?>

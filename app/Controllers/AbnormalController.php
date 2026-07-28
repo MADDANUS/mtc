@@ -295,10 +295,11 @@ class AbnormalController extends BaseController
 
         // Buat list bulan untuk filter
         $bulanList = [];
+        $bulanIndo = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
         for ($i = 0; $i < 12; $i++) {
             $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
             $val  = $time->format('Y-m');
-            $label = $time->toLocalizedString('MMMM yyyy');
+            $label = $bulanIndo[$time->format('m')] . ' ' . $time->format('Y');
             $bulanList[$val] = $label;
         }
 
@@ -380,10 +381,11 @@ class AbnormalController extends BaseController
 
         // List bulan
         $bulanList = [];
+        $bulanIndo = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
         for ($i = 0; $i < 12; $i++) {
             $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
             $val  = $time->format('Y-m');
-            $label = $time->toLocalizedString('MMMM yyyy');
+            $label = $bulanIndo[$time->format('m')] . ' ' . $time->format('Y');
             $bulanList[$val] = $label;
         }
 
@@ -548,10 +550,11 @@ class AbnormalController extends BaseController
         $masterPic = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
 
         $bulanList = [];
+        $bulanIndo = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
         for ($i = 0; $i < 12; $i++) {
             $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
             $val  = $time->format('Y-m');
-            $label = $time->toLocalizedString('MMMM yyyy');
+            $label = $bulanIndo[$time->format('m')] . ' ' . $time->format('Y');
             $bulanList[$val] = $label;
         }
 
@@ -617,10 +620,11 @@ class AbnormalController extends BaseController
         }
 
         $bulanList = [];
+        $bulanIndo = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
         for ($i = 0; $i < 12; $i++) {
             $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
             $val  = $time->format('Y-m');
-            $label = $time->toLocalizedString('MMMM yyyy');
+            $label = $bulanIndo[$time->format('m')] . ' ' . $time->format('Y');
             $bulanList[$val] = $label;
         }
 
@@ -827,7 +831,7 @@ class AbnormalController extends BaseController
         $dompdf = new \Dompdf\Dompdf();
         $dompdf->set_option('isRemoteEnabled', true);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
         $filename = 'Laporan_Abnormal_Overhaul_Ringkasan_' . $bulanFilter . '.pdf';
         $dompdf->stream($filename, ['Attachment' => true]);
@@ -864,6 +868,9 @@ class AbnormalController extends BaseController
     public function uploadFotoPerbaikan()
     {
         $idAbnormal = (int) $this->request->getPost('id_abnormal');
+        $slot = (int) $this->request->getPost('foto_slot') ?: 1;
+        $dbColumn = ($slot === 2) ? 'foto_perbaikan_2' : 'foto_perbaikan';
+        
         if ($idAbnormal <= 0) {
             return $this->response->setJSON(['success' => false, 'message' => 'ID tidak valid.']);
         }
@@ -880,26 +887,27 @@ class AbnormalController extends BaseController
         }
 
         $uploadPath = FCPATH . 'uploads/abnormal/';
-        $newName = 'repair_' . time() . '_' . uniqid() . '.' . $file->getClientExtension();
+        $newName = 'repair_' . time() . '_' . $slot . '_' . uniqid() . '.' . $file->getClientExtension();
         $file->move($uploadPath, $newName);
 
         // Simpan nama file ke laporan_abnormal
         $existing = $this->abnormalModel->find($idAbnormal);
         
         // Hapus foto lama jika ada
-        if (!empty($existing['foto_perbaikan'])) {
-            $oldPath = $uploadPath . $existing['foto_perbaikan'];
+        if (!empty($existing[$dbColumn])) {
+            $oldPath = $uploadPath . $existing[$dbColumn];
             if (file_exists($oldPath)) {
                 @unlink($oldPath);
             }
         }
 
-        if ($this->abnormalModel->update($idAbnormal, ['foto_perbaikan' => $newName, 'updated_at' => date('Y-m-d H:i:s')])) {
+        if ($this->abnormalModel->update($idAbnormal, [$dbColumn => $newName, 'updated_at' => date('Y-m-d H:i:s')])) {
             return $this->response->setJSON([
                 'success'   => true,
-                'message'   => 'Foto perbaikan berhasil diupload.',
+                'message'   => 'Foto perbaikan ' . $slot . ' berhasil diupload.',
                 'foto_url'  => base_url('uploads/abnormal/' . $newName),
                 'foto_name' => $newName,
+                'slot'      => $slot,
             ]);
         }
 

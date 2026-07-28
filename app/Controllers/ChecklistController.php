@@ -366,23 +366,32 @@ class ChecklistController extends BaseController
         $detailData = [];
         foreach ($hasilCheck as $idParameter => $hasil) {
             $fotoAbnormal = null;
+            $fotoAbnormal2 = null;
 
             // Jika hasil Δ, upload foto (wajib)
             if ($hasil === 'Δ') {
                 $file = $this->request->getFile("foto_abnormal.{$idParameter}");
                 if ($file && $file->isValid() && !$file->hasMoved()) {
-                    $newName = time() . '_' . uniqid() . '.' . $file->getClientExtension();
+                    $newName = time() . '_1_' . uniqid() . '.' . $file->getClientExtension();
                     $file->move($uploadPath, $newName);
                     $fotoAbnormal = $newName;
+                }
+                
+                $file2 = $this->request->getFile("foto_abnormal_2.{$idParameter}");
+                if ($file2 && $file2->isValid() && !$file2->hasMoved()) {
+                    $newName2 = time() . '_2_' . uniqid() . '.' . $file2->getClientExtension();
+                    $file2->move($uploadPath, $newName2);
+                    $fotoAbnormal2 = $newName2;
                 }
             }
 
             $idDetail = $this->detailModel->insert([
-                'id_transaksi'  => $idTransaksi,
-                'id_parameter'  => (int) $idParameter,
-                'hasil_check'   => $hasil !== '' ? $hasil : null,
-                'ulasan'        => $ulasan[$idParameter] ?? null,
-                'foto_abnormal' => $fotoAbnormal,
+                'id_transaksi'    => $idTransaksi,
+                'id_parameter'    => (int) $idParameter,
+                'hasil_check'     => $hasil !== '' ? $hasil : null,
+                'ulasan'          => $ulasan[$idParameter] ?? null,
+                'foto_abnormal'   => $fotoAbnormal,
+                'foto_abnormal_2' => $fotoAbnormal2,
             ]);
             // (Logika laporan_abnormal dipindah ke proses Approval)
         }

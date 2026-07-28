@@ -9,16 +9,31 @@
   <?php if (isset($from) && $from === 'kontrol'): ?>
     <?php 
       $backUrl = site_url('kontrol') . '?lokasi=' . urlencode($cb_lokasi ?? 'MFG 1') . '&line=' . urlencode($cb_line ?? '') . '&kategori=' . urlencode($cb_kategori ?? '') . '&bulan=' . urlencode($cb_bulan ?? '');
+      if (!empty($_GET['qs_summary'])) {
+          $backUrl .= '&qs_summary=' . urlencode($_GET['qs_summary']);
+      }
     ?>
     <a href="<?= $backUrl ?>" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left"></i> Kembali ke Ceklis Kontrol
     </a>
+  <?php elseif (isset($from) && $from === 'durasi'): ?>
+    <?php 
+      $backUrl = site_url('laporan/durasi');
+      $qsParams = $_GET;
+      unset($qsParams['from']);
+      if (!empty($qsParams)) {
+          $backUrl .= '?' . http_build_query($qsParams);
+      }
+    ?>
+    <a href="<?= $backUrl ?>" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Kembali ke Laporan Durasi
+    </a>
   <?php else: ?>
     <?php 
-      $lokSlug = strtolower(str_replace(' ', '', $header['lokasi_check']));
-      $jenisParam = urlencode($header['jenis_check']);
+      $lokSlug = isset($_GET['from_lokasi']) ? $_GET['from_lokasi'] : strtolower(str_replace(' ', '', $header['lokasi_check']));
+      $qs = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '?jenis_check=' . urlencode($header['jenis_check']);
     ?>
-    <a href="<?= site_url('riwayat/lokasi/' . $lokSlug . '?jenis_check=' . $jenisParam) ?>" class="btn btn-sm btn-outline-secondary">
+    <a href="<?= site_url('riwayat/lokasi/' . $lokSlug . $qs) ?>" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left"></i> Kembali
     </a>
   <?php endif; ?>
@@ -137,27 +152,27 @@
 
 
 <div class="d-flex justify-content-end mb-2">
-  <table class="table table-sm table-bordered text-center mb-0 bg-white shadow-sm" style="width: auto; font-size: 0.85rem;">
-    <thead class="table-light">
+  <table class="table table-sm table-bordered text-center mb-0 bg-white shadow-sm" style="width: auto; font-size: 0.75rem;">
+    <thead style="background-color: #0f172a; color: #ffffff; border-bottom: 2px solid #0275d8;">
       <tr>
-        <th colspan="3" class="py-1 px-4">KETERANGAN CHECK LIST</th>
+        <th colspan="3" class="py-1 px-3 text-uppercase" style="letter-spacing: 0.05em; line-height: 1.2;">KETERANGAN CHECK LIST</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td class="fw-bold text-success px-3">V</td>
-        <td class="px-2">:</td>
-        <td class="text-start fw-bold px-3">OK</td>
+        <td class="fw-bold px-3 py-0 align-middle">V</td>
+        <td class="px-2 py-0 align-middle">:</td>
+        <td class="text-start px-3 py-0 align-middle">OK</td>
       </tr>
       <tr>
-        <td class="fw-bold text-warning px-3">Δ</td>
-        <td class="px-2">:</td>
-        <td class="text-start fw-bold px-3">PERLU TINDAKAN</td>
+        <td class="fw-bold px-3 py-0 align-middle">&#916;</td>
+        <td class="px-2 py-0 align-middle">:</td>
+        <td class="text-start px-3 py-0 align-middle">PERLU TINDAKAN</td>
       </tr>
       <tr>
-        <td class="fw-bold text-danger px-3">X</td>
-        <td class="px-2">:</td>
-        <td class="text-start fw-bold px-3">TIDAK ADA</td>
+        <td class="fw-bold px-3 py-0 align-middle">X</td>
+        <td class="px-2 py-0 align-middle">:</td>
+        <td class="text-start px-3 py-0 align-middle">TIDAK ADA</td>
       </tr>
     </tbody>
   </table>
@@ -223,7 +238,23 @@
                 <span class="text-muted">-</span>
               <?php endif; ?>
             </td>
-            <td><?= esc($d['ulasan'] ?? '-') ?></td>
+            <td>
+              <?= esc($d['ulasan'] ?? '-') ?>
+              <?php if (!empty($d['foto_abnormal'])): ?>
+                <div class="mt-2">
+                  <a href="<?= base_url('uploads/abnormal/' . $d['foto_abnormal']) ?>" target="_blank">
+                    <img src="<?= base_url('uploads/abnormal/' . $d['foto_abnormal']) ?>" alt="Foto 1" style="max-height: 80px; border-radius: 4px; border: 1px solid #ccc;">
+                  </a>
+                </div>
+              <?php endif; ?>
+              <?php if (!empty($d['foto_abnormal_2'])): ?>
+                <div class="mt-2">
+                  <a href="<?= base_url('uploads/abnormal/' . $d['foto_abnormal_2']) ?>" target="_blank">
+                    <img src="<?= base_url('uploads/abnormal/' . $d['foto_abnormal_2']) ?>" alt="Foto 2" style="max-height: 80px; border-radius: 4px; border: 1px solid #ccc;">
+                  </a>
+                </div>
+              <?php endif; ?>
+            </td>
           </tr>
         <?php endforeach; ?>
       </tbody>
@@ -270,7 +301,23 @@
                 <span class="text-muted">-</span>
               <?php endif; ?>
             </td>
-            <td><?= esc($d['ulasan'] ?? '-') ?></td>
+            <td>
+              <?= esc($d['ulasan'] ?? '-') ?>
+              <?php if (!empty($d['foto_abnormal'])): ?>
+                <div class="mt-2">
+                  <a href="<?= base_url('uploads/abnormal/' . $d['foto_abnormal']) ?>" target="_blank">
+                    <img src="<?= base_url('uploads/abnormal/' . $d['foto_abnormal']) ?>" alt="Foto 1" style="max-height: 80px; border-radius: 4px; border: 1px solid #ccc;">
+                  </a>
+                </div>
+              <?php endif; ?>
+              <?php if (!empty($d['foto_abnormal_2'])): ?>
+                <div class="mt-2">
+                  <a href="<?= base_url('uploads/abnormal/' . $d['foto_abnormal_2']) ?>" target="_blank">
+                    <img src="<?= base_url('uploads/abnormal/' . $d['foto_abnormal_2']) ?>" alt="Foto 2" style="max-height: 80px; border-radius: 4px; border: 1px solid #ccc;">
+                  </a>
+                </div>
+              <?php endif; ?>
+            </td>
           </tr>
         <?php endforeach; ?>
       </tbody>
@@ -478,18 +525,20 @@
     <form action="<?= site_url('riwayat/approve/' . (int) $header['id_transaksi']) ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menyetujui laporan ini?');">
       <?= csrf_field() ?>
       <div class="d-flex align-items-center gap-2">
-        <?php if (!$isOverhaul): ?>
-          <select name="pic_line_nama" class="form-select form-select-sm searchable-select" required style="min-width: 200px;">
-            <option value="">-- Pilih PIC Line (Staff) --</option>
-            <?php foreach ($staffPic ?? [] as $pic): ?>
-              <option value="<?= esc($pic['nama_pic']) ?>"><?= esc($pic['nama_pic']) ?></option>
-            <?php endforeach; ?>
-          </select>
-        <?php else: ?>
-          <?php if ($role === 'leader' || $role === 'admin'): ?>
-            <input type="text" name="leader_nama" class="form-control form-control-sm" placeholder="Ketik Nama Leader" required style="min-width: 200px;" value="<?= esc(session()->get('nama') ?? '') ?>">
+        <div style="min-width: 250px;">
+          <?php if (!$isOverhaul): ?>
+            <select name="pic_line_nama" class="form-select form-select-sm searchable-select" required>
+              <option value="">-- Pilih PIC Line (Leader) --</option>
+              <?php foreach ($leaderPicList ?? [] as $pic): ?>
+                <option value="<?= esc($pic['nama_pic']) ?>"><?= esc($pic['nama_pic']) ?></option>
+              <?php endforeach; ?>
+            </select>
+          <?php else: ?>
+            <?php if ($role === 'leader' || $role === 'admin'): ?>
+              <input type="text" name="leader_nama" class="form-control form-control-sm" placeholder="Ketik Nama Leader" required>
+            <?php endif; ?>
           <?php endif; ?>
-        <?php endif; ?>
+        </div>
         <button type="submit" class="btn btn-success px-4 py-2 fw-semibold shadow-sm">
           <i class="bi bi-check-circle-fill me-2"></i> Approve (<?= esc($role) ?>)
         </button>

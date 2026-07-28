@@ -23,7 +23,9 @@ class LaporanAbnormalModel extends Model
         'repair_pic',
         'keterangan',
         'foto_abnormal',
+        'foto_abnormal_2',
         'foto_perbaikan',
+        'foto_perbaikan_2',
     ];
     protected $useTimestamps = true;
     protected $returnType    = 'array';

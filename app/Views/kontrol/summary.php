@@ -20,12 +20,7 @@
                 <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
             </a>
             <?php endif; ?>
-            <select name="bulan" class="form-select border-0 shadow-sm fw-medium rounded-pill" style="width: auto;" onchange="this.form.submit()">
-                <?php foreach ($bulanList as $val => $label): ?>
-                    <option value="<?= $val ?>" <?= $val === $bulan ? 'selected' : '' ?>><?= $label ?></option>
-                <?php endforeach; ?>
-            </select>
-        </form>
+            </form>
     </div>
 </div>
 
@@ -96,6 +91,11 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                                 STATUS APPROVAL <?= $getSortIcon('statusText') ?>
                             </a>
                         </th>
+                        <th style="width: 15%;">
+                            <span class="text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                                BULAN
+                            </span>
+                        </th>
                         <th class="pe-4 text-center fw-bold text-uppercase text-secondary align-middle" style="font-size: 0.72rem; letter-spacing: 0.08em;">Aksi</th>
                     </tr>
                     <!-- NEW FILTER ROW -->
@@ -138,6 +138,13 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                                 <option value="Selesai (Final)" <?= ($filterStatus ?? '') === 'Selesai (Final)' ? 'selected' : '' ?>>Selesai (Final)</option>
                             </select>
                         </th>
+                        <th class="py-2">
+                            <select name="bulan" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-no-sort="true" onchange="document.getElementById('filterForm').submit();">
+                                <?php foreach ($bulanList as $val => $label): ?>
+                                    <option value="<?= $val ?>" <?= $val === $bulan ? 'selected' : '' ?>><?= $label ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </th>
                         <th class="pe-4 py-2 text-center align-middle">
                             <a href="<?= site_url('kontrol?view=summary') ?>" class="btn btn-sm btn-danger fw-bold px-3" title="Reset Filter" style="font-size: 0.75rem;">
                                 <i class="bi bi-arrow-counterclockwise fw-bold"></i> Reset
@@ -148,7 +155,7 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                 <tbody class="border-top-0">
                     <?php if(empty($summaryRows)): ?>
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">Tidak ada data ditemukan.</td>
+                            <td colspan="7" class="text-center py-4 text-muted">Tidak ada data ditemukan.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($summaryRows as $row): ?>
@@ -167,8 +174,12 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                                 <td>
                                     <span class="badge <?= $row['badgeClass'] ?> rounded-pill px-3 py-2"><?= $row['statusText'] ?></span>
                                 </td>
+                                <td class="fw-bold text-dark" style="font-size: 0.85rem;"><?= $bulanList[$bulan] ?? $bulan ?></td>
                                 <td class="pe-4 text-end">
-                                    <a href="<?= site_url('kontrol?lokasi=' . urlencode($row['lokasi']) . '&line=' . urlencode($row['line']) . '&kategori=' . urlencode($row['kategori']) . '&bulan=' . urlencode($bulan)) ?>" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3">
+                                    <?php 
+                                        $qsSummary = !empty($_SERVER['QUERY_STRING']) ? '&qs_summary=' . urlencode($_SERVER['QUERY_STRING']) : '';
+                                    ?>
+                                    <a href="<?= site_url('kontrol?lokasi=' . urlencode($row['lokasi']) . '&line=' . urlencode($row['line']) . '&kategori=' . urlencode($row['kategori']) . '&bulan=' . urlencode($bulan) . $qsSummary) ?>" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3">
                                         Lihat Form
                                     </a>
                                 </td>

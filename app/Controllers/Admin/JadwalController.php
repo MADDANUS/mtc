@@ -4,6 +4,9 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\JadwalPreventiveModel;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class JadwalController extends BaseController
 {
@@ -164,5 +167,176 @@ class JadwalController extends BaseController
         $this->jadwalModel->delete($id);
 
         return redirect()->to('/admin/jadwal')->with('success', 'Jadwal preventive berhasil dihapus.');
+    }
+
+    /**
+     * GET /admin/jadwal/template
+     */
+    public function template()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        $sheet->setCellValue('A1', 'Lokasi (MFG 1 / MFG 2)');
+        $sheet->setCellValue('B1', 'Kategori (Cth: Penerangan)');
+        $sheet->setCellValue('C1', 'Rentang Tanggal (Cth: 27/07/2026-31/07/2026)');
+
+
+        $sheet->getColumnDimension('A')->setAutoSize(true);
+        $sheet->getColumnDimension('B')->setAutoSize(true);
+        $sheet->getColumnDimension('C')->setAutoSize(true);
+
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'Template_Import_Jadwal.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit;
+    }
+
+    /**
+     * GET /admin/jadwal/export
+     */
+    public function export()
+    {
+        $schedules = $this->jadwalModel->orderBy('tanggal_rencana', 'ASC')->findAll();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $sheet->setCellValue('A1', 'Lokasi');
+        $sheet->setCellValue('B1', 'Kategori');
+        $sheet->setCellValue('C1', 'Rentang Tanggal');
+        $sheet->setCellValue('D1', 'Bulan Tahun');
+        $sheet->setCellValue('E1', 'Pekan Ke');
+
+        $row = 2;
+        foreach ($schedules as $s) {
+            // Hitung Senin dan Jumat (untuk format Rentang Tanggal)
+            $tglRencana = strtotime($s['tanggal_rencana']);
+            $dayOfWeek  = (int) date('N', $tglRencana);
+            $mondayTs   = strtotime('-' . ($dayOfWeek - 1) . ' days', $tglRencana);
+            $fridayTs   = strtotime('+4 days', $mondayTs);
+
+            $rentang = date('d/m/Y', $mondayTs) . '-' . date('d/m/Y', $fridayTs);
+
+            $sheet->setCellValue('A' . $row, $s['lokasi']);
+            $sheet->setCellValue('B' . $row, $s['kategori']);
+            $sheet->setCellValue('C' . $row, $rentang);
+            $sheet->setCellValue('D' . $row, $s['bulan_tahun']);
+            $sheet->setCellValue('E' . $row, $s['periode_ke']);
+            $row++;
+        }
+
+        $sheet->getColumnDimension('A')->setAutoSize(true);
+        $sheet->getColumnDimension('B')->setAutoSize(true);
+        $sheet->getColumnDimension('C')->setAutoSize(true);
+        $sheet->getColumnDimension('D')->setAutoSize(true);
+        $sheet->getColumnDimension('E')->setAutoSize(true);
+
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'Export_Jadwal_Preventive.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit;
+    }
+
+    /**
+     * POST /admin/jadwal/import
+     */
+    public function import()
+    {
+        if (!in_array(session()->get('role'), ['admin', 'member'], true)) {
+            return redirect()->back()->with('error', 'Hanya Admin dan Member yang dapat mengimpor jadwal.');
+        }
+
+        $file = $this->request->getFile('file_excel');
+        if (!$file || !$file->isValid()) {
+            return redirect()->back()->with('error', 'Silakan pilih file Excel yang valid.');
+        }
+
+        $extension = $file->getClientExtension();
+        if (!in_array($extension, ['xls', 'xlsx', 'csv'])) {
+            return redirect()->back()->with('error', 'Format file tidak didukung. Gunakan xlsx, xls, atau csv.');
+        }
+
+        try {
+            $spreadsheet = IOFactory::load($file->getTempName());
+            $sheetData = $spreadsheet->getActiveSheet()->toArray();
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal membaca file: ' . $e->getMessage());
+        }
+
+        $successCount = 0;
+        $skipCount = 0;
+
+        // Skip row 1 (header)
+        for ($i = 1; $i < count($sheetData); $i++) {
+            $row = $sheetData[$i];
+            
+            $lokasi = trim($row[0] ?? '');
+            $kategori = trim($row[1] ?? '');
+            $rentangTanggal = trim($row[2] ?? '');
+
+            if (empty($lokasi) || empty($kategori) || empty($rentangTanggal)) {
+                $skipCount++;
+                continue;
+            }
+
+            // Parse rentang (contoh: 27/07/2026-31/07/2026) -> Ambil tanggal pertama
+            $parts = explode('-', $rentangTanggal);
+            $startDateRaw = trim($parts[0]);
+            
+            // Konversi dari DD/MM/YYYY menjadi Y-m-d
+            $dateObj = \DateTime::createFromFormat('d/m/Y', $startDateRaw);
+            if (!$dateObj) {
+                // Coba parse format bebas jika gagal
+                $dateObj = strtotime($startDateRaw);
+                if (!$dateObj) {
+                    $skipCount++;
+                    continue;
+                }
+                $tanggalRencana = date('Y-m-d', $dateObj);
+            } else {
+                $tanggalRencana = $dateObj->format('Y-m-d');
+            }
+
+            $bulanTahun = date('Y-m', strtotime($tanggalRencana));
+            $day        = (int) date('d', strtotime($tanggalRencana));
+            $periodeKe  = intval(($day - 1) / 7) + 1;
+            if ($periodeKe > 5) $periodeKe = 5;
+
+            // Cek duplikasi bulanan
+            $exist = $this->jadwalModel->where('lokasi', $lokasi)
+                                       ->where('kategori', $kategori)
+                                       ->where('bulan_tahun', $bulanTahun)
+                                       ->first();
+
+            if ($exist) {
+                $skipCount++;
+                continue;
+            }
+
+            $this->jadwalModel->insert([
+                'lokasi'          => $lokasi,
+                'kategori'        => $kategori,
+                'bulan_tahun'     => $bulanTahun,
+                'periode_ke'      => $periodeKe,
+                'tanggal_rencana' => $tanggalRencana,
+            ]);
+            $successCount++;
+        }
+
+        $msg = "Impor selesai. {$successCount} jadwal berhasil ditambahkan.";
+        if ($skipCount > 0) {
+            $msg .= " {$skipCount} baris dilewati (kosong, format salah, atau sudah ada di bulan yang sama).";
+        }
+
+        return redirect()->to('/admin/jadwal')->with('success', $msg);
     }
 }

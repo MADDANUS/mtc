@@ -3,7 +3,13 @@
 
 
 <div class="d-flex align-items-center mb-3">
-  <a href="<?= site_url('kontrol?view=summary') ?>" class="btn btn-outline-secondary btn-sm me-3 shadow-sm rounded-pill px-3">
+  <?php
+    $backUrl = site_url('kontrol?view=summary');
+    if (!empty($_GET['qs_summary'])) {
+        $backUrl = site_url('kontrol?' . $_GET['qs_summary']);
+    }
+  ?>
+  <a href="<?= $backUrl ?>" class="btn btn-outline-secondary btn-sm me-3 shadow-sm rounded-pill px-3">
     <i class="bi bi-arrow-left me-1"></i> Kembali
   </a>
   <div class="ms-auto d-flex gap-2">
@@ -31,27 +37,27 @@
 
 <!-- KETERANGAN CHECK LIST -->
 <div class="d-flex justify-content-end mb-2">
-  <table class="table table-sm table-bordered text-center mb-0 bg-white shadow-sm" style="width: auto; font-size: 0.85rem;">
-    <thead class="table-light">
+  <table class="table table-sm table-bordered text-center mb-0 bg-white shadow-sm" style="width: auto; font-size: 0.75rem;">
+    <thead style="background-color: #0f172a; color: #ffffff; border-bottom: 2px solid #0275d8;">
       <tr>
-        <th colspan="3" class="py-1 px-4">KETERANGAN CHECK LIST</th>
+        <th colspan="3" class="py-1 px-3 text-uppercase" style="letter-spacing: 0.05em; line-height: 1.2;">KETERANGAN CHECK LIST</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td class="fw-bold text-success px-3">V</td>
-        <td class="px-2">:</td>
-        <td class="text-start fw-bold px-3">OK</td>
+        <td class="fw-bold px-3 py-0 align-middle">V</td>
+        <td class="px-2 py-0 align-middle">:</td>
+        <td class="text-start px-3 py-0 align-middle">OK</td>
       </tr>
       <tr>
-        <td class="fw-bold text-warning px-3">Δ</td>
-        <td class="px-2">:</td>
-        <td class="text-start fw-bold px-3">PERLU TINDAKAN</td>
+        <td class="fw-bold px-3 py-0 align-middle">&#916;</td>
+        <td class="px-2 py-0 align-middle">:</td>
+        <td class="text-start px-3 py-0 align-middle">PERLU TINDAKAN</td>
       </tr>
       <tr>
-        <td class="fw-bold text-danger px-3">X</td>
-        <td class="px-2">:</td>
-        <td class="text-start fw-bold px-3">TIDAK ADA</td>
+        <td class="fw-bold px-3 py-0 align-middle">X</td>
+        <td class="px-2 py-0 align-middle">:</td>
+        <td class="text-start px-3 py-0 align-middle">TIDAK ADA</td>
       </tr>
     </tbody>
   </table>
@@ -152,8 +158,19 @@
                 </td>
 
                 <!-- Ulasan (Top cell) -->
-                <td class="text-start ps-4 py-2 text-muted text-truncate" style="max-width: 150px; border-bottom: 1px solid #e7e5e4 !important; background-color: #fff;" title="<?= esc($row['ulasan']) ?>">
-                  <?= esc($row['ulasan']) ?: '-' ?>
+                <td class="text-start ps-4 py-2 text-muted" style="border-bottom: 1px solid #e7e5e4 !important; background-color: #fff;">
+                  <?= nl2br(esc($row['ulasan'])) ?: '-' ?>
+                  <?php if (!empty($row['photos'])): ?>
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                    <?php foreach ($row['photos'] as $ph): ?>
+                      <?php if (file_exists(FCPATH . 'uploads/abnormal/' . $ph)): ?>
+                        <a href="<?= base_url('uploads/abnormal/' . $ph) ?>" target="_blank">
+                          <img src="<?= base_url('uploads/abnormal/' . $ph) ?>" style="max-height: 40px; border-radius: 4px; border: 1px solid #dee2e6;">
+                        </a>
+                      <?php endif; ?>
+                    <?php endforeach; ?>
+                    </div>
+                  <?php endif; ?>
                 </td>
 
                 <!-- Detail (Top cell) -->
@@ -168,7 +185,10 @@
                     }
                   ?>
                   <?php if ($hasCheck): ?>
-                    <a href="<?= site_url('riwayat/redirect-detail?id_mesin=' . rawurlencode($m['id_mesin']) . '&line=' . rawurlencode($line) . '&kategori=' . rawurlencode($kategori) . '&bulan=' . rawurlencode($bulan) . '&lokasi=' . rawurlencode($lokasi)) ?>" class="btn btn-sm btn-outline-primary fw-bold" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;" title="Lihat Laporan Full">
+                    <?php 
+                      $qsSummary = !empty($_GET['qs_summary']) ? '&qs_summary=' . urlencode($_GET['qs_summary']) : '';
+                    ?>
+                    <a href="<?= site_url('riwayat/redirect-detail?id_mesin=' . rawurlencode($m['id_mesin']) . '&line=' . rawurlencode($line) . '&kategori=' . rawurlencode($kategori) . '&bulan=' . rawurlencode($bulan) . '&lokasi=' . rawurlencode($lokasi) . $qsSummary) ?>" class="btn btn-sm btn-outline-primary fw-bold" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;" title="Lihat Laporan Full">
                       Detail
                     </a>
                   <?php else: ?>
@@ -353,18 +373,16 @@
       <input type="hidden" name="kategori" value="<?= esc($kategori) ?>">
       <input type="hidden" name="bulan_tahun" value="<?= esc($bulan) ?>">
       <div class="d-flex align-items-center gap-2">
-        <?php if ($role === 'member'): ?>
-          <select name="pic_line_nama" class="form-select form-select-sm searchable-select" required style="min-width: 200px;">
-            <option value="">-- Pilih PIC Line (Staff) --</option>
-            <?php
-              $picModel = new \App\Models\PicModel();
-              $staffPicList = $picModel->where('role_pic', 'Staff')->findAll();
-              foreach ($staffPicList as $sp):
-            ?>
-              <option value="<?= esc($sp['nama_pic']) ?>"><?= esc($sp['nama_pic']) ?></option>
-            <?php endforeach; ?>
-          </select>
-        <?php endif; ?>
+        <div style="min-width: 250px;">
+          <?php if ($role === 'member'): ?>
+            <select name="pic_line_nama" class="form-select form-select-sm searchable-select" required>
+              <option value="">-- Pilih PIC Line (Leader) --</option>
+              <?php foreach ($leaderPicList ?? [] as $pic): ?>
+                <option value="<?= esc($pic['nama_pic']) ?>"><?= esc($pic['nama_pic']) ?></option>
+              <?php endforeach; ?>
+            </select>
+          <?php endif; ?>
+        </div>
         <button type="submit" class="btn btn-success px-4 py-2 fw-semibold shadow-sm">
           <i class="bi bi-check-circle-fill me-2"></i> Approve (<?= esc($role) ?>)
         </button>

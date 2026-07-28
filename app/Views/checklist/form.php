@@ -12,9 +12,15 @@
 <div class="page-header d-flex align-items-center">
   <div class="d-flex align-items-center gap-3">
     <?php
-      $backUrl = strtolower($jenisSlug) === 'overhaul' 
-          ? site_url("checklist") 
-          : site_url("checklist/{$lokasiSlug}/{$jenisSlug}");
+      if (isset($isEdit) && $isEdit) {
+          $qs = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '?jenis_check=' . urlencode($jenisName);
+          $realLokSlug = isset($_GET['from_lokasi']) ? $_GET['from_lokasi'] : $lokasiSlug;
+          $backUrl = site_url('riwayat/lokasi/' . $realLokSlug . $qs);
+      } else {
+          $backUrl = strtolower($jenisSlug) === 'overhaul' 
+              ? site_url("checklist") 
+              : site_url("checklist/{$lokasiSlug}/{$jenisSlug}");
+      }
     ?>
     <a href="<?= $backUrl ?>" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left"></i> Kembali
@@ -333,15 +339,64 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                         </div>
                       </div>
                       <!-- Foto Abnormal (muncul saat Δ dipilih) -->
-                      <div class="foto-abnormal-wrap mt-1" id="foto-wrap-<?= (int) $r['id_parameter'] ?>" style="display:<?= $h === 'Δ' ? 'block' : 'none' ?>;">
-                        <label class="form-label small fw-semibold text-warning mb-1"><i class="bi bi-camera-fill me-1"></i>Foto Abnormal <span class="text-danger">*</span></label>
-                        <input type="file" class="form-control form-control-sm foto-abnormal-input"
-                               name="foto_abnormal[<?= (int) $r['id_parameter'] ?>]"
-                               id="foto-input-<?= (int) $r['id_parameter'] ?>"
-                               accept="image/*" capture="environment"
-                               <?= $h === 'Δ' ? 'required' : '' ?>>
-                        <div class="foto-preview mt-1" id="foto-preview-<?= (int) $r['id_parameter'] ?>" style="display:none;">
-                          <img src="" alt="Preview" style="max-width:100%; max-height:80px; border-radius:4px; border:1px solid #dee2e6;">
+                      <div class="foto-abnormal-wrap mt-2" id="foto-wrap-<?= (int) $r['id_parameter'] ?>" style="display:<?= $h === 'Δ' ? 'block' : 'none' ?>; background: #fffcf2; border: 1px dashed #ffc107; padding: 8px; border-radius: 6px;">
+                        <!-- FOTO 1 (Wajib) -->
+                        <div class="mb-2">
+                            <input type="file" class="d-none foto-abnormal-input"
+                                   name="foto_abnormal[<?= (int) $r['id_parameter'] ?>]"
+                                   id="foto-input-1-<?= (int) $r['id_parameter'] ?>" accept="image/jpeg" <?= $h === 'Δ' ? 'required' : '' ?>>
+                            <button type="button" class="btn btn-sm btn-warning w-100 btn-ambil-foto main-btn-foto" id="btn-ambil-1-<?= (int) $r['id_parameter'] ?>"
+                                    data-target-input="foto-input-1-<?= (int) $r['id_parameter'] ?>"
+                                    data-target-preview="foto-preview-1-<?= (int) $r['id_parameter'] ?>"
+                                    data-target-btn="btn-ambil-1-<?= (int) $r['id_parameter'] ?>">
+                              <i class="bi bi-camera-fill me-1"></i> Foto 1 <span class="text-danger">*</span>
+                            </button>
+                            <div class="foto-preview mt-1" id="foto-preview-1-<?= (int) $r['id_parameter'] ?>" style="display:none; position:relative;">
+                              <img src="" alt="Preview 1" class="preview-img-click" style="max-width:100%; max-height:100px; border-radius:4px; border:2px solid #ffc107; display:block; cursor:pointer;" title="Klik untuk memperbesar">
+                              <div class="d-flex gap-1 mt-1">
+                                  <button type="button" class="btn btn-xs btn-outline-warning btn-ambil-foto flex-grow-1"
+                                          data-target-input="foto-input-1-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-preview="foto-preview-1-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-btn="btn-ambil-1-<?= (int) $r['id_parameter'] ?>">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Ulang
+                                  </button>
+                                  <button type="button" class="btn btn-xs btn-outline-danger btn-hapus-foto"
+                                          data-target-input="foto-input-1-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-preview="foto-preview-1-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-btn="btn-ambil-1-<?= (int) $r['id_parameter'] ?>">
+                                    <i class="bi bi-trash"></i> Hapus
+                                  </button>
+                              </div>
+                            </div>
+                        </div>
+                        <!-- FOTO 2 (Opsional) -->
+                        <div>
+                            <input type="file" class="d-none"
+                                   name="foto_abnormal_2[<?= (int) $r['id_parameter'] ?>]"
+                                   id="foto-input-2-<?= (int) $r['id_parameter'] ?>" accept="image/jpeg">
+                            <button type="button" class="btn btn-sm btn-outline-secondary w-100 btn-ambil-foto main-btn-foto" id="btn-ambil-2-<?= (int) $r['id_parameter'] ?>"
+                                    data-target-input="foto-input-2-<?= (int) $r['id_parameter'] ?>"
+                                    data-target-preview="foto-preview-2-<?= (int) $r['id_parameter'] ?>"
+                                    data-target-btn="btn-ambil-2-<?= (int) $r['id_parameter'] ?>">
+                              <i class="bi bi-camera me-1"></i> Foto 2 (Ops)
+                            </button>
+                            <div class="foto-preview mt-1" id="foto-preview-2-<?= (int) $r['id_parameter'] ?>" style="display:none; position:relative;">
+                              <img src="" alt="Preview 2" class="preview-img-click" style="max-width:100%; max-height:100px; border-radius:4px; border:2px solid #6c757d; display:block; cursor:pointer;" title="Klik untuk memperbesar">
+                              <div class="d-flex gap-1 mt-1">
+                                  <button type="button" class="btn btn-xs btn-outline-secondary btn-ambil-foto flex-grow-1"
+                                          data-target-input="foto-input-2-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-preview="foto-preview-2-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-btn="btn-ambil-2-<?= (int) $r['id_parameter'] ?>">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Ulang
+                                  </button>
+                                  <button type="button" class="btn btn-xs btn-outline-danger btn-hapus-foto"
+                                          data-target-input="foto-input-2-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-preview="foto-preview-2-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-btn="btn-ambil-2-<?= (int) $r['id_parameter'] ?>">
+                                    <i class="bi bi-trash"></i> Hapus
+                                  </button>
+                              </div>
+                            </div>
                         </div>
                       </div>
                     </td>
@@ -413,15 +468,64 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                         </div>
                       </div>
                       <!-- Foto Abnormal (muncul saat Δ dipilih) -->
-                      <div class="foto-abnormal-wrap mt-1" id="foto-wrap-<?= (int) $r['id_parameter'] ?>" style="display:<?= $h === 'Δ' ? 'block' : 'none' ?>;">
-                        <label class="form-label small fw-semibold text-warning mb-1"><i class="bi bi-camera-fill me-1"></i>Foto Abnormal <span class="text-danger">*</span></label>
-                        <input type="file" class="form-control form-control-sm foto-abnormal-input"
-                               name="foto_abnormal[<?= (int) $r['id_parameter'] ?>]"
-                               id="foto-input-<?= (int) $r['id_parameter'] ?>"
-                               accept="image/*" capture="environment"
-                               <?= $h === 'Δ' ? 'required' : '' ?>>
-                        <div class="foto-preview mt-1" id="foto-preview-<?= (int) $r['id_parameter'] ?>" style="display:none;">
-                          <img src="" alt="Preview" style="max-width:100%; max-height:80px; border-radius:4px; border:1px solid #dee2e6;">
+                      <div class="foto-abnormal-wrap mt-2" id="foto-wrap-<?= (int) $r['id_parameter'] ?>" style="display:<?= $h === 'Δ' ? 'block' : 'none' ?>; background: #fffcf2; border: 1px dashed #ffc107; padding: 8px; border-radius: 6px;">
+                        <!-- FOTO 1 (Wajib) -->
+                        <div class="mb-2">
+                            <input type="file" class="d-none foto-abnormal-input"
+                                   name="foto_abnormal[<?= (int) $r['id_parameter'] ?>]"
+                                   id="foto-input-1-<?= (int) $r['id_parameter'] ?>" accept="image/jpeg" <?= $h === 'Δ' ? 'required' : '' ?>>
+                            <button type="button" class="btn btn-sm btn-warning w-100 btn-ambil-foto main-btn-foto" id="btn-ambil-1-<?= (int) $r['id_parameter'] ?>"
+                                    data-target-input="foto-input-1-<?= (int) $r['id_parameter'] ?>"
+                                    data-target-preview="foto-preview-1-<?= (int) $r['id_parameter'] ?>"
+                                    data-target-btn="btn-ambil-1-<?= (int) $r['id_parameter'] ?>">
+                              <i class="bi bi-camera-fill me-1"></i> Foto 1 <span class="text-danger">*</span>
+                            </button>
+                            <div class="foto-preview mt-1" id="foto-preview-1-<?= (int) $r['id_parameter'] ?>" style="display:none; position:relative;">
+                              <img src="" alt="Preview 1" class="preview-img-click" style="max-width:100%; max-height:100px; border-radius:4px; border:2px solid #ffc107; display:block; cursor:pointer;" title="Klik untuk memperbesar">
+                              <div class="d-flex gap-1 mt-1">
+                                  <button type="button" class="btn btn-xs btn-outline-warning btn-ambil-foto flex-grow-1"
+                                          data-target-input="foto-input-1-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-preview="foto-preview-1-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-btn="btn-ambil-1-<?= (int) $r['id_parameter'] ?>">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Ulang
+                                  </button>
+                                  <button type="button" class="btn btn-xs btn-outline-danger btn-hapus-foto"
+                                          data-target-input="foto-input-1-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-preview="foto-preview-1-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-btn="btn-ambil-1-<?= (int) $r['id_parameter'] ?>">
+                                    <i class="bi bi-trash"></i> Hapus
+                                  </button>
+                              </div>
+                            </div>
+                        </div>
+                        <!-- FOTO 2 (Opsional) -->
+                        <div>
+                            <input type="file" class="d-none"
+                                   name="foto_abnormal_2[<?= (int) $r['id_parameter'] ?>]"
+                                   id="foto-input-2-<?= (int) $r['id_parameter'] ?>" accept="image/jpeg">
+                            <button type="button" class="btn btn-sm btn-outline-secondary w-100 btn-ambil-foto main-btn-foto" id="btn-ambil-2-<?= (int) $r['id_parameter'] ?>"
+                                    data-target-input="foto-input-2-<?= (int) $r['id_parameter'] ?>"
+                                    data-target-preview="foto-preview-2-<?= (int) $r['id_parameter'] ?>"
+                                    data-target-btn="btn-ambil-2-<?= (int) $r['id_parameter'] ?>">
+                              <i class="bi bi-camera me-1"></i> Foto 2 (Ops)
+                            </button>
+                            <div class="foto-preview mt-1" id="foto-preview-2-<?= (int) $r['id_parameter'] ?>" style="display:none; position:relative;">
+                              <img src="" alt="Preview 2" class="preview-img-click" style="max-width:100%; max-height:100px; border-radius:4px; border:2px solid #6c757d; display:block; cursor:pointer;" title="Klik untuk memperbesar">
+                              <div class="d-flex gap-1 mt-1">
+                                  <button type="button" class="btn btn-xs btn-outline-secondary btn-ambil-foto flex-grow-1"
+                                          data-target-input="foto-input-2-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-preview="foto-preview-2-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-btn="btn-ambil-2-<?= (int) $r['id_parameter'] ?>">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Ulang
+                                  </button>
+                                  <button type="button" class="btn btn-xs btn-outline-danger btn-hapus-foto"
+                                          data-target-input="foto-input-2-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-preview="foto-preview-2-<?= (int) $r['id_parameter'] ?>"
+                                          data-target-btn="btn-ambil-2-<?= (int) $r['id_parameter'] ?>">
+                                    <i class="bi bi-trash"></i> Hapus
+                                  </button>
+                              </div>
+                            </div>
                         </div>
                       </div>
                     </td>
@@ -558,7 +662,21 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                                 if (currentBagian) itemName += ' ' + currentBagian;
                                 missingItems.push(itemName.trim() || 'Item tanpa nama');
                             } else {
-                                row.classList.remove('table-danger');
+                                if (isChecked.value === 'Δ') {
+                                    const fileInput = row.querySelector('.foto-abnormal-input');
+                                    if (fileInput && fileInput.files.length === 0) {
+                                        isValid = false;
+                                        row.classList.add('table-danger');
+                                        if (!firstUnchecked) firstUnchecked = row;
+                                        let itemName = currentNo;
+                                        if (currentBagian) itemName += ' ' + currentBagian;
+                                        missingItems.push((itemName.trim() || 'Item tanpa nama') + ' (Foto Wajib)');
+                                    } else {
+                                        row.classList.remove('table-danger');
+                                    }
+                                } else {
+                                    row.classList.remove('table-danger');
+                                }
                             }
                         }
                     }
@@ -724,7 +842,19 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                                 
                                 missingItems.push(currentBagian || 'Item tanpa nama');
                             } else {
-                                row.classList.remove('table-danger');
+                                if (isChecked.value === 'Δ') {
+                                    const fileInput = row.querySelector('.foto-abnormal-input');
+                                    if (fileInput && fileInput.files.length === 0) {
+                                        isValid = false;
+                                        row.classList.add('table-danger');
+                                        if (!firstUnchecked) firstUnchecked = row;
+                                        missingItems.push((currentBagian || 'Item tanpa nama') + ' (Foto Wajib)');
+                                    } else {
+                                        row.classList.remove('table-danger');
+                                    }
+                                } else {
+                                    row.classList.remove('table-danger');
+                                }
                             }
                         }
                     }
@@ -890,7 +1020,21 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                             if (currentBagian) itemName += ' ' + currentBagian;
                             missingItems.push(itemName.trim() || 'Item tanpa nama');
                         } else {
-                            row.classList.remove('table-danger');
+                            if (isChecked.value === 'Δ') {
+                                const fileInput = row.querySelector('.foto-abnormal-input');
+                                if (fileInput && fileInput.files.length === 0) {
+                                    isValid = false;
+                                    row.classList.add('table-danger');
+                                    if (!firstUnchecked) firstUnchecked = row;
+                                    let itemName = currentNo;
+                                    if (currentBagian) itemName += ' ' + currentBagian;
+                                    missingItems.push((itemName.trim() || 'Item tanpa nama') + ' (Foto Wajib)');
+                                } else {
+                                    row.classList.remove('table-danger');
+                                }
+                            } else {
+                                row.classList.remove('table-danger');
+                            }
                         }
                     }
                 });
@@ -996,51 +1140,32 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
         }
     });
 
-    // ====== FOTO ABNORMAL: Show/Hide & Preview ======
+    // ====== FOTO ABNORMAL: Show/Hide ======
     document.addEventListener('change', function(e) {
         const radio = e.target;
         if (!radio.classList.contains('hasil-check-radio')) return;
 
         const paramId = radio.getAttribute('data-param-id');
-        const wrap = document.getElementById('foto-wrap-' + paramId);
+        const wrap     = document.getElementById('foto-wrap-' + paramId);
         const fileInput = document.getElementById('foto-input-' + paramId);
         const previewWrap = document.getElementById('foto-preview-' + paramId);
 
         if (radio.value === 'Δ') {
-            // Tampilkan input foto dan jadikan required
             wrap.style.display = 'block';
             fileInput.required = true;
         } else {
-            // Sembunyikan, hapus required, bersihkan file
             wrap.style.display = 'none';
             fileInput.required = false;
-            fileInput.value = '';
+            // Bersihkan file dan preview
+            try {
+                const dt = new DataTransfer();
+                fileInput.files = dt.files;
+            } catch(e) {}
             if (previewWrap) {
                 previewWrap.style.display = 'none';
-                previewWrap.querySelector('img').src = '';
+                const img = previewWrap.querySelector('img');
+                if (img) img.src = '';
             }
-        }
-    });
-
-    // Preview gambar saat file dipilih
-    document.addEventListener('change', function(e) {
-        const fileInput = e.target;
-        if (!fileInput.classList.contains('foto-abnormal-input')) return;
-
-        const paramId = fileInput.id.replace('foto-input-', '');
-        const previewWrap = document.getElementById('foto-preview-' + paramId);
-        if (!previewWrap) return;
-
-        if (fileInput.files && fileInput.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                previewWrap.querySelector('img').src = ev.target.result;
-                previewWrap.style.display = 'block';
-            };
-            reader.readAsDataURL(fileInput.files[0]);
-        } else {
-            previewWrap.style.display = 'none';
-            previewWrap.querySelector('img').src = '';
         }
     });
   </script>
@@ -1048,3 +1173,368 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
 
 <?= view('layout/footer') ?>
 
+<!-- ====== CAMERA MODAL FULLSCREEN ====== -->
+<div class="modal fade" id="cameraModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen m-0">
+    <div class="modal-content bg-dark text-white border-0" style="height:100vh; display:flex; flex-direction:column;">
+
+      <!-- Header -->
+      <div style="flex:0 0 auto; background:#111; padding:12px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #333;">
+        <i class="bi bi-camera-fill text-warning" style="font-size:1.3rem;"></i>
+        <span class="fw-bold fs-5 me-auto">Foto Abnormal</span>
+        <!-- Mode tabs -->
+        <div class="btn-group" role="group">
+          <button type="button" id="btnModeCamera" class="btn btn-warning btn-sm px-3">
+            <i class="bi bi-camera-fill me-1"></i>Kamera
+          </button>
+          <button type="button" id="btnModeUpload" class="btn btn-outline-secondary btn-sm px-3">
+            <i class="bi bi-images me-1"></i>Galeri
+          </button>
+        </div>
+        <button type="button" id="btnCloseCamera" class="btn-close btn-close-white ms-2"></button>
+      </div>
+
+      <!-- ===== KAMERA PANEL ===== -->
+      <div id="camPanelCamera" style="flex:1 1 auto; position:relative; overflow:hidden; background:#000;">
+        <!-- Loading -->
+        <div id="camLoading" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;">
+          <div class="spinner-border text-warning mb-3" style="width:3.5rem;height:3.5rem;"></div>
+          <span style="font-size:1.1rem;">Membuka kamera...</span>
+        </div>
+        <!-- Error -->
+        <div id="camError" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;color:#dc3545;padding:2rem;text-align:center;">
+          <i class="bi bi-camera-video-off" style="font-size:5rem;"></i>
+          <p class="mt-3 fs-5" id="camErrorMsg">Kamera tidak dapat diakses.</p>
+          <small style="color:#888;">Gunakan tab <b>Galeri</b> untuk upload dari file lokal.</small>
+        </div>
+        <!-- Video -->
+        <video id="camVideo" autoplay playsinline muted
+               style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none;background:#000;"></video>
+        <!-- Preview after capture (img for object-fit support) -->
+        <img id="camPreview" src="" alt=""
+             style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none;background:#000;">
+        <!-- Size info badge -->
+        <div id="camSizeBadge"
+             style="position:absolute;bottom:12px;right:12px;background:rgba(0,0,0,.65);color:#fff;font-size:0.78rem;padding:4px 12px;border-radius:20px;display:none;">
+        </div>
+      </div>
+
+      <!-- ===== GALERI / UPLOAD PANEL ===== -->
+      <div id="camPanelUpload" style="flex:1 1 auto;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:#111;overflow-y:auto;">
+        <!-- Drop zone / pick button -->
+        <label for="camFileInput" id="camDropZone"
+               style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;max-width:520px;min-height:200px;border:2px dashed #555;border-radius:16px;padding:2rem;cursor:pointer;transition:border-color .2s,background .2s;background:rgba(255,255,255,.03);">
+          <i class="bi bi-images text-warning" style="font-size:5rem;"></i>
+          <span class="mt-3 fw-semibold" style="font-size:1.2rem;">Ketuk untuk pilih foto</span>
+          <small style="color:#888;margin-top:6px;">JPG · PNG · HEIC · WEBP</small>
+        </label>
+        <input type="file" id="camFileInput" accept="image/*" class="d-none">
+
+        <!-- Upload preview -->
+        <div id="camUploadPreviewWrap" style="display:none;width:100%;max-width:700px;margin-top:20px;text-align:center;">
+          <img id="camUploadPreviewImg" src="" alt="Preview"
+               style="max-width:100%;max-height:52vh;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.6);">
+          <div id="camUploadInfo" style="margin-top:10px;color:#ffc107;font-size:0.9rem;"></div>
+        </div>
+
+        <!-- Compressing spinner -->
+        <div id="camUploadCompressing" style="display:none;margin-top:20px;text-align:center;">
+          <div class="spinner-border text-warning" style="width:2.5rem;height:2.5rem;"></div>
+          <p style="margin-top:12px;color:#aaa;">Mengompresi foto...</p>
+        </div>
+      </div>
+
+      <!-- Footer / Actions -->
+      <div style="flex:0 0 auto;background:#111;border-top:1px solid #333;padding:20px 24px;display:flex;align-items:center;justify-content:center;gap:16px;min-height:110px;">
+        <!-- Live: shutter -->
+        <div id="actLive" style="display:none;text-align:center;">
+          <button type="button" id="btnShutter" class="btn btn-warning rounded-circle"
+                  style="width:90px;height:90px;font-size:2.5rem;box-shadow:0 0 0 8px rgba(255,193,7,.2);">
+            <i class="bi bi-circle-fill"></i>
+          </button>
+          <p style="color:rgba(255,255,255,.45);font-size:.85rem;margin:10px 0 0;">Tekan untuk foto</p>
+        </div>
+        <!-- Camera confirm -->
+        <div id="actConfirm" style="display:none;gap:14px;justify-content:center;flex-wrap:wrap;">
+          <button type="button" id="btnRetake" class="btn btn-outline-light btn-lg px-5">
+            <i class="bi bi-arrow-repeat me-2"></i>Foto Ulang
+          </button>
+          <button type="button" id="btnUsePhoto" class="btn btn-success btn-lg px-5">
+            <i class="bi bi-check-circle me-2"></i>Gunakan Foto
+          </button>
+        </div>
+        <!-- Upload confirm -->
+        <div id="actUseUpload" style="display:none;">
+          <button type="button" id="btnUseUploadPhoto" class="btn btn-success btn-lg px-5">
+            <i class="bi bi-check-circle me-2"></i>Gunakan Foto Ini
+          </button>
+        </div>
+        <!-- Processing -->
+        <div id="actProcessing" style="display:none;text-align:center;">
+          <div class="spinner-border text-warning" style="width:2.5rem;height:2.5rem;"></div>
+          <p style="color:#aaa;margin:10px 0 0;font-size:.9rem;">Memproses foto...</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== CAMERA MODULE (Foto Abnormal) ======
+(function () {
+    // === Kompresi config ===
+    const MAX_W = 1440, MAX_H = 1440, JPEG_Q = 0.84;
+
+    let _stream = null;
+    let _capturedBlob = null;
+    let _uploadBlob   = null;
+    let _currentMode  = 'camera'; // 'camera' | 'upload'
+    let _targetInputId   = null;
+    let _targetPreviewId = null;
+
+    // Elements
+    const modalEl       = document.getElementById('cameraModal');
+    const camModal      = new bootstrap.Modal(modalEl);
+    const camVideo      = document.getElementById('camVideo');
+    const camPreview    = document.getElementById('camPreview');
+    const camLoading    = document.getElementById('camLoading');
+    const camError      = document.getElementById('camError');
+    const camErrorMsg   = document.getElementById('camErrorMsg');
+    const camSizeBadge  = document.getElementById('camSizeBadge');
+    const panelCamera   = document.getElementById('camPanelCamera');
+    const panelUpload   = document.getElementById('camPanelUpload');
+    const camFileInput  = document.getElementById('camFileInput');
+    const camDropZone   = document.getElementById('camDropZone');
+    const uploadPreviewWrap  = document.getElementById('camUploadPreviewWrap');
+    const uploadPreviewImg   = document.getElementById('camUploadPreviewImg');
+    const uploadInfo         = document.getElementById('camUploadInfo');
+    const uploadCompressing  = document.getElementById('camUploadCompressing');
+    const actLive       = document.getElementById('actLive');
+    const actConfirm    = document.getElementById('actConfirm');
+    const actUseUpload  = document.getElementById('actUseUpload');
+    const actProcessing = document.getElementById('actProcessing');
+    const btnModeCamera = document.getElementById('btnModeCamera');
+    const btnModeUpload = document.getElementById('btnModeUpload');
+    const btnClose      = document.getElementById('btnCloseCamera');
+    const btnShutter    = document.getElementById('btnShutter');
+    const btnRetake     = document.getElementById('btnRetake');
+    const btnUsePhoto   = document.getElementById('btnUsePhoto');
+    const btnUseUpload  = document.getElementById('btnUseUploadPhoto');
+
+    // ===== UTILS =====
+    function fmt(b) { return b < 1048576 ? (b/1024).toFixed(0)+' KB' : (b/1048576).toFixed(1)+' MB'; }
+
+    function compressVideo(videoEl, cb) {
+        const w = videoEl.videoWidth, h = videoEl.videoHeight;
+        if (!w || !h) return;
+        const s = Math.min(MAX_W/w, MAX_H/h, 1);
+        const cw = Math.round(w*s), ch = Math.round(h*s);
+        const tmp = document.createElement('canvas');
+        tmp.width = cw; tmp.height = ch;
+        tmp.getContext('2d').drawImage(videoEl, 0, 0, cw, ch);
+        tmp.toBlob(blob => cb(blob, cw, ch), 'image/jpeg', JPEG_Q);
+    }
+
+    function compressImg(imgEl, cb) {
+        const w = imgEl.naturalWidth, h = imgEl.naturalHeight;
+        const s = Math.min(MAX_W/w, MAX_H/h, 1);
+        const cw = Math.round(w*s), ch = Math.round(h*s);
+        const tmp = document.createElement('canvas');
+        tmp.width = cw; tmp.height = ch;
+        tmp.getContext('2d').drawImage(imgEl, 0, 0, cw, ch);
+        tmp.toBlob(blob => cb(blob, cw, ch), 'image/jpeg', JPEG_Q);
+    }
+
+    function showEl(el, v) { el.style.display = v; }
+    function hideEl(el)    { el.style.display = 'none'; }
+
+    // ===== CAMERA =====
+    function stopStream() {
+        if (_stream) { _stream.getTracks().forEach(t => t.stop()); _stream = null; }
+    }
+
+    function setCamView(state) {
+        // state: loading | error | live | confirm | processing
+        showEl(camLoading,  state === 'loading'    ? 'flex'  : 'none');
+        showEl(camError,    state === 'error'      ? 'flex'  : 'none');
+        showEl(camVideo,    state === 'live'       ? 'block' : 'none');
+        showEl(camPreview,  state === 'confirm'    ? 'block' : 'none');
+        showEl(camSizeBadge,state === 'confirm'    ? 'block' : 'none');
+        // Footer
+        showEl(actLive,       state === 'live'      ? 'block' : 'none');
+        showEl(actConfirm,    state === 'confirm'   ? 'flex'  : 'none');
+        showEl(actUseUpload,  'none');
+        showEl(actProcessing, state === 'processing'? 'block' : 'none');
+    }
+
+    async function startCamera() {
+        setCamView('loading');
+        _capturedBlob = null;
+        stopStream();
+        try {
+            _stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: {ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080} }
+            });
+            camVideo.srcObject = _stream;
+            camVideo.onloadedmetadata = () => { camVideo.play(); setCamView('live'); };
+        } catch (err) {
+            stopStream();
+            camErrorMsg.textContent = 'Kamera tidak dapat diakses: ' + err.message;
+            setCamView('error');
+        }
+    }
+
+    btnShutter.addEventListener('click', function () {
+        if (!_stream) return;
+        setCamView('processing');
+        compressVideo(camVideo, (blob, cw, ch) => {
+            _capturedBlob = blob;
+            stopStream();
+            camPreview.src = URL.createObjectURL(blob);
+            camSizeBadge.textContent = cw + '×' + ch + ' · ' + fmt(blob.size);
+            setCamView('confirm');
+        });
+    });
+
+    btnRetake.addEventListener('click', () => { _capturedBlob = null; startCamera(); });
+
+    // ===== UPLOAD / GALERI =====
+    function setUploadView(state) {
+        // state: idle | compressing | ready
+        showEl(camDropZone,         state !== 'ready'      ? 'flex'  : 'none');
+        showEl(uploadCompressing,   state === 'compressing'? 'flex'  : 'none');
+        showEl(uploadPreviewWrap,   state === 'ready'      ? 'block' : 'none');
+        showEl(actUseUpload,        state === 'ready'      ? 'block' : 'none');
+        showEl(actLive,             'none');
+        showEl(actConfirm,          'none');
+        showEl(actProcessing,       'none');
+    }
+
+    camFileInput.addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) return;
+        _uploadBlob = null;
+        setUploadView('compressing');
+        const url = URL.createObjectURL(file);
+        const img  = new Image();
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            compressImg(img, (blob, cw, ch) => {
+                _uploadBlob = blob;
+                uploadPreviewImg.src = URL.createObjectURL(blob);
+                uploadInfo.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>' +
+                    'Dikompres: <b>' + cw + '×' + ch + '</b> · <b>' + fmt(blob.size) + '</b> ' +
+                    '<span style="color:#888;">(dari ' + fmt(file.size) + ')</span>';
+                setUploadView('ready');
+            });
+        };
+        img.src = url;
+    });
+
+    // ===== MODE SWITCH =====
+    function switchMode(mode) {
+        _currentMode = mode;
+        if (mode === 'camera') {
+            showEl(panelCamera, 'block');
+            showEl(panelUpload, 'none');
+            btnModeCamera.className = 'btn btn-warning btn-sm px-3';
+            btnModeUpload.className = 'btn btn-outline-secondary btn-sm px-3';
+            startCamera();
+        } else {
+            stopStream();
+            showEl(panelCamera, 'none');
+            showEl(panelUpload, 'flex');
+            btnModeCamera.className = 'btn btn-outline-secondary btn-sm px-3';
+            btnModeUpload.className = 'btn btn-warning btn-sm px-3';
+            _uploadBlob = null;
+            camFileInput.value = '';
+            setUploadView('idle');
+        }
+    }
+
+    btnModeCamera.addEventListener('click', () => switchMode('camera'));
+    btnModeUpload.addEventListener('click', () => switchMode('upload'));
+
+    let _targetBtnId = null;
+
+    // ===== USE PHOTO (common) =====
+    function applyBlob(blob) {
+        if (!blob) return;
+        const file = new File([blob], 'foto_' + Date.now() + '.jpg', {type:'image/jpeg'});
+        const inp = document.getElementById(_targetInputId);
+        if (inp) {
+            try {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                inp.files = dt.files;
+            } catch(e) { console.warn('DataTransfer unsupported', e); }
+        }
+        const wrap = document.getElementById(_targetPreviewId);
+        if (wrap) {
+            const img = wrap.querySelector('img');
+            if (img) img.src = URL.createObjectURL(blob);
+            wrap.style.display = 'block';
+        }
+        const mainBtn = document.getElementById(_targetBtnId);
+        if (mainBtn) mainBtn.style.display = 'none';
+        
+        camModal.hide();
+    }
+
+    btnUsePhoto.addEventListener('click',  () => applyBlob(_capturedBlob));
+    btnUseUpload.addEventListener('click', () => applyBlob(_uploadBlob));
+
+    // ===== CLOSE =====
+    btnClose.addEventListener('click', () => { stopStream(); camModal.hide(); });
+    modalEl.addEventListener('hidden.bs.modal', () => {
+        stopStream();
+        _capturedBlob = null; _uploadBlob = null;
+        setCamView('loading');
+        camPreview.src = '';
+    });
+
+    // ===== EVENT LISTENERS =====
+    document.addEventListener('click', function (e) {
+        // Trigger Ambil/Ulang Foto
+        const btnCam = e.target.closest('.btn-ambil-foto');
+        if (btnCam) {
+            e.preventDefault(); e.stopPropagation();
+            _targetInputId   = btnCam.getAttribute('data-target-input');
+            _targetPreviewId = btnCam.getAttribute('data-target-preview');
+            _targetBtnId     = btnCam.getAttribute('data-target-btn');
+            camModal.show();
+            switchMode('camera');
+            return;
+        }
+        
+        // Trigger Hapus Foto
+        const btnDel = e.target.closest('.btn-hapus-foto');
+        if (btnDel) {
+            e.preventDefault(); e.stopPropagation();
+            const inputId = btnDel.getAttribute('data-target-input');
+            const previewId = btnDel.getAttribute('data-target-preview');
+            const btnId = btnDel.getAttribute('data-target-btn');
+            
+            const inp = document.getElementById(inputId);
+            if(inp) inp.value = '';
+            const preview = document.getElementById(previewId);
+            if(preview) preview.style.display = 'none';
+            const mainBtn = document.getElementById(btnId);
+            if(mainBtn) mainBtn.style.display = 'block';
+            return;
+        }
+
+        // Trigger Zoom Foto Preview
+        const imgClick = e.target.closest('.preview-img-click');
+        if (imgClick) {
+            e.preventDefault(); e.stopPropagation();
+            if (imgClick.src) {
+                window.open(imgClick.src, '_blank');
+            }
+            return;
+        }
+    });
+
+})();
+</script>

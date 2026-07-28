@@ -158,6 +158,9 @@ $routes->group('admin/jadwal', ['filter' => 'auth', 'namespace' => 'App\Controll
     $routes->get('events', 'JadwalController::events');
     $routes->post('store', 'JadwalController::store');
     $routes->post('delete/(:num)', 'JadwalController::delete/$1');
+    $routes->get('export', 'JadwalController::export');
+    $routes->get('template', 'JadwalController::template');
+    $routes->post('import', 'JadwalController::import');
 });
 
 /**

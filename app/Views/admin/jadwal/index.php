@@ -3,6 +3,41 @@
 <!-- Include FullCalendar JS -->
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
+<?php $canEditJadwal = in_array(session()->get('role'), ['admin', 'member'], true); ?>
+<?php if ($canEditJadwal): ?>
+<!-- Modal Import Excel -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="<?= site_url('admin/jadwal/import') ?>" method="post" enctype="multipart/form-data">
+        <?= csrf_field() ?>
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="importModalLabel"><i class="bi bi-upload me-2"></i>Import Jadwal via Excel</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info small py-2">
+            <strong>Petunjuk:</strong> Gunakan template Excel kami agar format terbaca dengan benar.
+          </div>
+          <div class="mb-3">
+            <a href="<?= site_url('admin/jadwal/template') ?>" class="btn btn-sm btn-outline-primary mb-3">
+              <i class="bi bi-download"></i> Download Template
+            </a>
+            <br>
+            <label class="form-label fw-semibold">Pilih File Excel (.xlsx, .xls, .csv)</label>
+            <input type="file" name="file_excel" class="form-control" accept=".xlsx, .xls, .csv" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-cloud-arrow-up"></i> Upload & Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
 <style>
   #calendar {
     max-width: 100%;
@@ -102,16 +137,24 @@
   }
 </style>
 
-<div class="page-header">
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
   <div>
     <h5 class="mb-0"><i class="bi bi-calendar-event me-2 text-primary"></i>Jadwal Kerja Pengecekan Preventive</h5>
     <p class="text-muted small mb-0">Kelola dan atur jadwal rencana pengecekan mingguan untuk MFG 1 dan MFG 2.</p>
   </div>
+  <?php if ($canEditJadwal): ?>
+  <div class="d-flex gap-2">
+    <a href="<?= site_url('admin/jadwal/export') ?>" class="btn btn-outline-success btn-sm fw-bold shadow-sm">
+      <i class="bi bi-file-earmark-excel"></i> Export Excel
+    </a>
+    <button type="button" class="btn btn-primary btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#importModal">
+      <i class="bi bi-upload"></i> Import Excel
+    </button>
+  </div>
+  <?php endif; ?>
 </div>
 
 <div class="row g-4">
-  <?php $canEditJadwal = in_array(session()->get('role'), ['admin', 'member'], true); ?>
-  
   <!-- Calendar Grid -->
   <div class="<?= $canEditJadwal ? 'col-xl-9 col-lg-8' : 'col-12' ?>">
     <div class="card border-0 shadow-sm bg-white p-3 rounded-4">
