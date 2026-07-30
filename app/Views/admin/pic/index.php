@@ -57,11 +57,36 @@
                                 <td class="ps-4 fw-bold text-dark" style="font-size: 0.95rem;"><?= esc($p['id_pic']) ?></td>
                                 <td class="fw-medium text-secondary" style="font-size: 0.9rem;"><?= esc($p['nama_pic']) ?></td>
                                 <td class="fw-medium text-secondary" style="font-size: 0.9rem;">
-                                    <?php if(isset($p['role_pic']) && $p['role_pic'] === 'Magang'): ?>
-                                        <span class="badge bg-info text-dark">Magang</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-primary">Staff</span>
-                                    <?php endif; ?>
+                                    <?php 
+                                        $rawRole = $p['role_pic'] ?? 'Staff';
+                                        
+                                        // Normalisasi agar data lama dari Excel bisa terbaca hijau
+                                        $rolePicLower = strtolower(str_replace(' ', '', $rawRole));
+                                        $rolePic = $rawRole;
+                                        if (strpos($rolePicLower, 'leader') !== false) {
+                                            if (strpos($rolePicLower, 'line1') !== false || $rolePicLower === 'leader1') $rolePic = 'leader1';
+                                            elseif (strpos($rolePicLower, 'line2') !== false || $rolePicLower === 'leader2') $rolePic = 'leader2';
+                                            elseif (strpos($rolePicLower, 'line3') !== false || $rolePicLower === 'leader3') $rolePic = 'leader3';
+                                            elseif (strpos($rolePicLower, 'cg') !== false) $rolePic = 'leadercg';
+                                            elseif (strpos($rolePicLower, 'sc') !== false || strpos($rolePicLower, 'second') !== false) $rolePic = 'leadersc';
+                                        } elseif ($rolePicLower === 'magang') {
+                                            $rolePic = 'Magang';
+                                        } elseif ($rolePicLower === 'staff') {
+                                            $rolePic = 'Staff';
+                                        }
+                                        
+                                        $labels = [
+                                            'Staff' => ['text' => 'Staff', 'class' => 'bg-primary'],
+                                            'Magang' => ['text' => 'Magang', 'class' => 'bg-info text-dark'],
+                                            'leader1' => ['text' => 'Leader Line 1', 'class' => 'bg-success'],
+                                            'leader2' => ['text' => 'Leader Line 2', 'class' => 'bg-success'],
+                                            'leader3' => ['text' => 'Leader Line 3', 'class' => 'bg-success'],
+                                            'leadercg' => ['text' => 'Leader CG', 'class' => 'bg-success'],
+                                            'leadersc' => ['text' => 'Leader SC', 'class' => 'bg-success'],
+                                        ];
+                                        $label = $labels[$rolePic] ?? ['text' => esc($rawRole), 'class' => 'bg-secondary'];
+                                    ?>
+                                    <span class="badge <?= $label['class'] ?>"><?= $label['text'] ?></span>
                                 </td>
                                 <td class="pe-4 text-center">
                                     <div class="d-flex gap-2 justify-content-center">

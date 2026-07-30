@@ -178,7 +178,7 @@
         <div class="alert alert-success py-2 small rounded-3"><?= session('success') ?></div>
       <?php endif; ?>
       
-      <form action="<?= site_url('admin/jadwal/store') ?>" method="post">
+      <form id="addEventForm" action="<?= site_url('admin/jadwal/store') ?>" method="post">
         <?= csrf_field() ?>
         
         <!-- Hidden: auto-calculated -->
@@ -187,7 +187,7 @@
 
         <div class="mb-3">
           <label class="form-label small fw-semibold text-muted mb-1">Lokasi MFG</label>
-          <select name="lokasi" class="form-select rounded-3" required>
+          <select name="lokasi" id="lokasiSelect" class="form-select rounded-3" required>
             <option value="MFG 1">MFG 1</option>
             <option value="MFG 2">MFG 2</option>
           </select>
@@ -195,7 +195,7 @@
 
         <div class="mb-3">
           <label class="form-label small fw-semibold text-muted mb-1">Kategori</label>
-          <select name="kategori" class="form-select rounded-3" required>
+          <select name="kategori" id="kategoriSelect" class="form-select rounded-3" required>
             <?php foreach ($categories as $kKey => $kVal): ?>
               <option value="<?= esc($kKey) ?>"><?= esc($kVal) ?></option>
             <?php endforeach; ?>
@@ -231,7 +231,7 @@
         <h6 class="modal-title fw-bold text-danger"><i class="bi bi-trash3 me-1.5"></i>Hapus Jadwal</h6>
         <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
       </div>
-      <form id="deleteEventForm" method="post" action="">
+      <form id="deleteEventForm" method="post" action="" onsubmit="return confirm('⚠️ PERINGATAN! ⚠️\n\nApakah Anda sangat yakin ingin menghapus jadwal ini?\n\nJadwal yang sudah dihapus tidak dapat dikembalikan lagi!');">
         <?= csrf_field() ?>
         <div class="modal-body px-4 pt-3">
           <p class="text-muted mb-2" style="font-size:0.88rem;">Hapus jadwal rencana pengecekan pekanan berikut?</p>
@@ -309,6 +309,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     weekPreview.style.display = 'block';
   });
+
+
   <?php endif; ?>
 
   // === FullCalendar ===
@@ -371,7 +373,107 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php endif; ?>
   });
 
+
+
   calendar.render();
+
+  // === Intercept form submit untuk peringatan duplikasi mfg di minggu yang sama ===
+  const addEventForm = document.getElementById('addEventForm');
+  if (addEventForm) {
+      addEventForm.addEventListener('submit', function(e) {
+          const lokasi = document.getElementById('lokasiSelect').value;
+          const kategori = document.getElementById('kategoriSelect').value;
+          const tanggalVal = document.getElementById('inputTanggalRencana').value;
+          
+          if (!tanggalVal) return;
+          
+          const selDate = new Date(tanggalVal);
+          const dayOfWeek = selDate.getDay() || 7;
+          const monday = new Date(selDate);
+          monday.setDate(selDate.getDate() - (dayOfWeek - 1));
+          
+          const mY = monday.getFullYear();
+          const mM = monday.getMonth();
+          const mD = monday.getDate();
+          
+          const events = calendar.getEvents();
+          let otherCat = '';
+          
+          for (let i = 0; i < events.length; i++) {
+              const ev = events[i];
+              if (!ev.start) continue;
+              const evDate = new Date(ev.start);
+              if (evDate.getFullYear() === mY && evDate.getMonth() === mM && evDate.getDate() === mD) {
+                  if (ev.extendedProps && ev.extendedProps.lokasi === lokasi && ev.extendedProps.kategori !== kategori) {
+                      otherCat = ev.extendedProps.kategori;
+                      break;
+                  }
+              }
+          }
+          
+          if (otherCat !== '') {
+              const msg = `Apakah Anda ingin menambahkan?\n\nSudah ada jadwal ${lokasi} kategori ${otherCat} pada pekan yang sama.`;
+              if (!confirm(msg)) {
+                  e.preventDefault();
+              }
+          }
+      });
+  }
+
+});
+
+// Filter Kategori berdasarkan Lokasi secara Robust
+document.addEventListener('DOMContentLoaded', function() {
+    const lokasiSelect = document.getElementById('lokasiSelect');
+    const kategoriSelect = document.getElementById('kategoriSelect');
+    
+    if (lokasiSelect && kategoriSelect) {
+        // Simpan semua opsi asli ke dalam array
+        const allOptions = Array.from(kategoriSelect.options).map(opt => ({
+            value: opt.value,
+            text: opt.text,
+            selected: opt.selected
+        }));
+        
+        function filterKategori() {
+            const lokasi = lokasiSelect.value;
+            const currentSelected = kategoriSelect.value;
+            
+            // Kosongkan select
+            kategoriSelect.innerHTML = '';
+            
+            let foundSelected = false;
+            
+            allOptions.forEach(optData => {
+                const isMfg1Only = ['Bearing Cam', 'Gearbox', 'Belt Cam'].includes(optData.value);
+                
+                // Jika lokasi MFG 2 dan kategori adalah milik MFG 1, jangan di-render
+                if (lokasi === 'MFG 2' && isMfg1Only) {
+                    return; 
+                }
+                
+                // Buat elemen option baru
+                const newOpt = document.createElement('option');
+                newOpt.value = optData.value;
+                newOpt.text = optData.text;
+                
+                if (optData.value === currentSelected) {
+                    newOpt.selected = true;
+                    foundSelected = true;
+                }
+                
+                kategoriSelect.appendChild(newOpt);
+            });
+            
+            // Jika pilihan sebelumnya terhapus, pilih yang pertama otomatis
+            if (!foundSelected && kategoriSelect.options.length > 0) {
+                kategoriSelect.options[0].selected = true;
+            }
+        }
+        
+        lokasiSelect.addEventListener('change', filterKategori);
+        filterKategori(); // Jalankan saat pertama kali dimuat
+    }
 });
 </script>
 

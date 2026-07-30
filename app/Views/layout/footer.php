@@ -67,7 +67,7 @@
     Swal.fire({
       icon: 'success',
       title: 'Berhasil!',
-      text: '<?= addslashes(session()->getFlashdata('success')) ?>',
+      text: <?= json_encode(session()->getFlashdata('success')) ?>,
       timer: 3000,
       showConfirmButton: false
     });
@@ -79,7 +79,7 @@
     Swal.fire({
       icon: 'error',
       title: 'Oops...',
-      text: '<?= addslashes(session()->getFlashdata('error')) ?>',
+      text: <?= json_encode(session()->getFlashdata('error')) ?>,
       timer: 3000,
       showConfirmButton: false
     });

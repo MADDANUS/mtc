@@ -4,13 +4,19 @@
 
 <div class="d-flex align-items-center mb-3">
   <?php
-    $backUrl = site_url('kontrol?view=summary');
-    if (!empty($_GET['qs_summary'])) {
-        $backUrl = site_url('kontrol?' . $_GET['qs_summary']);
+    if (!empty($_GET['from']) && $_GET['from'] === 'approval') {
+        $backUrl = site_url('approval');
+        $backLabel = 'Kembali ke Approval';
+    } else {
+        $backUrl = site_url('kontrol?view=summary');
+        if (!empty($_GET['qs_summary'])) {
+            $backUrl = site_url('kontrol?' . $_GET['qs_summary']);
+        }
+        $backLabel = 'Kembali';
     }
   ?>
   <a href="<?= $backUrl ?>" class="btn btn-outline-secondary btn-sm me-3 shadow-sm rounded-pill px-3">
-    <i class="bi bi-arrow-left me-1"></i> Kembali
+    <i class="bi bi-arrow-left me-1"></i> <?= $backLabel ?>
   </a>
   <div class="ms-auto d-flex gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
@@ -376,8 +382,8 @@
         <div style="min-width: 250px;">
           <?php if ($role === 'member'): ?>
             <select name="pic_line_nama" class="form-select form-select-sm searchable-select" required>
-              <option value="">-- Pilih PIC Line (Leader) --</option>
-              <?php foreach ($leaderPicList ?? [] as $pic): ?>
+              <option value="">|-- Cari PIC Line --</option>
+              <?php foreach ($staffPicList ?? [] as $pic): ?>
                 <option value="<?= esc($pic['nama_pic']) ?>"><?= esc($pic['nama_pic']) ?></option>
               <?php endforeach; ?>
             </select>
@@ -387,6 +393,27 @@
           <i class="bi bi-check-circle-fill me-2"></i> Approve (<?= esc($role) ?>)
         </button>
       </div>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
+
+<?php if (session()->get('role') === 'admin' && isset($approvalData['id_approval'])): ?>
+<div class="card border-danger mt-3 mb-3 shadow-sm">
+  <div class="card-body d-flex justify-content-between align-items-center p-3">
+    <div>
+      <h6 class="mb-1 text-danger fw-bold"><i class="bi bi-trash"></i> Hapus Approval Control</h6>
+      <p class="text-muted small mb-0">Hapus approval ini agar statusnya kembali ke "Belum Selesai". Data ceklis tidak akan hilang.</p>
+    </div>
+    <form action="<?= site_url('kontrol/delete-approval') ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menghapus approval ini? Status akan kembali ke Belum Selesai.');">
+      <?= csrf_field() ?>
+      <input type="hidden" name="lokasi" value="<?= esc($lokasi) ?>">
+      <input type="hidden" name="line" value="<?= esc($line) ?>">
+      <input type="hidden" name="kategori" value="<?= esc($kategori) ?>">
+      <input type="hidden" name="bulan_tahun" value="<?= esc($bulan) ?>">
+      <button type="submit" class="btn btn-danger px-4 py-2 fw-semibold shadow-sm">
+        <i class="bi bi-trash me-2"></i> Hapus Approval
+      </button>
     </form>
   </div>
 </div>

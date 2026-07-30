@@ -93,11 +93,15 @@ $routes->group('abnormal', ['filter' => 'auth'], static function ($routes) {
     
     // Upload Foto Perbaikan (semua yang bisa akses abnormal)
     $routes->post('upload-foto-perbaikan', 'AbnormalController::uploadFotoPerbaikan');
+    $routes->post('delete-foto-perbaikan', 'AbnormalController::deleteFotoPerbaikan');
 });
 
 // Laporan Durasi (member, admin)
 $routes->get('laporan/durasi', 'LaporanController::durasi', ['filter' => 'role:member,admin']);
 $routes->get('laporan/durasi-pdf', 'LaporanController::durasiPdf', ['filter' => 'role:member,admin']);
+
+// Approval Inbox (semua role kecuali magang)
+$routes->get('approval', 'ApprovalController::index', ['filter' => 'role:admin,member,leader,sheadprd,sheadmtc']);
 
 // Admin - Master Mesin (admin = full CRUD, member/sheadprd/sheadmtc = view-only)
 $routes->group('admin/mesin', ['filter' => 'role:admin,member,sheadprd,sheadmtc,leader', 'namespace' => 'App\Controllers\Admin'], static function ($routes) {

@@ -29,15 +29,30 @@
                     </div>
 
                     <div class="mb-4">
+                        <?php
+                            $currentRole = $pic['role_pic'] ?? 'Staff';
+                            $currentRoleLower = strtolower(str_replace(' ', '', $currentRole));
+                            if (strpos($currentRoleLower, 'leader') !== false) {
+                                if (strpos($currentRoleLower, 'line1') !== false || $currentRoleLower === 'leader1') $currentRole = 'leader1';
+                                elseif (strpos($currentRoleLower, 'line2') !== false || $currentRoleLower === 'leader2') $currentRole = 'leader2';
+                                elseif (strpos($currentRoleLower, 'line3') !== false || $currentRoleLower === 'leader3') $currentRole = 'leader3';
+                                elseif (strpos($currentRoleLower, 'cg') !== false) $currentRole = 'leadercg';
+                                elseif (strpos($currentRoleLower, 'sc') !== false || strpos($currentRoleLower, 'second') !== false) $currentRole = 'leadersc';
+                            } elseif ($currentRoleLower === 'magang') {
+                                $currentRole = 'Magang';
+                            } else {
+                                $currentRole = 'Staff';
+                            }
+                        ?>
                         <label class="form-label fw-semibold text-secondary">Role PIC <span class="text-danger">*</span></label>
                         <select name="role_pic" class="form-select" required>
-                            <option value="Staff" <?= old('role_pic', $pic['role_pic'] ?? 'Staff') === 'Staff' ? 'selected' : '' ?>>Staff</option>
-                            <option value="Magang" <?= old('role_pic', $pic['role_pic'] ?? 'Staff') === 'Magang' ? 'selected' : '' ?>>Magang</option>
-                            <option value="leader1" <?= old('role_pic', $pic['role_pic'] ?? 'Staff') === 'leader1' ? 'selected' : '' ?>>Leader Line 1</option>
-                            <option value="leader2" <?= old('role_pic', $pic['role_pic'] ?? 'Staff') === 'leader2' ? 'selected' : '' ?>>Leader Line 2</option>
-                            <option value="leader3" <?= old('role_pic', $pic['role_pic'] ?? 'Staff') === 'leader3' ? 'selected' : '' ?>>Leader Line 3</option>
-                            <option value="leadercg" <?= old('role_pic', $pic['role_pic'] ?? 'Staff') === 'leadercg' ? 'selected' : '' ?>>Leader CG</option>
-                            <option value="leadersc" <?= old('role_pic', $pic['role_pic'] ?? 'Staff') === 'leadersc' ? 'selected' : '' ?>>Leader SC</option>
+                            <option value="Staff" <?= old('role_pic', $currentRole) === 'Staff' ? 'selected' : '' ?>>Staff</option>
+                            <option value="Magang" <?= old('role_pic', $currentRole) === 'Magang' ? 'selected' : '' ?>>Magang</option>
+                            <option value="leader1" <?= old('role_pic', $currentRole) === 'leader1' ? 'selected' : '' ?>>Leader Line 1</option>
+                            <option value="leader2" <?= old('role_pic', $currentRole) === 'leader2' ? 'selected' : '' ?>>Leader Line 2</option>
+                            <option value="leader3" <?= old('role_pic', $currentRole) === 'leader3' ? 'selected' : '' ?>>Leader Line 3</option>
+                            <option value="leadercg" <?= old('role_pic', $currentRole) === 'leadercg' ? 'selected' : '' ?>>Leader CG</option>
+                            <option value="leadersc" <?= old('role_pic', $currentRole) === 'leadersc' ? 'selected' : '' ?>>Leader SC</option>
                         </select>
                     </div>
 

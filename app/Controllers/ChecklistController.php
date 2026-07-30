@@ -106,14 +106,13 @@ class ChecklistController extends BaseController
         if ($idMesin && strtolower($jenisSlug) === 'overhaul') {
             $mesin = $this->mesinModel->find($idMesin);
             if ($mesin) {
-                if (!empty($mesin['jenis'])) {
+                if ($lokasiName === 'MFG 1') {
+                    // MFG 1 Overhaul selalu memakai form mesin-cnc-bar-feeder
+                    return redirect()->to("/checklist/{$lokasiSlug}/{$jenisSlug}/create/mesin-cnc-bar-feeder?id_mesin={$idMesin}");
+                } else if (!empty($mesin['jenis'])) {
+                    // MFG 2 Overhaul mengikuti jenis mesinnya (milling, thread, dll)
                     $kategoriSlug = url_title(strtolower($mesin['jenis']), '-', true);
                     return redirect()->to("/checklist/{$lokasiSlug}/{$jenisSlug}/create/{$kategoriSlug}?id_mesin={$idMesin}");
-                } else {
-                    // Fallback jika jenis kosong
-                    if ($lokasiName === 'MFG 1') {
-                        return redirect()->to("/checklist/{$lokasiSlug}/{$jenisSlug}/create/mesin-cnc-bar-feeder?id_mesin={$idMesin}");
-                    }
                 }
             }
         }
@@ -235,7 +234,9 @@ class ChecklistController extends BaseController
             'categoryName'      => $categoryName,
             'daftarMesin'       => $daftarMesin,
             'rows'              => $this->parameterModel->getFormRows($lokasiName, $jenisDbName, $categoryName),
-            'masterPic'         => (new \App\Models\PicModel())->findAll(),
+            'masterPic'         => array_filter((new \App\Models\PicModel())->findAll(), function($p) {
+                return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), 'leader') === false;
+            }),
             'namaStaff'         => session()->get('nama'),
             'waktuMulai'        => $waktuMulai->toDateTimeString(),
             'waktuMulaiDisplay' => $waktuMulai->toLocalizedString('dd MMMM yyyy, HH:mm:ss'),
@@ -423,7 +424,14 @@ class ChecklistController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Gagal menyimpan data pengecekan.');
         }
 
-        return redirect()->to("/riwayat/lokasi/{$lokasiSlug}?jenis_check=" . urlencode($jenisName) . "&kategori=" . urlencode($kategoriName))
+        $roleSession = session()->get('role');
+        if ($roleSession === 'magang') {
+            $redirectUrl = "/riwayat/lokasi/{$lokasiSlug}?jenis_check=" . urlencode($jenisName) . "&kategori=" . urlencode($kategoriName);
+        } else {
+            $redirectUrl = "/approval";
+        }
+
+        return redirect()->to($redirectUrl)
                           ->with('success', 'Pengecekan berhasil disimpan. Durasi pengerjaan: '
                               . $this->formatDurasi($waktuMulai, $waktuSelesai));
     }

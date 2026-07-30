@@ -152,7 +152,40 @@ class MesinController extends BaseController
 
     public function export()
     {
-        $mesin = $this->model->orderBy('lokasi', 'ASC')->orderBy('no_mesin', 'ASC')->findAll();
+        $role = session()->get('role');
+        $lokasiUser = session()->get('lokasi');
+        $builder = $this->model->orderBy('lokasi', 'ASC')->orderBy('no_mesin', 'ASC');
+        
+        if ($role === 'leader' && $lokasiUser) {
+            $builder->where('lokasi', $lokasiUser);
+        }
+
+        $q = $this->request->getGet('q');
+        $lokasi = $this->request->getGet('lokasi');
+        $line = $this->request->getGet('line');
+        $jenis = $this->request->getGet('jenis');
+
+        if (!empty($q)) {
+            $builder->groupStart()
+                    ->like('no_mesin', $q)
+                    ->orLike('type_mesin', $q)
+                    ->orLike('serial_nomor', $q)
+                    ->groupEnd();
+        }
+
+        if (!empty($lokasi) && $lokasi !== 'all') {
+            $builder->where('lokasi', $lokasi);
+        }
+
+        if (!empty($line) && $line !== 'all') {
+            $builder->where('line', $line);
+        }
+
+        if (!empty($jenis) && $jenis !== 'all') {
+            $builder->where('jenis', $jenis);
+        }
+
+        $mesin = $builder->findAll();
         
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -164,6 +197,7 @@ class MesinController extends BaseController
         $sheet->setCellValue('D1', 'Lokasi');
         $sheet->setCellValue('E1', 'Line');
         $sheet->setCellValue('F1', 'Bar Feeder Type');
+        $sheet->setCellValue('G1', 'Jenis');
         
         // Data
         $row = 2;
@@ -174,6 +208,7 @@ class MesinController extends BaseController
             $sheet->setCellValue('D' . $row, $m['lokasi']);
             $sheet->setCellValue('E' . $row, $m['line']);
             $sheet->setCellValue('F' . $row, $m['bar_feeder_type']);
+            $sheet->setCellValue('G' . $row, isset($m['jenis']) ? $m['jenis'] : '');
             $row++;
         }
         
@@ -262,8 +297,13 @@ class MesinController extends BaseController
                     continue;
                 }
                 
-                if (empty($noMesin) || empty($typeMesin) || empty($serialNomor) || empty($lokasi)) {
-                    $errors[] = "Baris {$row}: Seluruh kolom wajib diisi kecuali Bar Feeder Type dan Jenis.";
+                if (empty($noMesin) || empty($lokasi)) {
+                    $errors[] = "Baris {$row}: No Mesin dan Lokasi wajib diisi.";
+                    continue;
+                }
+                
+                if ($lokasi !== 'MFG 2' && (empty($typeMesin) || empty($serialNomor))) {
+                    $errors[] = "Baris {$row}: Type Mesin dan Serial Nomor wajib diisi untuk lokasi selain MFG 2.";
                     continue;
                 }
                 
@@ -315,8 +355,8 @@ class MesinController extends BaseController
     {
         return [
             'no_mesin'        => 'required|max_length[50]',
-            'type_mesin'      => 'required|max_length[100]',
-            'serial_nomor'    => 'required|max_length[100]',
+            'type_mesin'      => ($this->request->getPost('lokasi') === 'MFG 2' ? 'permit_empty|max_length[100]' : 'required|max_length[100]'),
+            'serial_nomor'    => ($this->request->getPost('lokasi') === 'MFG 2' ? 'permit_empty|max_length[100]' : 'required|max_length[100]'),
             'lokasi'          => 'required|in_list[MFG 1,MFG 2]',
             'line'            => 'permit_empty|string|max_length[50]',
             'bar_feeder_type' => 'permit_empty|string|max_length[100]',

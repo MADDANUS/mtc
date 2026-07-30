@@ -70,6 +70,24 @@ class RiwayatController extends BaseController
 
         // Ambil input filter pencarian
         $userLine = (session()->get('role') === 'leader') ? session()->get('line') : null;
+
+        // History hanya menampilkan dokumen yang sudah Approved Final
+        // Admin bisa override via status=all
+                $rawStatus = $this->request->getGet('status');
+        if ($rawStatus === 'all') {
+            $statusFilter = null;
+        } elseif ($rawStatus && $rawStatus !== 'all') {
+            $statusFilter = $rawStatus;
+        } else {
+            // Default history visibility based on role
+            $role = session()->get('role');
+            if ($role === 'leader') {
+                $statusFilter = ['Approved L1', 'Approved L2', 'Approved', 'Approved Final'];
+            } elseif ($role === 'sheadprd') {
+                $statusFilter = ['Approved L2', 'Approved', 'Approved Final'];
+            } elseif ($role === 'sheadmtc') { $statusFilter = ['Approved', 'Approved Final'];
+            } elseif ($role === 'magang') { $statusFilter = null; } else { $statusFilter = ['Approved', 'Approved Final']; }
+        }
         
         $filters = [
             'lokasi'      => $lokasiName,
@@ -78,13 +96,13 @@ class RiwayatController extends BaseController
             'jenis_check' => $this->request->getGet('jenis_check') === 'all' ? null : ($this->request->getGet('jenis_check') ?: null),
             'kategori'    => $this->request->getGet('kategori') === 'all' ? null : ($this->request->getGet('kategori') ?: null),
             'bulan'       => $this->request->getGet('bulan') === 'all' ? null : ($this->request->getGet('bulan') ?: null),
-            'status'      => $this->request->getGet('status') === 'all' ? null : ($this->request->getGet('status') ?: null),
+            'status'      => $statusFilter,
             'pic'         => $this->request->getGet('pic') === 'all' ? null : ($this->request->getGet('pic') ?: null),
             'sort_by'     => $this->request->getGet('sort_by') ?: 'id_transaksi',
             'order'       => $this->request->getGet('order') ?: 'desc',
         ];
 
-        // Semua role bisa lihat semua riwayat
+        // Semua role bisa lihat riwayat yang sudah Approved
         $riwayat = $transaksiModel->getRiwayatFiltered($filters);
 
         // Pisahkan kategori dropdown berdasarkan Lokasi & Jenis Check secara dinamis
@@ -313,17 +331,34 @@ class RiwayatController extends BaseController
             $durasiDetik = strtotime($header['waktu_selesai']) - strtotime($header['waktu_mulai']);
         }
 
+        $leaderPicModel = new \App\Models\PicModel();
+        if ($roleSession === 'leader') {
+            $userLine = session()->get('line');
+            if ($userLine === 'Line 1') {
+                $leaderPicModel->where('role_pic', 'leader1');
+            } elseif ($userLine === 'Line 2') {
+                $leaderPicModel->where('role_pic', 'leader2');
+            } elseif ($userLine === 'Line 3') {
+                $leaderPicModel->where('role_pic', 'leader3');
+            } elseif ($userLine === 'CG') {
+                $leaderPicModel->where('role_pic', 'leadercg');
+            } elseif ($userLine === 'Second') {
+                $leaderPicModel->where('role_pic', 'leadersc');
+            } else {
+                $leaderPicModel->like('role_pic', 'leader', 'both');
+            }
+        } else {
+            $leaderPicModel->like('role_pic', 'leader', 'both');
+        }
+        $leaderPicList = $leaderPicModel->findAll();
+
         return view('riwayat/detail', [
             'title'       => 'Detail Pengecekan',
             'header'      => $header,
             'details'     => $details,
             'durasiDetik' => $durasiDetik,
-            'leaderPicList' => (function() use ($header) {
-                $lineSlug = strtolower(str_replace(' ', '', $header['line'] ?? ''));
-                if ($lineSlug === 'second') $lineSlug = 'sc';
-                $roleName = 'leader' . str_replace('line', '', $lineSlug);
-                return (new \App\Models\PicModel())->where('role_pic', $roleName)->findAll();
-            })(),
+            'staffPicList' => (new \App\Models\PicModel())->where('role_pic', 'Staff')->findAll(),
+            'leaderPicList'=> $leaderPicList,
             'staffPic'    => (new \App\Models\PicModel())->where('role_pic', 'Staff')->findAll(),
             'from'        => $this->request->getGet('from'),
             'cb_lokasi'   => $this->request->getGet('lokasi'),
@@ -459,7 +494,9 @@ class RiwayatController extends BaseController
             'categoryName'      => $header['kategori'],
             'daftarMesin'       => $mesinModel->getByLokasi($header['lokasi_check']),
             'rows'              => $parameterModel->getFormRows($header['lokasi_check'], $header['jenis_check'], $header['kategori']),
-            'masterPic'         => (new \App\Models\PicModel())->findAll(),
+            'masterPic'         => array_filter((new \App\Models\PicModel())->findAll(), function($p) {
+                return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), 'leader') === false;
+            }),
             'staffPic'          => (new \App\Models\PicModel())->where('role_pic', 'Staff')->findAll(),
             'namaPic'           => $header['nama_pic'],
             'namaStaff'         => $header['nama_staff'],

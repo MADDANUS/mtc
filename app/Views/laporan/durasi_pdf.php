@@ -36,6 +36,31 @@
         .bg-danger { background-color: #dc3545; }
         .bg-secondary { background-color: #6c757d; }
     </style>
+<?php
+function formatDurasiPdf($detik) {
+    if ($detik === null) return '-';
+    $jam = floor($detik / 3600);
+    $menit = floor(($detik % 3600) / 60);
+    $det = $detik % 60;
+    if ($jam > 0) {
+        return sprintf('%02d:%02d:%02d', $jam, $menit, $det);
+    }
+    return sprintf('%02d:%02d', $menit, $det);
+}
+
+function formatDurasiTextPdf($detik) {
+    if ($detik === null) return '-';
+    $jam = floor($detik / 3600);
+    $menit = floor(($detik % 3600) / 60);
+    $det = $detik % 60;
+    
+    $parts = [];
+    if ($jam > 0) $parts[] = $jam . ' jam';
+    if ($menit > 0 || $jam > 0) $parts[] = $menit . ' menit';
+    $parts[] = $det . ' detik';
+    return implode(' ', $parts);
+}
+?>
 </head>
 <body>
 

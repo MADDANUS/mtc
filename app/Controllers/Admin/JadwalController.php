@@ -164,6 +164,20 @@ class JadwalController extends BaseController
             return redirect()->back()->with('error', 'Jadwal tidak ditemukan.');
         }
 
+        // Cek apakah sudah ada checklist (transaksi_check) yang dibuat untuk jadwal ini
+        $transaksiModel = new \App\Models\TransaksiCheckModel();
+        $bulanTahun = $schedule['bulan_tahun']; // e.g., '2026-07'
+        
+        $cekTransaksi = $transaksiModel->where('jenis_check', 'Preventive')
+                                       ->where('lokasi_check', $schedule['lokasi'])
+                                       ->where('kategori', $schedule['kategori'])
+                                       ->like('created_at', $bulanTahun . '-', 'after')
+                                       ->first();
+
+        if ($cekTransaksi) {
+            return redirect()->back()->with('error', 'Gagal dihapus! Sudah ada mesin yang diisi pengecekannya (checklist) pada jadwal kategori ini.');
+        }
+
         $this->jadwalModel->delete($id);
 
         return redirect()->to('/admin/jadwal')->with('success', 'Jadwal preventive berhasil dihapus.');

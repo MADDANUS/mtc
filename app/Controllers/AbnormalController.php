@@ -312,7 +312,10 @@ class AbnormalController extends BaseController
             }
         }
 
-        $masterPic = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
+        $allPics = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
+        $masterPic = array_filter($allPics, function($p) {
+            return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), 'leader') === false;
+        });
 
         return view('abnormal/index', [
             'title'          => 'Laporan Abnormal Condition',
@@ -495,6 +498,39 @@ class AbnormalController extends BaseController
             'repair_pic'      => $this->request->getPost('repair_pic') ?: null,
             'keterangan'      => $this->request->getPost('keterangan') ?: null,
         ];
+        
+        $isHapusSemua = $this->request->getPost('hapus_semua') == '1';
+        if ($isHapusSemua) {
+            $existing = $this->abnormalModel->find($idAbnormal);
+            if ($existing) {
+                if (!empty($existing['foto_perbaikan'])) {
+                    @unlink(FCPATH . 'uploads/abnormal/' . $existing['foto_perbaikan']);
+                    $data['foto_perbaikan'] = null;
+                }
+                if (!empty($existing['foto_perbaikan_2'])) {
+                    @unlink(FCPATH . 'uploads/abnormal/' . $existing['foto_perbaikan_2']);
+                    $data['foto_perbaikan_2'] = null;
+                }
+            }
+        }
+
+        // Handle foto_perbaikan
+        $file1 = $this->request->getFile('foto_perbaikan');
+        if ($file1 && $file1->isValid() && !$file1->hasMoved()) {
+            $newName = 'repair_' . time() . '_1_' . uniqid() . '.' . $file1->getClientExtension();
+            $file1->move(FCPATH . 'uploads/abnormal/', $newName);
+            $data['foto_perbaikan'] = $newName;
+            $data['updated_at'] = date('Y-m-d H:i:s');
+        }
+
+        // Handle foto_perbaikan_2
+        $file2 = $this->request->getFile('foto_perbaikan_2');
+        if ($file2 && $file2->isValid() && !$file2->hasMoved()) {
+            $newName = 'repair_' . time() . '_2_' . uniqid() . '.' . $file2->getClientExtension();
+            $file2->move(FCPATH . 'uploads/abnormal/', $newName);
+            $data['foto_perbaikan_2'] = $newName;
+            $data['updated_at'] = date('Y-m-d H:i:s');
+        }
 
         if ($this->abnormalModel->update($idAbnormal, $data)) {
             return redirect()->to('/abnormal')->with('success', 'Rencana perbaikan Laporan Abnormal berhasil diperbarui.');
@@ -547,7 +583,10 @@ class AbnormalController extends BaseController
                            ->get()
                            ->getResultArray();
 
-        $masterPic = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
+        $allPics2 = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
+        $masterPic = array_filter($allPics2, function($p) {
+            return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), 'leader') === false;
+        });
 
         $bulanList = [];
         $bulanIndo = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
@@ -853,6 +892,39 @@ class AbnormalController extends BaseController
             'repair_pic'      => $this->request->getPost('repair_pic') ?: null,
             'keterangan'      => $this->request->getPost('keterangan') ?: null,
         ];
+        
+        $isHapusSemua = $this->request->getPost('hapus_semua') == '1';
+        if ($isHapusSemua) {
+            $existing = $this->abnormalModel->find($idAbnormal);
+            if ($existing) {
+                if (!empty($existing['foto_perbaikan'])) {
+                    @unlink(FCPATH . 'uploads/abnormal/' . $existing['foto_perbaikan']);
+                    $data['foto_perbaikan'] = null;
+                }
+                if (!empty($existing['foto_perbaikan_2'])) {
+                    @unlink(FCPATH . 'uploads/abnormal/' . $existing['foto_perbaikan_2']);
+                    $data['foto_perbaikan_2'] = null;
+                }
+            }
+        }
+
+        // Handle foto_perbaikan
+        $file1 = $this->request->getFile('foto_perbaikan');
+        if ($file1 && $file1->isValid() && !$file1->hasMoved()) {
+            $newName = 'repair_' . time() . '_1_' . uniqid() . '.' . $file1->getClientExtension();
+            $file1->move(FCPATH . 'uploads/abnormal/', $newName);
+            $data['foto_perbaikan'] = $newName;
+            $data['updated_at'] = date('Y-m-d H:i:s');
+        }
+
+        // Handle foto_perbaikan_2
+        $file2 = $this->request->getFile('foto_perbaikan_2');
+        if ($file2 && $file2->isValid() && !$file2->hasMoved()) {
+            $newName = 'repair_' . time() . '_2_' . uniqid() . '.' . $file2->getClientExtension();
+            $file2->move(FCPATH . 'uploads/abnormal/', $newName);
+            $data['foto_perbaikan_2'] = $newName;
+            $data['updated_at'] = date('Y-m-d H:i:s');
+        }
 
         if ($this->abnormalModel->update($idAbnormal, $data)) {
             return redirect()->to('/abnormal/overhaul')->with('success', 'Rencana perbaikan Laporan Abnormal Overhaul berhasil diperbarui.');
@@ -912,6 +984,36 @@ class AbnormalController extends BaseController
         }
 
         return $this->response->setJSON(['success' => false, 'message' => 'Gagal menyimpan foto.']);
+    }
+
+    /**
+     * POST /abnormal/delete-foto-perbaikan
+     * Hapus foto setelah perbaikan (AJAX, JSON response)
+     */
+    public function deleteFotoPerbaikan()
+    {
+        $idAbnormal = (int) $this->request->getPost('id_abnormal');
+        $slot = (int) $this->request->getPost('foto_slot') ?: 1;
+        $dbColumn = ($slot === 2) ? 'foto_perbaikan_2' : 'foto_perbaikan';
+        
+        if ($idAbnormal <= 0) {
+            return $this->response->setJSON(['success' => false, 'message' => 'ID tidak valid.']);
+        }
+        
+        $existing = $this->abnormalModel->find($idAbnormal);
+        if (!$existing) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Data tidak ditemukan.']);
+        }
+        
+        if (!empty($existing[$dbColumn])) {
+            $oldPath = FCPATH . 'uploads/abnormal/' . $existing[$dbColumn];
+            if (file_exists($oldPath)) {
+                @unlink($oldPath);
+            }
+            $this->abnormalModel->update($idAbnormal, [$dbColumn => null, 'updated_at' => date('Y-m-d H:i:s')]);
+        }
+        
+        return $this->response->setJSON(['success' => true, 'message' => 'Foto berhasil dihapus.']);
     }
 
 }

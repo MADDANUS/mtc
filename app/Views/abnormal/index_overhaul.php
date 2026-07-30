@@ -92,7 +92,18 @@
           <?php else: ?>
             <?php $no = 1; foreach ($reports as $r): ?>
               <?php 
-                $canEdit = in_array(session()->get('role'), ['member', 'sheadprd', 'sheadmtc', 'admin'], true);
+                $role = session()->get('role');
+                $isFilled = !empty($r['type_sparepart']) || !empty($r['progres_stock']) || !empty($r['progres_tanggal']) || !empty($r['action']) || !empty($r['repair_pic']) || !empty($r['keterangan']) || !empty($r['foto_perbaikan']) || !empty($r['foto_perbaikan_2']);
+                
+                $canEdit = false;
+                if (in_array($role, ['member', 'sheadprd', 'sheadmtc', 'admin', 'magang'], true)) {
+                    if ($isFilled) {
+                        $canEdit = ($role === 'admin');
+                    } else {
+                        $canEdit = true;
+                    }
+                }
+                
                 $rowClass = $canEdit ? 'row-editable' : '';
               ?>
               <tr class="<?= $rowClass ?>" 
@@ -108,7 +119,8 @@
                   data-repair-pic="<?= esc($r['repair_pic'] ?? '') ?>"
                   data-keterangan="<?= esc($r['keterangan'] ?? '') ?>"
                   data-foto-abnormal="<?= !empty($r['foto_abnormal']) ? base_url('uploads/abnormal/' . $r['foto_abnormal']) : '' ?>"
-                  data-foto-perbaikan="<?= !empty($r['foto_perbaikan']) ? base_url('uploads/abnormal/' . $r['foto_perbaikan']) : '' ?>">
+                  data-foto-perbaikan="<?= !empty($r['foto_perbaikan']) ? base_url('uploads/abnormal/' . $r['foto_perbaikan']) : '' ?>"
+                  data-foto-perbaikan-2="<?= !empty($r['foto_perbaikan_2']) ? base_url('uploads/abnormal/' . $r['foto_perbaikan_2']) : '' ?>">
                 
                 <td class="fw-bold font-monospace text-secondary" style="background-color: #f8fafc;"><?= $no++ ?></td>
                 <td class="text-start fw-bold text-dark ps-3"><?= esc($r['no_mesin']) ?> - <?= esc($r['type_mesin']) ?></td>
@@ -155,12 +167,6 @@
                       <a href="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan']) ?>" target="_blank" title="Lihat Foto Perbaikan 1">
                         <img src="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan']) ?>" alt="Foto Perbaikan 1" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
                       </a>
-                    <?php else: ?>
-                      <?php if ($canEdit): ?>
-                        <button type="button" class="btn btn-sm btn-outline-success btn-foto-perbaikan py-0 px-1" data-id-abnormal="<?= $r['id_abnormal'] ?>" data-slot="1" title="Upload Foto Perbaikan 1">
-                          <i class="bi bi-camera-fill" style="font-size:0.75rem;"></i> 1
-                        </button>
-                      <?php endif; ?>
                     <?php endif; ?>
 
                     <!-- Slot 2 -->
@@ -168,12 +174,6 @@
                       <a href="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan_2']) ?>" target="_blank" title="Lihat Foto Perbaikan 2">
                         <img src="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan_2']) ?>" alt="Foto Perbaikan 2" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
                       </a>
-                    <?php else: ?>
-                      <?php if ($canEdit && !empty($r['foto_perbaikan'])): ?>
-                        <button type="button" class="btn btn-sm btn-outline-secondary btn-foto-perbaikan py-0 px-1" data-id-abnormal="<?= $r['id_abnormal'] ?>" data-slot="2" title="Upload Foto Perbaikan 2">
-                          <i class="bi bi-camera" style="font-size:0.75rem;"></i> 2
-                        </button>
-                      <?php endif; ?>
                     <?php endif; ?>
                   </div>
                 </td>
@@ -191,8 +191,8 @@
 </div>
 
 
-<!-- MODAL QUICK EDIT ABNORMAL (LEADER & ADMIN ONLY) -->
-<?php if (in_array(session()->get('role'), ['member', 'sheadprd', 'sheadmtc', 'admin'], true)): ?>
+<!-- MODAL QUICK EDIT ABNORMAL -->
+<?php if (in_array(session()->get('role'), ['member', 'sheadprd', 'sheadmtc', 'admin', 'magang'], true)): ?>
 <div class="modal fade" id="editAbnormalModal" tabindex="-1" aria-labelledby="editAbnormalModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-md">
     <div class="modal-content border-0 shadow-lg rounded-4">
@@ -200,7 +200,7 @@
         <h6 class="modal-title fw-bold" id="editAbnormalModalLabel"><i class="bi bi-pencil-square text-primary me-1.5"></i>Tindak Lanjut Abnormal Condition</h6>
         <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <form action="<?= site_url('abnormal/overhaul/update') ?>" method="post" id="abnormalUpdateForm" novalidate onsubmit="return validateAbnormalForm(event)">
+      <form action="<?= site_url('abnormal/overhaul/update') ?>" method="post" id="abnormalUpdateForm" enctype="multipart/form-data" novalidate onsubmit="return validateAbnormalForm(event)">
         <?= csrf_field() ?>
         <input type="hidden" name="id_abnormal" id="modalIdAbnormal">
 
@@ -229,7 +229,6 @@
               <select name="progres_stock" id="modalProgresStock" class="form-select form-select-sm rounded-2">
                 <option value="">-- Pilih Status --</option>
                 <option value="Ready">Ready</option>
-                <option value="Indent">Indent</option>
                 <option value="Not Available">Not Available</option>
               </select>
             </div>
@@ -257,6 +256,36 @@
             </select>
           </div>
 
+          <!-- Foto Perbaikan -->
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Foto 1 <span class="text-muted fw-normal">(Opsional)</span></label>
+              <div id="modalFoto1Preview" class="mb-2" style="display:none; position:relative;">
+                 <img src="" style="width:100%; height:80px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
+              </div>
+              <div id="modalFoto1Controls" class="mb-2" style="display:none; gap: 8px;">
+                 <button type="button" class="btn btn-outline-success btn-sm flex-fill btn-foto-perbaikan-modal" data-slot="1"><i class="bi bi-arrow-repeat"></i> Ulang</button>
+                 <button type="button" class="btn btn-outline-danger btn-sm flex-fill" onclick="deleteFotoAbnormal(1)"><i class="bi bi-trash"></i> Hapus</button>
+              </div>
+              <button type="button" class="btn btn-outline-success btn-sm w-100 btn-foto-perbaikan-modal" id="modalFoto1UploadBtn" data-slot="1">
+                <i class="bi bi-camera-fill me-1"></i> Ambil Foto 1
+              </button>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Foto 2 <span class="text-muted fw-normal">(Opsional)</span></label>
+              <div id="modalFoto2Preview" class="mb-2" style="display:none; position:relative;">
+                 <img src="" style="width:100%; height:80px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
+              </div>
+              <div id="modalFoto2Controls" class="mb-2" style="display:none; gap: 8px;">
+                 <button type="button" class="btn btn-outline-success btn-sm flex-fill btn-foto-perbaikan-modal" data-slot="2"><i class="bi bi-arrow-repeat"></i> Ulang</button>
+                 <button type="button" class="btn btn-outline-danger btn-sm flex-fill" onclick="deleteFotoAbnormal(2)"><i class="bi bi-trash"></i> Hapus</button>
+              </div>
+              <button type="button" class="btn btn-outline-secondary btn-sm w-100 btn-foto-perbaikan-modal" id="modalFoto2UploadBtn" data-slot="2">
+                <i class="bi bi-camera me-1"></i> Ambil Foto 2
+              </button>
+            </div>
+          </div>
+
           <!-- Keterangan -->
           <div class="mb-3">
             <label class="form-label small fw-semibold">Keterangan Tambahan</label>
@@ -265,6 +294,9 @@
         </div>
 
         <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
+          <?php if (session()->get('role') === 'admin'): ?>
+            <button type="button" class="btn btn-danger btn-sm px-3 rounded-3 me-auto" id="btnHapusTindakLanjut"><i class="bi bi-trash me-1"></i> Hapus</button>
+          <?php endif; ?>
           <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-3" data-bs-dismiss="modal">Batal</button>
           <button type="submit" class="btn btn-primary btn-sm px-4 rounded-3"><i class="bi bi-save me-1"></i> Simpan</button>
         </div>
@@ -301,6 +333,33 @@
 
         document.getElementById("modalKeterangan").value = this.getAttribute("data-keterangan");
 
+        let foto1 = this.getAttribute("data-foto-perbaikan");
+        let foto2 = this.getAttribute("data-foto-perbaikan-2");
+        let preview1 = document.getElementById("modalFoto1Preview");
+        let preview2 = document.getElementById("modalFoto2Preview");
+
+        if (foto1) {
+            preview1.style.display = 'block';
+            preview1.querySelector('img').src = foto1;
+            document.getElementById('modalFoto1Controls').style.display = 'flex';
+            document.getElementById('modalFoto1UploadBtn').style.display = 'none';
+        } else {
+            preview1.style.display = 'none';
+            document.getElementById('modalFoto1Controls').style.display = 'none';
+            document.getElementById('modalFoto1UploadBtn').style.display = 'block';
+        }
+
+        if (foto2) {
+            preview2.style.display = 'block';
+            preview2.querySelector('img').src = foto2;
+            document.getElementById('modalFoto2Controls').style.display = 'flex';
+            document.getElementById('modalFoto2UploadBtn').style.display = 'none';
+        } else {
+            preview2.style.display = 'none';
+            document.getElementById('modalFoto2Controls').style.display = 'none';
+            document.getElementById('modalFoto2UploadBtn').style.display = 'block';
+        }
+
         editModal.show();
       });
     });
@@ -322,6 +381,11 @@
   });
 
   function validateAbnormalForm(e) {
+    // Jika isDeleting diset (lewat tombol Hapus), loloskan form
+    if (window.isDeletingTindakLanjut) {
+      return true;
+    }
+
     const typeSparepart = document.getElementById("modalTypeSparepart").value.trim();
     const progresStock = document.getElementById("modalProgresStock").value.trim();
     const progresTanggal = document.getElementById("modalProgresTanggal").value.trim();
@@ -334,13 +398,48 @@
       Swal.fire({
         icon: 'warning',
         title: 'Form Belum Lengkap',
-        text: 'Harap lengkapi semua isian form Tindak Lanjut sebelum menyimpan!',
+        text: 'Harap lengkapi semua isian form Tindak Lanjut sebelum menyimpan! (Atau gunakan tombol Hapus untuk menghapus data)',
         confirmButtonColor: '#0d6efd',
         confirmButtonText: 'Oke, Paham'
       });
       return false;
     }
     return true;
+  }
+
+  // Tombol Hapus Tindak Lanjut
+  const btnHapus = document.getElementById('btnHapusTindakLanjut');
+  if (btnHapus) {
+    btnHapus.addEventListener('click', function() {
+      Swal.fire({
+        title: 'Hapus Tindak Lanjut?',
+        text: 'Semua isian tindakan perbaikan untuk point ini akan dikosongkan.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Kosongkan form
+          document.getElementById('modalTypeSparepart').value = '';
+          document.getElementById('modalProgresStock').value = '';
+          document.getElementById('modalProgresTanggal').value = '';
+          document.getElementById('modalAction').value = '';
+          document.getElementById('modalRepairPic').value = '';
+          document.getElementById('modalKeterangan').value = '';
+          
+          window.isDeletingTindakLanjut = true;
+          let flag = document.createElement('input');
+          flag.type = 'hidden';
+          flag.name = 'hapus_semua';
+          flag.value = '1';
+          document.getElementById('abnormalUpdateForm').appendChild(flag);
+          document.getElementById('abnormalUpdateForm').submit();
+        }
+      });
+    });
   }
 </script>
 <?php endif; ?>
@@ -588,7 +687,37 @@
             if(data.success){
                 rModal.hide();
                 Swal.fire({icon:'success',title:'Berhasil!',text:data.message,timer:1500,showConfirmButton:false}).then(() => {
-                    window.location.reload();
+                    const editModalEl = document.getElementById("editAbnormalModal");
+                    if (editModalEl && _rIdAbnormal == document.getElementById('modalIdAbnormal').value) {
+                        
+                        // Update preview inside modal
+                        let previewId = _rSlotAbnormal == 1 ? "modalFoto1Preview" : "modalFoto2Preview";
+                        let controlsId = _rSlotAbnormal == 1 ? "modalFoto1Controls" : "modalFoto2Controls";
+                        let uploadBtnId = _rSlotAbnormal == 1 ? "modalFoto1UploadBtn" : "modalFoto2UploadBtn";
+                        
+                        let previewEl = document.getElementById(previewId);
+                        if (previewEl) {
+                            previewEl.style.display = 'block';
+                            previewEl.querySelector('img').src = data.foto_url;
+                            document.getElementById(controlsId).style.display = 'flex';
+                            document.getElementById(uploadBtnId).style.display = 'none';
+                        }
+                        
+                        // Update row attribute so it persists if modal is closed and reopened
+                        let row = document.querySelector(`tr[data-id-abnormal="${_rIdAbnormal}"]`);
+                        if (row) {
+                            if (_rSlotAbnormal == 1) {
+                                row.setAttribute("data-foto-perbaikan", data.foto_url);
+                            } else {
+                                row.setAttribute("data-foto-perbaikan-2", data.foto_url);
+                            }
+                        }
+
+                        // Reopen the edit modal so they don't lose typed text
+                        bootstrap.Modal.getOrCreateInstance(editModalEl).show();
+                    } else {
+                        window.location.reload();
+                    }
                 });
             } else {
                 h(rActUpling); s(rActConf,'flex');
@@ -613,14 +742,78 @@
 
     // Open modal trigger
     document.addEventListener('click',function(e){
-        const btn=e.target.closest('.btn-foto-perbaikan');
+        const btn=e.target.closest('.btn-foto-perbaikan, .btn-foto-perbaikan-modal');
         if(!btn) return; e.stopPropagation();
-        _rIdAbnormal=btn.getAttribute('data-id-abnormal');
+        
+        let idAbnormal = btn.getAttribute('data-id-abnormal');
+        if(!idAbnormal && btn.classList.contains('btn-foto-perbaikan-modal')) {
+            idAbnormal = document.getElementById('modalIdAbnormal').value;
+        }
+        
+        _rIdAbnormal=idAbnormal;
         _rSlotAbnormal=btn.getAttribute('data-slot') || 1;
         document.getElementById('rIdAbnormal').value=_rIdAbnormal;
+        
+        // Hide edit modal if we are opening from inside it to prevent stacking issues
+        const editModalEl = document.getElementById("editAbnormalModal");
+        if (editModalEl && editModalEl.classList.contains('show')) {
+            bootstrap.Modal.getInstance(editModalEl).hide();
+        }
+        
         rModal.show(); switchMode('camera');
     });
 })();
+
+function deleteFotoAbnormal(slot) {
+    const idAbnormal = document.getElementById('modalIdAbnormal').value;
+    if (!idAbnormal) return;
+
+    Swal.fire({
+        title: 'Hapus Foto?',
+        text: 'Foto perbaikan ' + slot + ' akan dihapus secara permanen.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const fd = new FormData();
+            fd.append('id_abnormal', idAbnormal);
+            fd.append('foto_slot', slot);
+            fd.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+
+            fetch('<?= site_url('abnormal/delete-foto-perbaikan') ?>', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({icon: 'success', title: 'Terhapus!', text: data.message, timer: 1500, showConfirmButton: false});
+                        
+                        // Update Modal UI
+                        document.getElementById('modalFoto' + slot + 'Preview').style.display = 'none';
+                        document.getElementById('modalFoto' + slot + 'Controls').style.display = 'none';
+                        document.getElementById('modalFoto' + slot + 'UploadBtn').style.display = 'block';
+                        
+                        // Update Table Row
+                        let row = document.querySelector(`tr[data-id-abnormal="${idAbnormal}"]`);
+                        if (row) {
+                            if (slot == 1) {
+                                row.setAttribute("data-foto-perbaikan", "");
+                            } else {
+                                row.setAttribute("data-foto-perbaikan-2", "");
+                            }
+                        }
+                    } else {
+                        Swal.fire({icon: 'error', title: 'Gagal', text: data.message});
+                    }
+                })
+                .catch(() => {
+                    Swal.fire({icon: 'error', title: 'Error', text: 'Gagal menghubungi server.'});
+                });
+        }
+    });
+}
 </script>
 
 

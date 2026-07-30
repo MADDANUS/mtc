@@ -84,7 +84,7 @@
   <div class="card-body p-4">
 
     <!-- TABEL 1: INSPECTION REPORT (OVERHAUL) - DITAMPILKAN UNTUK SEMUA APPROVER -->
-    <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-clipboard-check me-2 text-primary"></i>Checklist Report / Inspection Report</h6>
+    <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-clipboard-check me-2 text-primary"></i>Inspection Report</h6>
     <?php if ($hasPendingOverhaul): ?>
     <div class="table-responsive mb-4">
       <table class="table table-hover align-middle mb-0 border rounded-3 overflow-hidden">
@@ -127,7 +127,7 @@
               <?php endif; ?>
             </td>
             <td class="text-end pe-3">
-              <a href="<?= site_url('riwayat/' . $po['id_transaksi']) ?>" class="btn btn-sm btn-warning fw-bold rounded-pill px-3">
+              <a href="<?= site_url('riwayat/' . $po['id_transaksi']) . '?from=approval' ?>" class="btn btn-sm btn-warning fw-bold rounded-pill px-3">
                 <i class="bi bi-check-circle me-1"></i> Review & Approve
               </a>
             </td>
@@ -164,7 +164,21 @@
             <td class="ps-3 fw-semibold"><?= esc($pk['lokasi'] ?? '-') ?></td>
             <td><?= esc($pk['line'] ?? '-') ?></td>
             <td><?= esc($pk['kategori'] ?? '-') ?></td>
-            <td class="text-muted small"><?= esc($pk['bulan_tahun'] ?? '-') ?></td>
+                        <?php 
+              $rawBulan = $pk['bulan_tahun'] ?? '';
+              if (!empty($rawBulan)) {
+                  $blnArr = explode('-', $rawBulan);
+                  $namaBulanList = ['01'=>'Januari', '02'=>'Februari', '03'=>'Maret', '04'=>'April', '05'=>'Mei', '06'=>'Juni', '07'=>'Juli', '08'=>'Agustus', '09'=>'September', '10'=>'Oktober', '11'=>'November', '12'=>'Desember'];
+                  if (count($blnArr) >= 2 && isset($namaBulanList[$blnArr[1]])) {
+                      $bulanFormat = $namaBulanList[$blnArr[1]] . ' ' . $blnArr[0];
+                  } else {
+                      $bulanFormat = $rawBulan;
+                  }
+              } else {
+                  $bulanFormat = '-';
+              }
+            ?>
+            <td class="text-muted small"><?= esc($bulanFormat) ?></td>
             <td>
               <?php 
                 $st = $pk['status'] ?? 'Pending'; 
@@ -188,7 +202,7 @@
             </td>
             <td class="text-end pe-3">
               <?php
-                $kontrolUrl = site_url('kontrol') . '?lokasi=' . urlencode($pk['lokasi'] ?? '') . '&line=' . urlencode($pk['line'] ?? '') . '&kategori=' . urlencode($pk['kategori'] ?? '') . '&bulan=' . urlencode($pk['bulan_tahun'] ?? '');
+                $kontrolUrl = site_url('kontrol') . '?lokasi=' . urlencode($pk['lokasi'] ?? '') . '&line=' . urlencode($pk['line'] ?? '') . '&kategori=' . urlencode($pk['kategori'] ?? '') . '&bulan=' . urlencode($pk['bulan_tahun'] ?? '') . '&from=approval';
               ?>
               <a href="<?= $kontrolUrl ?>" class="btn btn-sm btn-success fw-bold rounded-pill px-3">
                 <i class="bi bi-check-circle me-1"></i> Review & Approve

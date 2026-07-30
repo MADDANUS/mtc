@@ -28,6 +28,10 @@
     <a href="<?= $backUrl ?>" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left"></i> Kembali ke Laporan Durasi
     </a>
+  <?php elseif (isset($from) && $from === 'approval'): ?>
+    <a href="<?= site_url('approval') ?>" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Kembali ke Approval
+    </a>
   <?php else: ?>
     <?php 
       $lokSlug = isset($_GET['from_lokasi']) ? $_GET['from_lokasi'] : strtolower(str_replace(' ', '', $header['lokasi_check']));
@@ -91,8 +95,13 @@
   <div class="d-flex justify-content-end gap-4 mb-3">
     <div>
       <span class="text-muted small me-1">Status:</span> 
-      <?php if ($header['status'] === 'Approved'): ?>
+      <?php $statusTop = $header['status'] ?? 'Pending'; ?>
+      <?php if ($statusTop === 'Approved'): ?>
         <span class="badge bg-success">Approved</span>
+      <?php elseif ($statusTop === 'Approved L1'): ?>
+        <span class="badge bg-info text-dark text-uppercase">Approved L1</span>
+      <?php elseif ($statusTop === 'Approved L2'): ?>
+        <span class="badge bg-primary text-uppercase">Approved L2</span>
       <?php else: ?>
         <span class="badge bg-warning text-dark">Pending</span>
       <?php endif; ?>
@@ -135,8 +144,13 @@
   <div class="d-flex justify-content-end gap-4 mb-3">
     <div>
       <span class="text-muted small me-1">Status:</span> 
-      <?php if ($header['status'] === 'Approved'): ?>
+      <?php $statusBot = $header['status'] ?? 'Pending'; ?>
+      <?php if ($statusBot === 'Approved'): ?>
         <span class="badge bg-success">Approved</span>
+      <?php elseif ($statusBot === 'Approved L1'): ?>
+        <span class="badge bg-info text-dark text-uppercase">Approved L1</span>
+      <?php elseif ($statusBot === 'Approved L2'): ?>
+        <span class="badge bg-primary text-uppercase">Approved L2</span>
       <?php else: ?>
         <span class="badge bg-warning text-dark">Pending</span>
       <?php endif; ?>
@@ -528,14 +542,19 @@
         <div style="min-width: 250px;">
           <?php if (!$isOverhaul): ?>
             <select name="pic_line_nama" class="form-select form-select-sm searchable-select" required>
-              <option value="">-- Pilih PIC Line (Leader) --</option>
-              <?php foreach ($leaderPicList ?? [] as $pic): ?>
+              <option value="">|-- Cari PIC Line --</option>
+              <?php foreach ($staffPicList ?? [] as $pic): ?>
                 <option value="<?= esc($pic['nama_pic']) ?>"><?= esc($pic['nama_pic']) ?></option>
               <?php endforeach; ?>
             </select>
           <?php else: ?>
             <?php if ($role === 'leader' || $role === 'admin'): ?>
-              <input type="text" name="leader_nama" class="form-control form-control-sm" placeholder="Ketik Nama Leader" required>
+              <select name="leader_nama" class="form-select form-select-sm searchable-select" required>
+                <option value="">|-- Cari Nama Leader --</option>
+                <?php foreach ($leaderPicList ?? [] as $pic): ?>
+                  <option value="<?= esc($pic['nama_pic']) ?>"><?= esc($pic['nama_pic']) ?></option>
+                <?php endforeach; ?>
+              </select>
             <?php endif; ?>
           <?php endif; ?>
         </div>

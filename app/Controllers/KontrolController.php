@@ -551,12 +551,7 @@ class KontrolController extends BaseController
             'allChecked'     => $allChecked,
             'approvalStatus' => $approvalStatus,
             'approvalData'   => $approval,
-            'leaderPicList'  => (function() use ($line) {
-                $lineSlug = strtolower(str_replace(' ', '', $line ?? ''));
-                if ($lineSlug === 'second') $lineSlug = 'sc';
-                $roleName = 'leader' . str_replace('line', '', $lineSlug);
-                return (new \App\Models\PicModel())->where('role_pic', $roleName)->findAll();
-            })(),
+            'staffPicList'   => (new \App\Models\PicModel())->where('role_pic', 'Staff')->findAll(),
         ]);
     }
 
@@ -664,10 +659,10 @@ class KontrolController extends BaseController
                     
                     // Filter based on role
                     $roleSession = session()->get('role');
-                    if ($roleSession === 'sheadprd' && (empty($status) || $status === 'Pending')) {
+                    if ($roleSession === 'sheadprd' && (empty($status) || in_array($status, ['Pending', 'Approved L1'], true))) {
                         continue;
                     }
-                    if ($roleSession === 'sheadmtc' && (empty($status) || in_array($status, ['Pending', 'Approved L1'], true))) {
+                    if ($roleSession === 'sheadmtc' && (empty($status) || in_array($status, ['Pending', 'Approved L1', 'Approved L2'], true))) {
                         continue;
                     }
                     $badgeClass = 'bg-secondary';
@@ -686,6 +681,14 @@ class KontrolController extends BaseController
                         } elseif ($status === 'Final' || $status === 'Approved Final') {
                             $badgeClass = 'bg-success';
                             $statusText = 'Selesai (Final)';
+                        }
+                    }
+                    
+                    // History hanya menampilkan yang sudah Final untuk role member/admin/leader
+                    // Role approver (sheadprd/sheadmtc) sudah difilter di atas
+                    if (in_array($roleSession, ['member', 'admin', 'leader'], true)) {
+                        if (!in_array($status, ['Final', 'Approved Final'], true)) {
+                            continue; // Belum selesai → tetap di Approval Inbox
                         }
                     }
                     
@@ -832,9 +835,31 @@ class KontrolController extends BaseController
 
         return redirect()->back()->with('success', 'Berhasil menyetujui Checklist Control bulanan.');
     }
+
+    /**
+     * POST /kontrol/delete-approval
+     * Menghapus record approval (Khusus Admin)
+     */
+    public function deleteApprovalBulanan()
+    {
+        if (session()->get('role') !== 'admin') {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $lokasi   = $this->request->getPost('lokasi');
+        $line     = $this->request->getPost('line');
+        $kategori = $this->request->getPost('kategori');
+        $bulan    = $this->request->getPost('bulan_tahun');
+
+        $db = \Config\Database::connect();
+        $db->table('approval_bulanan')
+           ->where('type', 'kontrol')
+           ->where('lokasi', $lokasi)
+           ->where('line', $line)
+           ->where('kategori', $kategori)
+           ->where('bulan_tahun', $bulan)
+           ->delete();
+
+        return redirect()->back()->with('success', 'Data approval Checklist Control berhasil dihapus (Reset ke Belum Selesai).');
+    }
 }
-
-
-
-
-

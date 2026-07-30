@@ -1,4 +1,29 @@
 <?= view('layout/header', ['title' => $title]) ?>
+<?php
+function formatDurasi($detik) {
+    if ($detik === null) return '-';
+    $jam = floor($detik / 3600);
+    $menit = floor(($detik % 3600) / 60);
+    $det = $detik % 60;
+    if ($jam > 0) {
+        return sprintf('%02d:%02d:%02d', $jam, $menit, $det);
+    }
+    return sprintf('%02d:%02d', $menit, $det);
+}
+
+function formatDurasiText($detik) {
+    if ($detik === null) return '-';
+    $jam = floor($detik / 3600);
+    $menit = floor(($detik % 3600) / 60);
+    $det = $detik % 60;
+    
+    $parts = [];
+    if ($jam > 0) $parts[] = $jam . ' jam';
+    if ($menit > 0 || $jam > 0) $parts[] = $menit . ' menit';
+    $parts[] = $det . ' detik';
+    return implode(' ', $parts);
+}
+?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h3 class="fw-bold mb-0">Laporan Durasi Pengecekan (Efisiensi)</h3>
@@ -127,7 +152,7 @@
                 <td><?= esc($l['waktu_selesai'] ?? '-') ?></td>
                 <td>
                   <?php if ($l['durasi_detik'] !== null): ?>
-                    <?= gmdate('i:s', (int) $l['durasi_detik']) ?>
+                    <?= formatDurasi((int) $l['durasi_detik']) ?>
                   <?php else: ?>
                     -
                   <?php endif; ?>

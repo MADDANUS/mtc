@@ -74,4 +74,27 @@
   </form>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const lokasiSelect = document.querySelector('select[name="lokasi"]');
+    const typeInput = document.querySelector('input[name="type_mesin"]');
+    const serialInput = document.querySelector('input[name="serial_nomor"]');
+
+    function toggleRequired() {
+        if (lokasiSelect.value === 'MFG 2') {
+            typeInput.required = false;
+            serialInput.required = false;
+        } else {
+            typeInput.required = true;
+            serialInput.required = true;
+        }
+    }
+
+    if(lokasiSelect && typeInput && serialInput) {
+        lokasiSelect.addEventListener('change', toggleRequired);
+        toggleRequired(); // Run on init
+    }
+});
+</script>
+
 <?= view('layout/footer') ?>

@@ -13,9 +13,13 @@
   <div class="d-flex align-items-center gap-3">
     <?php
       if (isset($isEdit) && $isEdit) {
-          $qs = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '?jenis_check=' . urlencode($jenisName);
-          $realLokSlug = isset($_GET['from_lokasi']) ? $_GET['from_lokasi'] : $lokasiSlug;
-          $backUrl = site_url('riwayat/lokasi/' . $realLokSlug . $qs);
+          if (isset($_GET['from']) && $_GET['from'] === 'approval') {
+              $backUrl = site_url('approval');
+          } else {
+              $qs = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '?jenis_check=' . urlencode($jenisName);
+              $realLokSlug = isset($_GET['from_lokasi']) ? $_GET['from_lokasi'] : $lokasiSlug;
+              $backUrl = site_url('riwayat/lokasi/' . $realLokSlug . $qs);
+          }
       } else {
           $backUrl = strtolower($jenisSlug) === 'overhaul' 
               ? site_url("checklist") 
@@ -70,7 +74,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
       </div>
       <div class="col-md-3">
         <label class="form-label fw-semibold">Waktu Mulai</label>
-        <input type="text" class="form-control" value="<?= esc($waktuMulaiDisplay) ?>" readonly>
+        <input type="text" id="displayWaktuMulai" class="form-control" value="<?= esc($waktuMulaiDisplay) ?>" readonly>
         <!-- waktu_mulai dikirim apa adanya ke Controller store() saat submit -->
         <input type="hidden" name="waktu_mulai" value="<?= esc($waktuMulai) ?>">
         <input type="hidden" name="kategori" value="<?= esc($categoryName) ?>">
@@ -342,17 +346,23 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                       <div class="foto-abnormal-wrap mt-2" id="foto-wrap-<?= (int) $r['id_parameter'] ?>" style="display:<?= $h === 'Δ' ? 'block' : 'none' ?>; background: #fffcf2; border: 1px dashed #ffc107; padding: 8px; border-radius: 6px;">
                         <!-- FOTO 1 (Wajib) -->
                         <div class="mb-2">
+                            <?php 
+                            $f1 = $detailsMap[$r['id_parameter']]['foto_abnormal'] ?? null;
+                            $hasF1 = !empty($f1);
+                            $f1Url = $hasF1 ? base_url('uploads/abnormal/' . $f1) : '';
+                            ?>
                             <input type="file" class="d-none foto-abnormal-input"
                                    name="foto_abnormal[<?= (int) $r['id_parameter'] ?>]"
-                                   id="foto-input-1-<?= (int) $r['id_parameter'] ?>" accept="image/jpeg" <?= $h === 'Δ' ? 'required' : '' ?>>
+                                   id="foto-input-1-<?= (int) $r['id_parameter'] ?>" accept="image/jpeg" <?= ($h === 'Δ' && !$hasF1) ? 'required' : '' ?>>
                             <button type="button" class="btn btn-sm btn-warning w-100 btn-ambil-foto main-btn-foto" id="btn-ambil-1-<?= (int) $r['id_parameter'] ?>"
                                     data-target-input="foto-input-1-<?= (int) $r['id_parameter'] ?>"
                                     data-target-preview="foto-preview-1-<?= (int) $r['id_parameter'] ?>"
-                                    data-target-btn="btn-ambil-1-<?= (int) $r['id_parameter'] ?>">
+                                    data-target-btn="btn-ambil-1-<?= (int) $r['id_parameter'] ?>"
+                                    style="display: <?= $hasF1 ? 'none' : 'block' ?>;">
                               <i class="bi bi-camera-fill me-1"></i> Foto 1 <span class="text-danger">*</span>
                             </button>
-                            <div class="foto-preview mt-1" id="foto-preview-1-<?= (int) $r['id_parameter'] ?>" style="display:none; position:relative;">
-                              <img src="" alt="Preview 1" class="preview-img-click" style="max-width:100%; max-height:100px; border-radius:4px; border:2px solid #ffc107; display:block; cursor:pointer;" title="Klik untuk memperbesar">
+                            <div class="foto-preview mt-1" id="foto-preview-1-<?= (int) $r['id_parameter'] ?>" style="display: <?= $hasF1 ? 'block' : 'none' ?>; position:relative;">
+                              <img src="<?= $f1Url ?>" alt="Preview 1" class="preview-img-click" style="max-width:100%; max-height:100px; border-radius:4px; border:2px solid #ffc107; display:block; cursor:pointer;" title="Klik untuk memperbesar">
                               <div class="d-flex gap-1 mt-1">
                                   <button type="button" class="btn btn-xs btn-outline-warning btn-ambil-foto flex-grow-1"
                                           data-target-input="foto-input-1-<?= (int) $r['id_parameter'] ?>"
@@ -371,17 +381,23 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                         </div>
                         <!-- FOTO 2 (Opsional) -->
                         <div>
+                            <?php 
+                            $f2 = $detailsMap[$r['id_parameter']]['foto_abnormal_2'] ?? null;
+                            $hasF2 = !empty($f2);
+                            $f2Url = $hasF2 ? base_url('uploads/abnormal/' . $f2) : '';
+                            ?>
                             <input type="file" class="d-none"
                                    name="foto_abnormal_2[<?= (int) $r['id_parameter'] ?>]"
                                    id="foto-input-2-<?= (int) $r['id_parameter'] ?>" accept="image/jpeg">
                             <button type="button" class="btn btn-sm btn-outline-secondary w-100 btn-ambil-foto main-btn-foto" id="btn-ambil-2-<?= (int) $r['id_parameter'] ?>"
                                     data-target-input="foto-input-2-<?= (int) $r['id_parameter'] ?>"
                                     data-target-preview="foto-preview-2-<?= (int) $r['id_parameter'] ?>"
-                                    data-target-btn="btn-ambil-2-<?= (int) $r['id_parameter'] ?>">
+                                    data-target-btn="btn-ambil-2-<?= (int) $r['id_parameter'] ?>"
+                                    style="display: <?= $hasF2 ? 'none' : 'block' ?>;">
                               <i class="bi bi-camera me-1"></i> Foto 2 (Ops)
                             </button>
-                            <div class="foto-preview mt-1" id="foto-preview-2-<?= (int) $r['id_parameter'] ?>" style="display:none; position:relative;">
-                              <img src="" alt="Preview 2" class="preview-img-click" style="max-width:100%; max-height:100px; border-radius:4px; border:2px solid #6c757d; display:block; cursor:pointer;" title="Klik untuk memperbesar">
+                            <div class="foto-preview mt-1" id="foto-preview-2-<?= (int) $r['id_parameter'] ?>" style="display: <?= $hasF2 ? 'block' : 'none' ?>; position:relative;">
+                              <img src="<?= $f2Url ?>" alt="Preview 2" class="preview-img-click" style="max-width:100%; max-height:100px; border-radius:4px; border:2px solid #6c757d; display:block; cursor:pointer;" title="Klik untuk memperbesar">
                               <div class="d-flex gap-1 mt-1">
                                   <button type="button" class="btn btn-xs btn-outline-secondary btn-ambil-foto flex-grow-1"
                                           data-target-input="foto-input-2-<?= (int) $r['id_parameter'] ?>"
@@ -471,17 +487,23 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                       <div class="foto-abnormal-wrap mt-2" id="foto-wrap-<?= (int) $r['id_parameter'] ?>" style="display:<?= $h === 'Δ' ? 'block' : 'none' ?>; background: #fffcf2; border: 1px dashed #ffc107; padding: 8px; border-radius: 6px;">
                         <!-- FOTO 1 (Wajib) -->
                         <div class="mb-2">
+                            <?php 
+                            $f1 = $detailsMap[$r['id_parameter']]['foto_abnormal'] ?? null;
+                            $hasF1 = !empty($f1);
+                            $f1Url = $hasF1 ? base_url('uploads/abnormal/' . $f1) : '';
+                            ?>
                             <input type="file" class="d-none foto-abnormal-input"
                                    name="foto_abnormal[<?= (int) $r['id_parameter'] ?>]"
-                                   id="foto-input-1-<?= (int) $r['id_parameter'] ?>" accept="image/jpeg" <?= $h === 'Δ' ? 'required' : '' ?>>
+                                   id="foto-input-1-<?= (int) $r['id_parameter'] ?>" accept="image/jpeg" <?= ($h === 'Δ' && !$hasF1) ? 'required' : '' ?>>
                             <button type="button" class="btn btn-sm btn-warning w-100 btn-ambil-foto main-btn-foto" id="btn-ambil-1-<?= (int) $r['id_parameter'] ?>"
                                     data-target-input="foto-input-1-<?= (int) $r['id_parameter'] ?>"
                                     data-target-preview="foto-preview-1-<?= (int) $r['id_parameter'] ?>"
-                                    data-target-btn="btn-ambil-1-<?= (int) $r['id_parameter'] ?>">
+                                    data-target-btn="btn-ambil-1-<?= (int) $r['id_parameter'] ?>"
+                                    style="display: <?= $hasF1 ? 'none' : 'block' ?>;">
                               <i class="bi bi-camera-fill me-1"></i> Foto 1 <span class="text-danger">*</span>
                             </button>
-                            <div class="foto-preview mt-1" id="foto-preview-1-<?= (int) $r['id_parameter'] ?>" style="display:none; position:relative;">
-                              <img src="" alt="Preview 1" class="preview-img-click" style="max-width:100%; max-height:100px; border-radius:4px; border:2px solid #ffc107; display:block; cursor:pointer;" title="Klik untuk memperbesar">
+                            <div class="foto-preview mt-1" id="foto-preview-1-<?= (int) $r['id_parameter'] ?>" style="display: <?= $hasF1 ? 'block' : 'none' ?>; position:relative;">
+                              <img src="<?= $f1Url ?>" alt="Preview 1" class="preview-img-click" style="max-width:100%; max-height:100px; border-radius:4px; border:2px solid #ffc107; display:block; cursor:pointer;" title="Klik untuk memperbesar">
                               <div class="d-flex gap-1 mt-1">
                                   <button type="button" class="btn btn-xs btn-outline-warning btn-ambil-foto flex-grow-1"
                                           data-target-input="foto-input-1-<?= (int) $r['id_parameter'] ?>"
@@ -500,17 +522,23 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                         </div>
                         <!-- FOTO 2 (Opsional) -->
                         <div>
+                            <?php 
+                            $f2 = $detailsMap[$r['id_parameter']]['foto_abnormal_2'] ?? null;
+                            $hasF2 = !empty($f2);
+                            $f2Url = $hasF2 ? base_url('uploads/abnormal/' . $f2) : '';
+                            ?>
                             <input type="file" class="d-none"
                                    name="foto_abnormal_2[<?= (int) $r['id_parameter'] ?>]"
                                    id="foto-input-2-<?= (int) $r['id_parameter'] ?>" accept="image/jpeg">
                             <button type="button" class="btn btn-sm btn-outline-secondary w-100 btn-ambil-foto main-btn-foto" id="btn-ambil-2-<?= (int) $r['id_parameter'] ?>"
                                     data-target-input="foto-input-2-<?= (int) $r['id_parameter'] ?>"
                                     data-target-preview="foto-preview-2-<?= (int) $r['id_parameter'] ?>"
-                                    data-target-btn="btn-ambil-2-<?= (int) $r['id_parameter'] ?>">
+                                    data-target-btn="btn-ambil-2-<?= (int) $r['id_parameter'] ?>"
+                                    style="display: <?= $hasF2 ? 'none' : 'block' ?>;">
                               <i class="bi bi-camera me-1"></i> Foto 2 (Ops)
                             </button>
-                            <div class="foto-preview mt-1" id="foto-preview-2-<?= (int) $r['id_parameter'] ?>" style="display:none; position:relative;">
-                              <img src="" alt="Preview 2" class="preview-img-click" style="max-width:100%; max-height:100px; border-radius:4px; border:2px solid #6c757d; display:block; cursor:pointer;" title="Klik untuk memperbesar">
+                            <div class="foto-preview mt-1" id="foto-preview-2-<?= (int) $r['id_parameter'] ?>" style="display: <?= $hasF2 ? 'block' : 'none' ?>; position:relative;">
+                              <img src="<?= $f2Url ?>" alt="Preview 2" class="preview-img-click" style="max-width:100%; max-height:100px; border-radius:4px; border:2px solid #6c757d; display:block; cursor:pointer;" title="Klik untuk memperbesar">
                               <div class="d-flex gap-1 mt-1">
                                   <button type="button" class="btn btn-xs btn-outline-secondary btn-ambil-foto flex-grow-1"
                                           data-target-input="foto-input-2-<?= (int) $r['id_parameter'] ?>"
@@ -664,7 +692,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                             } else {
                                 if (isChecked.value === 'Δ') {
                                     const fileInput = row.querySelector('.foto-abnormal-input');
-                                    if (fileInput && fileInput.files.length === 0) {
+                                    if (fileInput && fileInput.hasAttribute('required') && fileInput.files.length === 0) {
                                         isValid = false;
                                         row.classList.add('table-danger');
                                         if (!firstUnchecked) firstUnchecked = row;
@@ -844,7 +872,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                             } else {
                                 if (isChecked.value === 'Δ') {
                                     const fileInput = row.querySelector('.foto-abnormal-input');
-                                    if (fileInput && fileInput.files.length === 0) {
+                                    if (fileInput && fileInput.hasAttribute('required') && fileInput.files.length === 0) {
                                         isValid = false;
                                         row.classList.add('table-danger');
                                         if (!firstUnchecked) firstUnchecked = row;
@@ -1022,7 +1050,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                         } else {
                             if (isChecked.value === 'Δ') {
                                 const fileInput = row.querySelector('.foto-abnormal-input');
-                                if (fileInput && fileInput.files.length === 0) {
+                                if (fileInput && fileInput.hasAttribute('required') && fileInput.files.length === 0) {
                                     isValid = false;
                                     row.classList.add('table-danger');
                                     if (!firstUnchecked) firstUnchecked = row;
@@ -1537,4 +1565,159 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
     });
 
 })();
+</script>
+<script>
+// ====== AUTO-SAVE FORM ======
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('checklistForm');
+    if (!form) return;
+
+    // Do not auto-save on edit mode, only on new form
+    const isEdit = <?= isset($isEdit) && $isEdit ? 'true' : 'false' ?>;
+    if (isEdit) return;
+
+    const jenisSlug = "<?= esc($jenisSlug ?? '') ?>";
+    const lokasiSlug = "<?= esc($lokasiSlug ?? '') ?>";
+    const categorySlug = "<?= esc($categorySlug ?? '') ?>";
+
+    function getStorageKey() {
+        return `autosave_mtce_${lokasiSlug}_${jenisSlug}_${categorySlug}`;
+    }
+
+    function saveFormData() {
+        const key = getStorageKey();
+        if (!key) return;
+        
+        const formData = new FormData(form);
+        const data = {};
+        for (let [name, value] of formData.entries()) {
+            const field = form.querySelector(`[name="${name}"]`);
+            if (field && field.type === 'file') continue;
+            
+            if (data[name] !== undefined) {
+                if (!Array.isArray(data[name])) data[name] = [data[name]];
+                data[name].push(value);
+            } else {
+                data[name] = value;
+            }
+        }
+        localStorage.setItem(key, JSON.stringify(data));
+    }
+
+    function loadFormData() {
+        const key = getStorageKey();
+        if (!key) return;
+        
+        const saved = localStorage.getItem(key);
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                
+                // Cek jika user masuk via scan (URL bawa id_mesin)
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlIdMesin = urlParams.get('id_mesin');
+                
+                if (urlIdMesin && data["id_mesin"] && urlIdMesin !== data["id_mesin"]) {
+                    // Mesin yang di-scan BEDA dengan draf yang tersimpan.
+                    // Jangan load draf mesin lain ke mesin yang baru di-scan!
+                    localStorage.removeItem(key);
+                    return;
+                }
+
+                const lastActivity = data['_last_activity'] || 0;
+                const now = Date.now();
+                let gapMinutes = 0;
+                
+                if (lastActivity > 0) {
+                    const lastDate = new Date(lastActivity).toLocaleDateString();
+                    const nowDate = new Date(now).toLocaleDateString();
+                    if (lastDate !== nowDate) {
+                        localStorage.removeItem(key);
+                        return; // Beda hari, hapus total autosave
+                    }
+                    gapMinutes = (now - lastActivity) / (1000 * 60);
+                } else if (data['waktu_mulai']) {
+                    const todayDate = "<?= date('Y-m-d') ?>";
+                    if (!data['waktu_mulai'].startsWith(todayDate)) {
+                        localStorage.removeItem(key);
+                        return; // Fallback lama
+                    }
+                    gapMinutes = 999; // Force waktu_mulai to reset
+                }
+
+                let hasData = false;
+                for (let name in data) {
+                    if (name === '_last_activity' || name === 'csrf_test_name' || name === 'waktu_selesai') continue;
+                    
+                    if (name === 'waktu_mulai') {
+                        if (gapMinutes <= 10) {
+                            const displayEl = document.getElementById('displayWaktuMulai');
+                            if (displayEl) displayEl.value = data[name];
+                        } else {
+                            continue; // Jeda > 10 menit, waktu_mulai direset
+                        }
+                    }
+                    
+                    const value = data[name];
+                    const fields = form.querySelectorAll(`[name="${name}"]`);
+                    if (!fields.length) continue;
+                    
+                    hasData = true;
+                    if (fields.length === 1 && fields[0].type !== 'radio' && fields[0].type !== 'checkbox') {
+                        fields[0].value = value;
+                    } else {
+                        fields.forEach(field => {
+                            if (field.type === 'radio' || field.type === 'checkbox') {
+                                if (Array.isArray(value)) {
+                                    field.checked = value.includes(field.value);
+                                } else {
+                                    field.checked = (field.value === value);
+                                }
+                            }
+                        });
+                    }
+                }
+                
+                const picSelect = document.querySelector('select[name="pic_line_nama"]');
+                if (picSelect && picSelect.tomselect && data["pic_line_nama"]) {
+                    picSelect.tomselect.setValue(data["pic_line_nama"], true);
+                }
+
+                const mesinSelect = document.querySelector('select[name="id_mesin"]');
+                if (mesinSelect && mesinSelect.tomselect && data["id_mesin"]) {
+                    if (!urlIdMesin) { // Hanya override jika URL tidak melock mesin
+                        mesinSelect.tomselect.setValue(data["id_mesin"], true);
+                    }
+                }
+                
+                const selectNamaPic = document.querySelector('select[name="nama_pic"]');
+                if (selectNamaPic && selectNamaPic.tomselect && data["nama_pic"]) {
+                    selectNamaPic.tomselect.setValue(data["nama_pic"], true);
+                }
+
+                if (hasData) {
+                    // Tampilkan notifikasi kecil bahwa data berhasil dikembalikan
+                    const Toast = Swal.mixin({
+                      toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
+                    });
+                    Toast.fire({ icon: 'info', title: 'Data isian sebelumnya berhasil dipulihkan.' });
+                }
+            } catch(e) {
+                console.error("Autosave load error:", e);
+            }
+        }
+    }
+
+    // Load data after a short delay so TomSelect is ready
+    setTimeout(loadFormData, 400);
+
+    form.addEventListener('input', saveFormData);
+    form.addEventListener('change', saveFormData);
+    
+    // Clear storage on submit
+    form.addEventListener('submit', function() {
+        const key = getStorageKey();
+        if (key) localStorage.removeItem(key);
+    });
+});
 </script>
