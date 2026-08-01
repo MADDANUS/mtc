@@ -10,13 +10,10 @@ class AbnormalService
     protected LaporanAbnormalModel $abnormalModel;
     protected MesinModel $mesinModel;
 
-    
-
     /**
      * GET /abnormal
      */
      
-
         public function pdf($request)
     {
         $lokasiFilter   = $request->getGet('lokasi') ?: 'MFG 1';
@@ -76,8 +73,6 @@ class AbnormalService
             'categories'     => $categories,
         ];
 
-        
-        
     }
 
     public function pdfAllCategories($request)
@@ -135,13 +130,10 @@ class AbnormalService
             'bulanFilter'    => $bulanFilter
         ];
 
-        
-
         $options = new \Dompdf\Options();
         $options->set('isHtml5ParserEnabled', true);
         $options->set('isRemoteEnabled', true);
 
-        
     }
 
     public function pdfAllSummary($request)
@@ -159,8 +151,8 @@ class AbnormalService
         foreach ($lokasiList as $lokasi) {
             if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
             
-            $categories = ($lokasi === 'MFG 2') 
-                ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'] 
+            $categories = ($lokasi === 'MFG 2')
+                ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor']
                 : ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
                 
             foreach ($categories as $cat) {
@@ -205,13 +197,10 @@ class AbnormalService
             'bulanFilter'    => $bulanFilter
         ];
 
-        
-
         $options = new \Dompdf\Options();
         $options->set('isHtml5ParserEnabled', true);
         $options->set('isRemoteEnabled', true);
 
-        
     }
 
     public function index($request)
@@ -371,13 +360,13 @@ class AbnormalService
         // Build flat array for summary rows
         $summaryRows = [];
         foreach ($kategoriByLokasi as $lokasi => $categories) {
-            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue; 
+            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
             
             $lines = isset($linesByLokasi[$lokasi]) ? array_unique($linesByLokasi[$lokasi]) : [];
             sort($lines);
 
             foreach ($lines as $line) {
-                if (!empty($filterLine) && $line !== $filterLine) continue; 
+                if (!empty($filterLine) && $line !== $filterLine) continue;
 
                 foreach ($categories as $kategori) {
                     if (!empty($filterKategori) && $kategori !== $filterKategori) continue;
@@ -386,7 +375,7 @@ class AbnormalService
                     $totalOpen = $abData['totalOpen'];
                     $totalAll  = $abData['totalAll'];
                     
-                    if ($totalAll == 0) continue; 
+                    if ($totalAll == 0) continue;
                     
                     if ($totalOpen > 0) {
                         $badgeClass = 'bg-danger';
@@ -646,16 +635,16 @@ class AbnormalService
 
         $summaryRows = [];
         foreach ($linesByLokasi as $lokasi => $lines) {
-            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue; 
+            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
             
             foreach ($lines as $line) {
-                if (!empty($filterLine) && $line !== $filterLine) continue; 
+                if (!empty($filterLine) && $line !== $filterLine) continue;
 
                 $abData = $abnormalData[$lokasi][$line] ?? ['totalOpen' => 0, 'totalAll' => 0];
                 $totalOpen = $abData['totalOpen'];
                 $totalAll  = $abData['totalAll'];
                 
-                if ($totalAll == 0) continue; 
+                if ($totalAll == 0) continue;
                 
                 if ($totalOpen > 0) {
                     $badgeClass = 'bg-danger';
@@ -758,8 +747,6 @@ class AbnormalService
             'kategoriFilter' => 'Overhaul' // Dummy untuk file PDF jika diperlukan
         ];
 
-        
-        
     }
 
     public function pdfAllSummaryOverhaul($request)
@@ -802,7 +789,7 @@ class AbnormalService
                 $totalOpen = $abData['totalOpen'];
                 $totalAll  = $abData['totalAll'];
                 
-                if ($totalAll == 0) continue; 
+                if ($totalAll == 0) continue;
                 
                 $summaryRows[] = [
                     'line'        => $line,
@@ -836,8 +823,6 @@ class AbnormalService
             'isOverhaul' => true
         ];
 
-        
-        
     }
 
     public function updateOverhaul($request)
