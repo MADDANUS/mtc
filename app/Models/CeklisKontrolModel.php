@@ -9,14 +9,14 @@ class CeklisKontrolModel extends Model
     protected $table         = 'ceklis_kontrol';
     protected $primaryKey    = 'id_kontrol';
     protected $allowedFields = [
-        'id_mesin', 
-        'kategori', 
-        'bulan_tahun', 
-        'periode_ke', 
-        'status_check', 
-        'pic_nama', 
-        'out_of_plan', 
-        'ulasan', 
+        'id_mesin',
+        'kategori',
+        'bulan_tahun',
+        'periode_ke',
+        'status_check',
+        'pic_nama',
+        'out_of_plan',
+        'ulasan',
         'tanggal_check'
     ];
     protected $useTimestamps = true;
