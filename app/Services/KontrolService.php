@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-
 use App\Models\CeklisKontrolModel;
 use App\Models\MesinModel;
 use CodeIgniter\I18n\Time;
@@ -11,8 +10,6 @@ class KontrolService
 {
     protected CeklisKontrolModel $kontrolModel;
     protected MesinModel $mesinModel;
-
-    
 
     /**
      * POST /kontrol/update-cell
@@ -69,7 +66,6 @@ class KontrolService
      * Dashboard Checklist Control bulanan.
      */
      
-
         public function pdf($request)
     {
         $lokasi   = $request->getGet('lokasi') ?: 'MFG 1';
@@ -166,9 +162,8 @@ class KontrolService
             'approvalStatus' => $approvalStatus,
             'approvalData'   => $approval,
         ];
-        
-        
-        
+
+        return $data;
     }
 
     public function pdfAllCategories($request)
@@ -265,13 +260,7 @@ class KontrolService
             'bulanList'  => $bulanList
         ];
 
-        
-
-        $options = new \Dompdf\Options();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isRemoteEnabled', true);
-
-        
+        return $data;
     }
 
     public function pdfAllSummary($request)
@@ -292,8 +281,8 @@ class KontrolService
         foreach ($lokasiList as $lokasi => $lines) {
             if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
             
-            $categories = ($lokasi === 'MFG 2') 
-                ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'] 
+            $categories = ($lokasi === 'MFG 2')
+                ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor']
                 : ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
                 
             foreach ($lines as $line) {
@@ -385,13 +374,7 @@ class KontrolService
             'bulanList'  => $bulanList
         ];
 
-        
-
-        $options = new \Dompdf\Options();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isRemoteEnabled', true);
-
-        
+        return $data;
     }
 
     public function index($request)
@@ -617,7 +600,7 @@ class KontrolService
                     if (!empty($filterKategori) && $kategori !== $filterKategori) continue;
                     
                     $total = $totalMesin[$lokasi][$line] ?? 0;
-                    if ($total == 0) continue; 
+                    if ($total == 0) continue;
                     
                     $checked = $checkedData[$lokasi][$line][$kategori] ?? 0;
                     
