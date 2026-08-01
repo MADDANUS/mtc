@@ -27,4 +27,11 @@ class MesinModel extends Model
     {
         return $this->select('lokasi')->where('line', $line)->first();
     }
+
+    public function getTotalMesinPerLine(): array
+    {
+        return $this->select('lokasi, line, COUNT(id_mesin) as total')
+                    ->groupBy('lokasi, line')
+                    ->findAll();
+    }
 }

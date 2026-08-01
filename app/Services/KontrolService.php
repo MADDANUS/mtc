@@ -197,12 +197,8 @@ class KontrolService
         
         foreach ($categories as $cat) {
             $grid = (new \App\Models\CeklisKontrolModel())->getGridData($lokasi, $cat, $bulan, $line);
-            $schedule = $db->table('jadwal_preventive')
-                           ->where('lokasi', $lokasi)
-                           ->where('kategori', $cat)
-                           ->where('bulan_tahun', $bulan)
-                           ->get()
-                           ->getRowArray();
+            $jadwalModel = new \App\Models\JadwalPreventiveModel();
+            $schedule = $jadwalModel->getJadwalForChecklist($lokasi, $cat, $bulan);
                            
             $columnDates = [];
             $hasSchedule = false;
@@ -220,23 +216,8 @@ class KontrolService
                 }
             }
 
-            $approvalQuery = $db->table('approval_bulanan a')
-                           ->select('a.*, u1.nama as l1_name, u2.nama as l2_name, u3.nama as final_name')
-                           ->join('users u1', 'u1.id = a.approved_l1_by', 'left')
-                           ->join('users u2', 'u2.id = a.approved_l2_by', 'left')
-                           ->join('users u3', 'u3.id = a.approved_final_by', 'left')
-                           ->where('a.type', 'kontrol')
-                           ->where('a.lokasi', $lokasi)
-                           ->where('a.kategori', $cat)
-                           ->where('a.bulan_tahun', $bulan);
-
-            if ($line) {
-                $approvalQuery->where('a.line', $line);
-            } else {
-                $approvalQuery->where('a.line', 'NONE');
-            }
-            
-            $approval = $approvalQuery->get()->getRowArray() ?: [];
+            $approvalModel = new \App\Models\ApprovalBulananModel();
+            $approval = $approvalModel->getApprovalWithUsers($lokasi, $cat, $bulan, $line ?: 'NONE') ?: [];
 
             $allGrids[] = [
                 'kategori'    => $cat,
@@ -307,12 +288,8 @@ class KontrolService
                         }
                     }
                     if (!$hasData) continue;
-                    $schedule = $db->table('jadwal_preventive')
-                                   ->where('lokasi', $lokasi)
-                                   ->where('kategori', $cat)
-                                   ->where('bulan_tahun', $bulan)
-                                   ->get()
-                                   ->getRowArray();
+                    $jadwalModel = new \App\Models\JadwalPreventiveModel();
+            $schedule = $jadwalModel->getJadwalForChecklist($lokasi, $cat, $bulan);
                                    
                     $columnDates = [];
                     $hasSchedule = false;
@@ -814,14 +791,8 @@ class KontrolService
         $kategori = $request->getPost('kategori');
         $bulan    = $request->getPost('bulan_tahun');
 
-        $db = \Config\Database::connect();
-        $db->table('approval_bulanan')
-           ->where('type', 'kontrol')
-           ->where('lokasi', $lokasi)
-           ->where('line', $line)
-           ->where('kategori', $kategori)
-           ->where('bulan_tahun', $bulan)
-           ->delete();
+        $approvalModel = new \App\Models\ApprovalBulananModel();
+        $approvalModel->deleteApprovalKontrol($lokasi, $line, $kategori, $bulan);
 
         return ["status" => true, "message" => 'Data approval Checklist Control berhasil dihapus (Reset ke Belum Selesai).'];
     }

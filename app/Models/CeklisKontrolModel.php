@@ -212,4 +212,15 @@ class CeklisKontrolModel extends Model
                     ->where('periode_ke', $periodeKe)
                     ->first();
     }
+
+    public function getCheckedMachinesCount(string $bulanTahun): array
+    {
+        return $this->select('master_mesin.lokasi, master_mesin.line, ceklis_kontrol.kategori, COUNT(DISTINCT ceklis_kontrol.id_mesin) as checked_count')
+                    ->join('master_mesin', 'master_mesin.id_mesin = ceklis_kontrol.id_mesin')
+                    ->where('ceklis_kontrol.bulan_tahun', $bulanTahun)
+                    ->where("ceklis_kontrol.pic_nama != 'PIC'")
+                    ->where("ceklis_kontrol.pic_nama IS NOT NULL")
+                    ->groupBy('master_mesin.lokasi, master_mesin.line, ceklis_kontrol.kategori')
+                    ->findAll();
+    }
 }
