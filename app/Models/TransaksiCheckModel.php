@@ -257,4 +257,18 @@ class TransaksiCheckModel extends Model
         
         return $builder->orderBy('transaksi_check.waktu_mulai', 'DESC')->findAll();
     }
+
+    public function checkDuplicate(int $idMesin, string $jenisCheck, string $bulan, ?string $kategori = null): array
+    {
+        $builder = $this->select('id_transaksi, waktu_mulai, created_at, nama_pic')
+                        ->where('id_mesin', $idMesin)
+                        ->where('jenis_check', $jenisCheck)
+                        ->where("DATE_FORMAT(created_at, '%Y-%m')", $bulan);
+                        
+        if (!empty($kategori)) {
+            $builder->where('kategori', $kategori);
+        }
+        
+        return $builder->orderBy('id_transaksi', 'DESC')->findAll();
+    }
 }

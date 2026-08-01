@@ -280,17 +280,8 @@ class ChecklistController extends BaseController
 
         $bulan = date('Y-m'); // "satu mesin hanya satu bulan"
 
-        $db = \Config\Database::connect();
-        $rows = $db->table('transaksi_check')
-                    ->select('id_transaksi, waktu_mulai, created_at, nama_pic')
-                    ->where('id_mesin', $idMesin)
-                    ->where('jenis_check', $jenisCheck)
-                    ->where("DATE_FORMAT(created_at, '%Y-%m')", $bulan)
-                    ->when(!empty($kategori), function($b) use ($kategori) {
-                        $b->where('kategori', $kategori);
-                    })
-                    ->orderBy('id_transaksi', 'DESC')
-                    ->get()->getResultArray();
+        $transaksiModel = new \App\Models\TransaksiCheckModel();
+        $rows = $transaksiModel->checkDuplicate((int)$idMesin, $jenisCheck, $bulan, $kategori);
 
         $duplicate = count($rows) > 0;
         $tanggal   = '';
@@ -414,7 +405,8 @@ class ChecklistController extends BaseController
                     }
                 }
                 
-                $db->table('transaksi_overhaul')->insert([
+                $overhaulModel = new \App\Models\TransaksiOverhaulModel();
+                $overhaulModel->insert([
                     'id_transaksi'        => $idTransaksi,
                     'bar_feeder_type'     => $this->request->getPost('bar_feeder_type') ?: null,
                     'support_pic'         => $supportStr,
