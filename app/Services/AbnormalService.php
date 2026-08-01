@@ -25,37 +25,8 @@ class AbnormalService
         $kategoriFilter = $request->getGet('kategori') ?: 'Penerangan';
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
 
-        $db = \Config\Database::connect();
-        $builder = $db->table('laporan_abnormal')
-                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
-                      ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
-                      ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left');
-
-        if (!empty($lokasiFilter)) {
-            $builder->where('master_mesin.lokasi', $lokasiFilter);
-        }
-
-        if (!empty($kategoriFilter)) {
-            $builder->where('transaksi_check.kategori', $kategoriFilter);
-        }
-
-        if (!empty($bulanFilter)) {
-            $builder->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after');
-        }
-
-        if (!empty($searchFilter)) {
-            $builder->groupStart()
-                    ->like('laporan_abnormal.point_check', $searchFilter)
-                    ->orLike('laporan_abnormal.abnormal_condition', $searchFilter)
-                    ->orLike('master_mesin.no_mesin', $searchFilter)
-                    ->orLike('master_mesin.type_mesin', $searchFilter)
-                    ->groupEnd();
-        }
-
-        $reports = $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
-                           ->orderBy('laporan_abnormal.id_abnormal', 'DESC')
-                           ->get()
-                           ->getResultArray();
+        $abnormalModel = new \App\Models\LaporanAbnormalModel();
+        $reports = $abnormalModel->getPdfLaporan($lokasiFilter, $kategoriFilter, $bulanFilter, $searchFilter);
 
         if ($lokasiFilter === Lokasi::MFG2->value) {
             $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
@@ -92,33 +63,11 @@ class AbnormalService
         }
 
         $allReportsData = [];
-        $db = \Config\Database::connect();
+        
         
         foreach ($categories as $cat) {
-            $builder = $db->table('laporan_abnormal')
-                          ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
-                          ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
-                          ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
-                          ->where('master_mesin.lokasi', $lokasiFilter)
-                          ->where('transaksi_check.kategori', $cat);
-
-            if (!empty($bulanFilter)) {
-                $builder->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after');
-            }
-
-            if (!empty($searchFilter)) {
-                $builder->groupStart()
-                        ->like('laporan_abnormal.point_check', $searchFilter)
-                        ->orLike('laporan_abnormal.abnormal_condition', $searchFilter)
-                        ->orLike('master_mesin.no_mesin', $searchFilter)
-                        ->orLike('master_mesin.type_mesin', $searchFilter)
-                        ->groupEnd();
-            }
-
-            $reports = $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
-                               ->orderBy('laporan_abnormal.id_abnormal', 'DESC')
-                               ->get()
-                               ->getResultArray();
+            $abnormalModel = new \App\Models\LaporanAbnormalModel();
+            $reports = $abnormalModel->getPdfAllCategoriesLaporan($lokasiFilter, $cat, $bulanFilter, $searchFilter);
 
             $allReportsData[] = [
                 'kategori' => $cat,
@@ -150,7 +99,7 @@ class AbnormalService
         $lokasiList = [Lokasi::MFG1->value, Lokasi::MFG2->value];
         
         $allReportsData = [];
-        $db = \Config\Database::connect();
+        
         
         foreach ($lokasiList as $lokasi) {
             if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
@@ -162,25 +111,8 @@ class AbnormalService
             foreach ($categories as $cat) {
                 if (!empty($filterKategori) && $cat !== $filterKategori) continue;
                 
-                $builder = $db->table('laporan_abnormal')
-                              ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
-                              ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
-                              ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
-                              ->where('master_mesin.lokasi', $lokasi)
-                              ->where('transaksi_check.kategori', $cat);
-
-                if (!empty($bulanFilter)) {
-                    $builder->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after');
-                }
-
-                if (!empty($filterLine)) {
-                    $builder->where('master_mesin.line', $filterLine);
-                }
-
-                $reports = $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
-                                   ->orderBy('laporan_abnormal.id_abnormal', 'DESC')
-                                   ->get()
-                                   ->getResultArray();
+                $abnormalModel = new \App\Models\LaporanAbnormalModel();
+                $reports = $abnormalModel->getPdfAllSummaryLaporan($lokasi, $cat, $bulanFilter, $filterLine);
 
                 // Skip if no data
                 if (empty($reports)) continue;
@@ -220,7 +152,7 @@ class AbnormalService
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
 
         // Build query
-        $db = \Config\Database::connect();
+        
         $builder = $db->table('laporan_abnormal')
                       ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
                       ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
@@ -313,13 +245,11 @@ class AbnormalService
         $sortBy = $request->getGet('sort_by') ?: 'lokasi';
         $order = strtolower($request->getGet('order') ?: 'asc');
 
-        $db = \Config\Database::connect();
+        
 
         // Ambil semua data master mesin
-        $mesinQuery = $db->table('master_mesin')
-                         ->select('lokasi, line')
-                         ->groupBy('lokasi, line')
-                         ->get()->getResultArray();
+        $mesinModel = new \App\Models\MesinModel();
+        $mesinQuery = $mesinModel->getTotalMesinPerLine();
 
         $linesByLokasi = [];
         foreach($mesinQuery as $m) {
@@ -327,15 +257,8 @@ class AbnormalService
         }
 
         // Hitung abnormal terbuka (belum ada action) dan total abnormal per lokasi, line, kategori
-        $allAbnormal = $db->table('laporan_abnormal')
-                           ->select('master_mesin.lokasi, master_mesin.line, transaksi_check.kategori, 
-                                     SUM(CASE WHEN laporan_abnormal.action IS NULL OR laporan_abnormal.action = \'\' THEN 1 ELSE 0 END) as totalOpen,
-                                     COUNT(laporan_abnormal.id_abnormal) as totalAll')
-                           ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
-                           ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
-                           ->like('laporan_abnormal.pengecekan_tanggal', $bulan . '-', 'after')
-                           ->groupBy('master_mesin.lokasi, master_mesin.line, transaksi_check.kategori')
-                           ->get()->getResultArray();
+        $abnormalModel = new \App\Models\LaporanAbnormalModel();
+        $allAbnormal = $abnormalModel->getDashboardSummaryAbnormal($bulan);
                            
         $abnormalData = [];
         foreach($allAbnormal as $oa) {
@@ -523,7 +446,7 @@ class AbnormalService
         $searchFilter = $request->getGet('search') ?: '';
         $bulanFilter  = $request->getGet('bulan') ?: date('Y-m');
 
-        $db = \Config\Database::connect();
+        
         $builder = $db->table('laporan_abnormal')
                       ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
                       ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
@@ -589,7 +512,7 @@ class AbnormalService
         $sortBy         = $request->getGet('sort_by') ?: 'lokasi';
         $order          = $request->getGet('order') ?: 'asc';
 
-        $db = \Config\Database::connect();
+        
         
         $linesByLokasi = [
             Lokasi::MFG1->value => ['Brother', 'Milling', 'Kasahara', 'Knurling', 'Osl', 'Centering Grinding', 'Double Milling', 'Double Center Drill'],
@@ -712,7 +635,7 @@ class AbnormalService
         $searchFilter   = $request->getGet('search') ?: '';
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
 
-        $db = \Config\Database::connect();
+        
         $builder = $db->table('laporan_abnormal')
                       ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
                       ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
@@ -756,7 +679,7 @@ class AbnormalService
     public function pdfAllSummaryOverhaul($request)
     {
         $bulanFilter = $request->getGet('bulan') ?: date('Y-m');
-        $db = \Config\Database::connect();
+        
         
         $linesByLokasi = [
             Lokasi::MFG1->value => ['Brother', 'Milling', 'Kasahara', 'Knurling', 'Osl', 'Centering Grinding', 'Double Milling', 'Double Center Drill'],
@@ -766,15 +689,8 @@ class AbnormalService
         $allData = [];
         
         foreach ([Lokasi::MFG1->value, Lokasi::MFG2->value] as $lokasi) {
-            $builder = $db->table('laporan_abnormal')
-                          ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi')
-                          ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
-                          ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
-                          ->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value)
-                          ->where('master_mesin.lokasi', $lokasi)
-                          ->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after');
-                          
-            $reports = $builder->get()->getResultArray();
+            $abnormalModel = new \App\Models\LaporanAbnormalModel();
+            $reports = $abnormalModel->getOverhaulDashboardSummaryLaporan($lokasi, $bulanFilter);
             
             $abnormalData = [];
             foreach ($reports as $r) {
@@ -804,13 +720,8 @@ class AbnormalService
             $allData[$lokasi] = $summaryRows;
         }
 
-        $allAbnormal = $db->table('laporan_abnormal')
-                             ->select('SUM(CASE WHEN laporan_abnormal.action IS NULL OR laporan_abnormal.action = \'\' THEN 1 ELSE 0 END) as totalOpen,
-                                     COUNT(laporan_abnormal.id_abnormal) as totalAll')
-                             ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
-                             ->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value)
-                             ->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after')
-                             ->get()->getRowArray();
+        $abnormalModel = new \App\Models\LaporanAbnormalModel();
+        $allAbnormal = $abnormalModel->getOverhaulDashboardSummaryTotals($bulanFilter);
                              
         $totalAllAbnormal = $allAbnormal['totalAll'] ?? 0;
         $totalOpenAbnormal = $allAbnormal['totalOpen'] ?? 0;
