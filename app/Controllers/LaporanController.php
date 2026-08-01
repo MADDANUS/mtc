@@ -49,14 +49,8 @@ class LaporanController extends BaseController
             $availableLines = ['CG', 'Second'];
         }
 
-        $db = \Config\Database::connect();
-        $picQuery = $db->table('transaksi_check')
-                       ->select('transaksi_check.nama_pic, users.nama as nama_staff')
-                       ->join('users', 'users.id = transaksi_check.id_user');
-        if (!empty($lokasiName)) {
-            $picQuery->where('transaksi_check.lokasi_check', $lokasiName);
-        }
-        $rawPics = $picQuery->distinct()->get()->getResultArray();
+        $transaksiModel = new \App\Models\TransaksiCheckModel();
+        $rawPics = $transaksiModel->getAvailablePics($lokasiName ?: null);
         $availablePics = [];
         foreach ($rawPics as $row) {
             $raw = $row['nama_pic'] ?: $row['nama_staff'];
