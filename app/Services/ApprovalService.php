@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-
 use App\Models\TransaksiCheckModel;
 use App\Models\MesinModel;
 
