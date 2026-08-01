@@ -194,5 +194,22 @@ class CeklisKontrolModel extends Model
 
         return $builder->get()->getResultArray();
     }
-}
 
+    public function updateChecklistKontrol(int $idMesin, string $kategori, string $tanggalCheck, array $data): bool
+    {
+        return $this->where('id_mesin', $idMesin)
+                    ->where('kategori', $kategori)
+                    ->where('tanggal_check', $tanggalCheck)
+                    ->set($data)
+                    ->update();
+    }
+
+    public function findChecklistKontrol(int $idMesin, string $kategori, string $bulanTahun, ?int $periodeKe): ?array
+    {
+        return $this->where('id_mesin', $idMesin)
+                    ->where('kategori', $kategori)
+                    ->where('bulan_tahun', $bulanTahun)
+                    ->where('periode_ke', $periodeKe)
+                    ->first();
+    }
+}

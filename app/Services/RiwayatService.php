@@ -136,15 +136,8 @@ class RiwayatService
         $line     = $getParams['line'] ?? null;
         $lokasi   = $getParams['lokasi'] ?? null;
 
-        $db = \Config\Database::connect();
-        $tx = $db->table('transaksi_check')
-                 ->select('id_transaksi')
-                 ->where('id_mesin', $idMesin)
-                 ->where('kategori', $kategori)
-                 ->like('waktu_mulai', $bulan, 'after')
-                 ->orderBy('id_transaksi', 'DESC')
-                 ->get()
-                 ->getRowArray();
+        $transaksiModel = new \App\Models\TransaksiCheckModel();
+        $tx = $transaksiModel->getLatestIdByMesinAndKategori($idMesin, $kategori, $bulan);
 
         if ($tx) {
             $qsArray = [
@@ -373,7 +366,8 @@ public function updateTransaksi(int $id, $request, $validation)
                     $abnormalDesc = 'Ditemukan kondisi abnormal (' . $hasil . ')';
                 }
 
-                $db->table('laporan_abnormal')->insert([
+                $abnormalModel = new \App\Models\LaporanAbnormalModel();
+                $abnormalModel->insert([
                     'id_transaksi'       => $id,
                     'id_detail'          => $idDetail,
                     'id_mesin'           => $idMesin,
@@ -402,15 +396,16 @@ public function updateTransaksi(int $id, $request, $validation)
                 }
             }
             
-            $existing = $db->table('transaksi_overhaul')->where('id_transaksi', $id)->get()->getRowArray();
+            $overhaulModel = new \App\Models\TransaksiOverhaulModel();
+            $existing = $overhaulModel->find($id);
             if ($existing) {
-                $db->table('transaksi_overhaul')->where('id_transaksi', $id)->update([
+                $overhaulModel->update($id, [
                     'bar_feeder_type'     => $barFeederType ?: null,
                     'support_pic'         => $supportStr,
                     'note_recommendation' => $request->getPost('note_recommendation') ?: null,
                 ]);
             } else {
-                $db->table('transaksi_overhaul')->insert([
+                $overhaulModel->insert([
                     'id_transaksi'        => $id,
                     'bar_feeder_type'     => $barFeederType ?: null,
                     'support_pic'         => $supportStr,
@@ -455,15 +450,12 @@ public function updateTransaksi(int $id, $request, $validation)
             $tanggalCheckDate = date('Y-m-d', strtotime($waktuSelesai));
             
             // Try updating where id_mesin + kategori + tanggal_check matches
-            $db->table('ceklis_kontrol')
-               ->where('id_mesin', $header['id_mesin'])
-               ->where('kategori', $header['kategori'])
-               ->where('tanggal_check', $tanggalCheckDate)
-               ->update([
-                   'id_mesin'     => $idMesin, // in case it changed
-                   'status_check' => $overallStatus,
-                   'ulasan'       => $ulasanKontrol,
-               ]);
+            $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
+            $ceklisKontrolModel->updateChecklistKontrol($header['id_mesin'], $header['kategori'], $tanggalCheckDate, [
+                'id_mesin'     => $idMesin, // in case it changed
+                'status_check' => $overallStatus,
+                'ulasan'       => $ulasanKontrol,
+            ]);
         }
 
         $db->transComplete();
@@ -627,7 +619,8 @@ public function approveTransaksi($idTransaksi, $request)
                     $abnormalDesc = 'Ditemukan kondisi abnormal (' . $hasil . ')';
                 }
 
-                $db->table('laporan_abnormal')->insert([
+                $abnormalModel = new \App\Models\LaporanAbnormalModel();
+                $abnormalModel->insert([
                     'id_transaksi'       => $idTransaksi,
                     'id_detail'          => $d['id_detail'],
                     'id_mesin'           => $transaksi['id_mesin'],
@@ -687,12 +680,8 @@ public function approveTransaksi($idTransaksi, $request)
             $tanggalCheckDate = date('Y-m-d', strtotime($waktuSelesai));
 
             // Ambil jadwal rencana untuk bulan ini
-            $schedule = $db->table('jadwal_preventive')
-                           ->where('lokasi', $lokasiName)
-                           ->where('kategori', $kategoriName)
-                           ->where('bulan_tahun', $bulanTahun)
-                           ->get()
-                           ->getRowArray();
+            $jadwalModel = new \App\Models\JadwalPreventiveModel();
+            $schedule = $jadwalModel->getJadwalForChecklist($lokasiName, $kategoriName, $bulanTahun);
 
             $outOfPlanDate = null;
             $periodeKe     = null;
@@ -736,21 +725,14 @@ public function approveTransaksi($idTransaksi, $request)
                 'updated_at'    => date('Y-m-d H:i:s'),
             ];
 
-            $exist = $db->table('ceklis_kontrol')
-                        ->where('id_mesin', $idMesin)
-                        ->where('kategori', $kategoriName)
-                        ->where('bulan_tahun', $bulanTahun)
-                        ->where('periode_ke', $periodeKe)
-                        ->get()
-                        ->getRowArray();
+            $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
+            $exist = $ceklisKontrolModel->findChecklistKontrol($idMesin, $kategoriName, $bulanTahun, $periodeKe);
 
             if ($exist) {
-                $db->table('ceklis_kontrol')
-                   ->where('id_kontrol', $exist['id_kontrol'])
-                   ->update($kontrolData);
+                $ceklisKontrolModel->update($exist['id_kontrol'], $kontrolData);
             } else {
                 $kontrolData['created_at'] = date('Y-m-d H:i:s');
-                $db->table('ceklis_kontrol')->insert($kontrolData);
+                $ceklisKontrolModel->insert($kontrolData);
             }
         }
 

@@ -299,4 +299,15 @@ class TransaksiCheckModel extends Model
         
         return $builder->distinct()->orderBy('bulan', 'DESC')->findAll();
     }
+
+    public function getLatestIdByMesinAndKategori(int $idMesin, string $kategori, ?string $bulan): ?array
+    {
+        $builder = $this->select('id_transaksi')
+                        ->where('id_mesin', $idMesin)
+                        ->where('kategori', $kategori);
+        if ($bulan) {
+            $builder->like('waktu_mulai', $bulan, 'after');
+        }
+        return $builder->orderBy('id_transaksi', 'DESC')->first();
+    }
 }

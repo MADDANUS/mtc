@@ -17,4 +17,12 @@ class JadwalPreventiveModel extends Model
     ];
     protected $useTimestamps = true;
     protected $returnType    = 'array';
+
+    public function getJadwalForChecklist(string $lokasiName, string $kategoriName, string $bulanTahun): ?array
+    {
+        return $this->where('lokasi', $lokasiName)
+                    ->where('kategori', $kategoriName)
+                    ->where('bulan_tahun', $bulanTahun)
+                    ->first();
+    }
 }
