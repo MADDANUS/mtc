@@ -271,4 +271,32 @@ class TransaksiCheckModel extends Model
         
         return $builder->orderBy('id_transaksi', 'DESC')->findAll();
     }
+
+    public function getAvailablePics(?string $lokasiName = null, ?string $jenisCheck = null): array
+    {
+        $builder = $this->select('transaksi_check.nama_pic, users.nama as nama_staff')
+                        ->join('users', 'users.id = transaksi_check.id_user');
+        
+        if ($lokasiName !== null) {
+            $builder->where('transaksi_check.lokasi_check', $lokasiName);
+        }
+        if (!empty($jenisCheck)) {
+            $builder->where('transaksi_check.jenis_check', $jenisCheck);
+        }
+        return $builder->distinct()->findAll();
+    }
+
+    public function getAvailableBulan(?string $lokasiName = null, ?string $jenisCheck = null): array
+    {
+        $builder = $this->select("DATE_FORMAT(waktu_mulai, '%Y-%m') as bulan", false);
+        
+        if ($lokasiName !== null) {
+            $builder->where('lokasi_check', $lokasiName);
+        }
+        if (!empty($jenisCheck)) {
+            $builder->where('jenis_check', $jenisCheck);
+        }
+        
+        return $builder->distinct()->orderBy('bulan', 'DESC')->findAll();
+    }
 }

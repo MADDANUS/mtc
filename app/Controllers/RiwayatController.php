@@ -143,17 +143,8 @@ class RiwayatController extends BaseController
         }
 
         // Ambil daftar PIC dinamis berdasarkan transaksi yang ada
-        $db = \Config\Database::connect();
-        $picQuery = $db->table('transaksi_check')
-                       ->select('transaksi_check.nama_pic, users.nama as nama_staff')
-                       ->join('users', 'users.id = transaksi_check.id_user');
-        if ($lokasiName !== null) {
-            $picQuery->where('transaksi_check.lokasi_check', $lokasiName);
-        }
-        if (!empty($filters['jenis_check'])) {
-            $picQuery->where('transaksi_check.jenis_check', $filters['jenis_check']);
-        }
-        $rawPics = $picQuery->distinct()->get()->getResultArray();
+        $transaksiModel = new \App\Models\TransaksiCheckModel();
+        $rawPics = $transaksiModel->getAvailablePics($lokasiName, $filters['jenis_check'] ?? null);
         $availablePics = [];
         foreach ($rawPics as $row) {
             $raw = $row['nama_pic'] ?: $row['nama_staff'];
@@ -167,15 +158,7 @@ class RiwayatController extends BaseController
         sort($availablePics);
 
         // List bulan dinamis dari database (berdasarkan waktu_mulai)
-        $bulanQuery = $db->table('transaksi_check')
-            ->select("DATE_FORMAT(waktu_mulai, '%Y-%m') as bulan", false);
-        if ($lokasiName !== null) {
-            $bulanQuery->where('lokasi_check', $lokasiName);
-        }
-        if (!empty($filters['jenis_check'])) {
-            $bulanQuery->where('jenis_check', $filters['jenis_check']);
-        }
-        $rawBulan = $bulanQuery->distinct()->orderBy('bulan', 'DESC')->get()->getResultArray();
+        $rawBulan = $transaksiModel->getAvailableBulan($lokasiName, $filters['jenis_check'] ?? null);
         $bulanList = [];
         foreach ($rawBulan as $row) {
             $val = $row['bulan'];
