@@ -696,10 +696,10 @@ public function approveTransaksi($idTransaksi, $request)
 
             if ($schedule) {
                 $tglRencana = strtotime($schedule['tanggal_rencana']);
-                $dayOfWeek  = (int) date('N', $tglRencana); 
+                $dayOfWeek  = (int) date('N', $tglRencana);
                 $mondayTs   = strtotime('-' . ($dayOfWeek - 1) . ' days', $tglRencana);
 
-                $weekDates = []; 
+                $weekDates = [];
                 for ($d = 0; $d < 5; $d++) {
                     $weekDates[$d + 1] = date('Y-m-d', strtotime("+{$d} days", $mondayTs));
                 }
