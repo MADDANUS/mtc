@@ -111,12 +111,8 @@ class KontrolService
         $grid = (new \App\Models\CeklisKontrolModel())->getGridData($lokasi, $kategori, $bulan, $line);
 
         $db = \Config\Database::connect();
-        $schedule = $db->table('jadwal_preventive')
-                       ->where('lokasi', $lokasi)
-                       ->where('kategori', $kategori)
-                       ->where('bulan_tahun', $bulan)
-                       ->get()
-                       ->getRowArray();
+        $jadwalModel = new \App\Models\JadwalPreventiveModel();
+        $schedule = $jadwalModel->getJadwalForChecklist($lokasi, $kategori, $bulan);
 
         $columnDates = [];
         $hasSchedule = false;
@@ -132,23 +128,12 @@ class KontrolService
             }
         }
 
-        $approvalQuery = $db->table('approval_bulanan a')
-                       ->select('a.*, u1.nama as l1_name, u2.nama as l2_name, u3.nama as final_name')
-                       ->join('users u1', 'u1.id = a.approved_l1_by', 'left')
-                       ->join('users u2', 'u2.id = a.approved_l2_by', 'left')
-                       ->join('users u3', 'u3.id = a.approved_final_by', 'left')
-                       ->where('a.type', 'kontrol')
-                       ->where('a.lokasi', $lokasi)
-                       ->where('a.kategori', $kategori)
-                       ->where('a.bulan_tahun', $bulan);
+        $approvalModel = new \App\Models\ApprovalBulananModel();
+        $approval = $approvalModel->getApprovalWithUsers($lokasi, $kategori, $bulan, $line);
+        // DUMMY ASSIGNMENT TO KEEP REST WORKING
+        $approvalQuery = true;
 
-        if ($line) {
-            $approvalQuery->where('a.line', $line);
-        } else {
-            $approvalQuery->where('a.line', 'NONE');
-        }
         
-        $approval = $approvalQuery->get()->getRowArray();
         $approvalStatus = $approval ? $approval['status'] : 'Pending';
 
         $data = [
@@ -307,23 +292,12 @@ class KontrolService
                         }
                     }
 
-                    $approvalQuery = $db->table('approval_bulanan a')
-                                   ->select('a.*, u1.nama as l1_name, u2.nama as l2_name, u3.nama as final_name')
-                                   ->join('users u1', 'u1.id = a.approved_l1_by', 'left')
-                                   ->join('users u2', 'u2.id = a.approved_l2_by', 'left')
-                                   ->join('users u3', 'u3.id = a.approved_final_by', 'left')
-                                   ->where('a.type', 'kontrol')
-                                   ->where('a.lokasi', $lokasi)
-                                   ->where('a.kategori', $cat)
-                                   ->where('a.bulan_tahun', $bulan);
+                    $approvalModel = new \App\Models\ApprovalBulananModel();
+        $approval = $approvalModel->getApprovalWithUsers($lokasi, $cat, $bulan, $line);
+        // DUMMY ASSIGNMENT TO KEEP REST WORKING
+        $approvalQuery = true;
 
-                    if ($line) {
-                        $approvalQuery->where('a.line', $line);
-                    } else {
-                        $approvalQuery->where('a.line', 'NONE');
-                    }
                     
-                    $approval = $approvalQuery->get()->getRowArray() ?: [];
 
                     $allGrids[] = [
                         'lokasi'      => $lokasi,
@@ -416,12 +390,8 @@ class KontrolService
 
         // Ambil jadwal rencana untuk lokasi, kategori, dan bulan berjalan (maks 1 per bulan)
         $db = \Config\Database::connect();
-        $schedule = $db->table('jadwal_preventive')
-                       ->where('lokasi', $lokasi)
-                       ->where('kategori', $kategori)
-                       ->where('bulan_tahun', $bulan)
-                       ->get()
-                       ->getRowArray();
+        $jadwalModel = new \App\Models\JadwalPreventiveModel();
+        $schedule = $jadwalModel->getJadwalForChecklist($lokasi, $kategori, $bulan);
 
         // Hitung 5 tanggal hari kerja (Senin-Jumat) dari pekan terjadwal
         $columnDates = []; // Array 5 elemen: tanggal Senin s.d Jumat
@@ -447,15 +417,10 @@ class KontrolService
         }
 
         // Ambil status approval beserta nama approver
-        $approvalQuery = $db->table('approval_bulanan a')
-                       ->select('a.*, u1.nama as l1_name, u2.nama as l2_name, u3.nama as final_name')
-                       ->join('users u1', 'u1.id = a.approved_l1_by', 'left')
-                       ->join('users u2', 'u2.id = a.approved_l2_by', 'left')
-                       ->join('users u3', 'u3.id = a.approved_final_by', 'left')
-                       ->where('a.type', 'kontrol')
-                       ->where('a.lokasi', $lokasi)
-                       ->where('a.kategori', $kategori)
-                       ->where('a.bulan_tahun', $bulan);
+        $approvalModel = new \App\Models\ApprovalBulananModel();
+        $approval = $approvalModel->getApprovalWithUsers($lokasi, $kategori, $bulan, $line);
+        // DUMMY ASSIGNMENT TO KEEP REST WORKING
+        $approvalQuery = true;
 
         if ($line) {
             $approvalQuery->where('a.line', $line);
@@ -511,10 +476,8 @@ class KontrolService
         $db = \Config\Database::connect();
 
         // 1. Total mesin per Line
-        $totalMesinQuery = $db->table('master_mesin')
-                              ->select('lokasi, line, COUNT(id_mesin) as total')
-                              ->groupBy('lokasi, line')
-                              ->get()->getResultArray();
+        $mesinModel = new \App\Models\MesinModel();
+        $totalMesinQuery = $mesinModel->getTotalMesinPerLine();
         
         $totalMesin = [];
         $linesByLokasi = [];
@@ -524,14 +487,8 @@ class KontrolService
         }
 
         // 2. Checked machines per Line & Category
-        $checkedQuery = $db->table('ceklis_kontrol')
-                           ->select('master_mesin.lokasi, master_mesin.line, ceklis_kontrol.kategori, COUNT(DISTINCT ceklis_kontrol.id_mesin) as checked_count')
-                           ->join('master_mesin', 'master_mesin.id_mesin = ceklis_kontrol.id_mesin')
-                           ->where('ceklis_kontrol.bulan_tahun', $bulan)
-                           ->where("ceklis_kontrol.pic_nama != 'PIC'")
-                           ->where("ceklis_kontrol.pic_nama IS NOT NULL")
-                           ->groupBy('master_mesin.lokasi, master_mesin.line, ceklis_kontrol.kategori')
-                           ->get()->getResultArray();
+        $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
+        $checkedQuery = $ceklisKontrolModel->getCheckedMachinesCount($bulan);
                            
         $checkedData = [];
         foreach($checkedQuery as $cq) {
@@ -539,10 +496,8 @@ class KontrolService
         }
 
         // 3. Approval status
-        $approvals = $db->table('approval_bulanan')
-                        ->where('type', 'kontrol')
-                        ->where('bulan_tahun', $bulan)
-                        ->get()->getResultArray();
+        $approvalModel = new \App\Models\ApprovalBulananModel();
+        $approvals = $approvalModel->getAllApprovals($bulan);
                         
         $approvalData = [];
         foreach($approvals as $ap) {
@@ -715,14 +670,8 @@ class KontrolService
         }
 
         $db = \Config\Database::connect();
-        $approval = $db->table('approval_bulanan')
-                       ->where('type', 'kontrol')
-                       ->where('lokasi', $lokasi)
-                       ->where('line', $line)
-                       ->where('kategori', $kategori)
-                       ->where('bulan_tahun', $bulan)
-                       ->get()
-                       ->getRowArray();
+        $approvalModel = new \App\Models\ApprovalBulananModel();
+        $approval = $approvalModel->getApprovalKontrol($lokasi, $line, $kategori, $bulan);
 
         $currentStatus = $approval ? $approval['status'] : 'Pending';
         $userId        = session()->get('user_id');
@@ -767,10 +716,10 @@ class KontrolService
         }
 
         if ($approval) {
-            $db->table('approval_bulanan')->where('id_approval', $approval['id_approval'])->update($data);
+            $approvalModel->update($approval['id_approval'], $data);
         } else {
             $data['created_at'] = $now;
-            $db->table('approval_bulanan')->insert($data);
+            $approvalModel->insert($data);
         }
 
         return ["status" => true, "message" => 'Berhasil menyetujui Checklist Control bulanan.'];
