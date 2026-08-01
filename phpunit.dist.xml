@@ -32,6 +32,16 @@
         <junit outputFile="build/logs/logfile.xml"/>
     </logging>
 
+    <php>
+        <server name="app.baseURL" value="http://localhost/"/>
+        <env name="database.tests.hostname" value="localhost"/>
+        <env name="database.tests.database" value="mtce_db"/>
+        <env name="database.tests.username" value="root"/>
+        <env name="database.tests.password" value=""/>
+        <env name="database.tests.DBDriver" value="MySQLi"/>
+        <env name="database.tests.DBPrefix" value=""/>
+    </php>
+
     <source>
         <include>
             <directory suffix=".php">./app</directory>

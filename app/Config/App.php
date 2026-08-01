@@ -16,8 +16,8 @@ class App extends BaseConfig
      *
      * E.g., http://example.com/
      */
-    public string $baseURL = 'http://10.1.70.3:8081/mtce/public/';
-    #public string $baseURL = 'http://localhost:8081/mtce/public';
+    #public string $baseURL = 'http://10.1.70.3:8081/mtce/public/';
+    public string $baseURL = 'http://localhost:8080/';
     public array $allowedHostnames = [];
 
     public string $indexPage = '';
