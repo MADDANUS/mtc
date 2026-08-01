@@ -134,31 +134,17 @@ class ParameterController extends BaseController
 
     public function fixUrutan()
     {
-        $db = \Config\Database::connect();
-
+        $parameterModel = new \App\Models\ParameterCheckModel();
         // Ambil semua kombinasi lokasi, jenis_check, kategori
-        $combinations = $db->table('master_parameter_check')
-                           ->select('lokasi, jenis_check, kategori')
-                           ->groupBy('lokasi, jenis_check, kategori')
-                           ->get()
-                           ->getResultArray();
+        $combinations = $parameterModel->getKombinasiKategori();
 
         $totalUpdated = 0;
         foreach ($combinations as $combo) {
-            $params = $db->table('master_parameter_check')
-                         ->where('lokasi', $combo['lokasi'])
-                         ->where('jenis_check', $combo['jenis_check'])
-                         ->where('kategori', $combo['kategori'])
-                         ->orderBy('urutan', 'ASC')
-                         ->orderBy('id_parameter', 'ASC')
-                         ->get()
-                         ->getResultArray();
+            $params = $parameterModel->getParamsByKombinasi($combo['lokasi'], $combo['jenis_check'], $combo['kategori']);
             
             $index = 1;
             foreach ($params as $p) {
-                $db->table('master_parameter_check')
-                   ->where('id_parameter', $p['id_parameter'])
-                   ->update(['urutan' => $index]);
+                $parameterModel->updateUrutan($p['id_parameter'], $index);
                 $index++;
                 $totalUpdated++;
             }
