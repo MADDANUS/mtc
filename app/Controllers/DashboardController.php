@@ -112,20 +112,8 @@ class DashboardController extends BaseController
             return $isOverhaul;
         });
         
-        // Karena kita butuh filter line dengan tepat, lebih baik kita gunakan database builder langsung.
-        $db = \Config\Database::connect();
-        
         // Ambil riwayat terbaru khusus line ini
-        $terbaruQuery = $db->table('transaksi_check')
-                           ->select('transaksi_check.*, users.nama as nama_staff, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.line, TIMESTAMPDIFF(SECOND, transaksi_check.waktu_mulai, transaksi_check.waktu_selesai) as durasi_detik')
-                           ->join('users', 'users.id = transaksi_check.id_user')
-                           ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
-                           ->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value);
-                           
-        if ($lokasiLine) {
-            $terbaruQuery->where('master_mesin.line', $lokasiLine);
-        }
-        $terbaru = $terbaruQuery->orderBy('transaksi_check.waktu_mulai', 'DESC')->get()->getResultArray();
+        $terbaru = $transaksiModel->getTerbaruKhususLine($lokasiLine);
 
         $totalTransaksi = count($terbaru);
         $totalDurasi    = 0;
@@ -149,21 +137,13 @@ class DashboardController extends BaseController
         $rataDetik = $totalTransaksi > 0 ? intdiv($totalDurasi, $totalTransaksi) : 0;
 
         // Fetch pending overhaul
-        $pendingOverhaulQuery = $db->table('transaksi_check')
-                                   ->select('transaksi_check.*, master_mesin.no_mesin as nama_mesin')
-                                   ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
-                                   ->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value)
-                                   ->where('transaksi_check.status', 'Pending');
-        
-        if ($lokasiLine) {
-            $pendingOverhaulQuery->where('master_mesin.line', $lokasiLine);
-        }
-        $pendingOverhaul = $pendingOverhaulQuery->orderBy('transaksi_check.waktu_mulai', 'DESC')->get()->getResultArray();
+        $pendingOverhaul = $transaksiModel->getPendingOverhaulLeader($lokasiLine);
 
         // Fetch pending kontrol for leader
         $pendingKontrol = [];
         if ($lokasiLine) {
-            $lokasiMesin = $db->table('master_mesin')->select('lokasi')->where('line', $lokasiLine)->limit(1)->get()->getRowArray();
+            $mesinModel = new \App\Models\MesinModel();
+            $lokasiMesin = $mesinModel->getLokasiByLine($lokasiLine);
             if ($lokasiMesin) {
                 $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
                 $pendingKontrol = $ceklisKontrolModel->getPendingApprovalsForLeader($lokasiMesin['lokasi'], $lokasiLine, date('Y-m'));
@@ -209,41 +189,12 @@ class DashboardController extends BaseController
         }
         $rataDetik = $totalTransaksi > 0 ? intdiv($totalDurasi, $totalTransaksi) : 0;
 
-        $db = \Config\Database::connect();
-        $pendingKontrolQuery = $db->table('approval_bulanan')->where('type', 'kontrol');
-        
-        if ($role === Role::Sheadprd->value) {
-            $pendingKontrolQuery->where('status', 'Approved L1');
-        } elseif ($role === Role::Sheadmtc->value) {
-            $pendingKontrolQuery->where('status', 'Approved L2');
-        } elseif ($role === Role::Member->value) {
-            $pendingKontrolQuery->where('status', 'Pending');
-        } else {
-            $pendingKontrolQuery->where('1=0');
-        }
-        $pendingKontrol = $pendingKontrolQuery->orderBy('updated_at', 'DESC')->get()->getResultArray();
+        $approvalModel = new \App\Models\ApprovalBulananModel();
+        $pendingKontrol = $approvalModel->getPendingKontrolByRole($role);
 
         // Fetch pending overhaul
-        $pendingOverhaulQuery = $db->table('transaksi_check')
-                                   ->select('transaksi_check.*, master_mesin.no_mesin as nama_mesin')
-                                   ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
-                                   ->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value);
-        
-        if ($role === Role::Leader->value) {
-            $pendingOverhaulQuery->where('transaksi_check.status', 'Pending');
-            // For leaders, get 'line' from session
-            $sessionLine = session()->get('line') ?: session()->get('lokasi');
-            if ($sessionLine) {
-                $pendingOverhaulQuery->where('master_mesin.line', $sessionLine);
-            }
-        } elseif ($role === Role::Sheadprd->value) {
-            $pendingOverhaulQuery->where('transaksi_check.status', 'Approved L1');
-        } elseif ($role === Role::Sheadmtc->value) {
-            $pendingOverhaulQuery->where('transaksi_check.status', 'Approved L2');
-        } else {
-            $pendingOverhaulQuery->where('1=0');
-        }
-        $pendingOverhaul = $pendingOverhaulQuery->orderBy('transaksi_check.waktu_mulai', 'DESC')->get()->getResultArray();
+        $sessionLine = session()->get('line') ?: session()->get('lokasi');
+        $pendingOverhaul = $transaksiModel->getPendingOverhaulByRole($role, $sessionLine);
 
         return view('dashboard/leader', [
             'title'          => $title,

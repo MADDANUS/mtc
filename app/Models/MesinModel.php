@@ -22,4 +22,9 @@ class MesinModel extends Model
         }
         return $this->orderBy('no_mesin', 'ASC')->findAll();
     }
+
+    public function getLokasiByLine(string $line): ?array
+    {
+        return $this->select('lokasi')->where('line', $line)->first();
+    }
 }
