@@ -195,7 +195,6 @@ class JadwalController extends BaseController
         $sheet->setCellValue('B1', 'Kategori (Cth: Penerangan)');
         $sheet->setCellValue('C1', 'Rentang Tanggal (Cth: 27/07/2026-31/07/2026)');
 
-
         $sheet->getColumnDimension('A')->setAutoSize(true);
         $sheet->getColumnDimension('B')->setAutoSize(true);
         $sheet->getColumnDimension('C')->setAutoSize(true);
