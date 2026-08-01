@@ -195,7 +195,7 @@ class ChecklistController extends BaseController
                                      ->first();
 
             if (!$cekJadwal) {
-                // If it came from QR scan with id_mesin, preserve the id_mesin in the redirect url if desired, 
+                // If it came from QR scan with id_mesin, preserve the id_mesin in the redirect url if desired,
                 // but redirecting back to category list is fine.
                 $redirectUrl = "/checklist/{$lokasiSlug}/{$jenisSlug}";
                 if ($idMesin) {
