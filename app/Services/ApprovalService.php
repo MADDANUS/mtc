@@ -27,57 +27,11 @@ class ApprovalService
         $db = \Config\Database::connect();
 
         // ─── 1. CHECKLIST REPORT & INSPECTION REPORT (transaksi_check) ──────────
-        $txBuilder = $db->table('transaksi_check tc')
-            ->select('
-                tc.id_transaksi  AS doc_id,
-                tc.jenis_check,
-                tc.kategori,
-                tc.lokasi_check,
-                mm.line,
-                tc.nama_pic,
-                u.nama           AS nama_staff,
-                tc.waktu_mulai   AS doc_date,
-                tc.status,
-                mm.no_mesin,
-                mm.type_mesin,
-                "transaksi"      AS doc_source,
-                NULL             AS lokasi,
-                NULL             AS persen
-            ', false)
-            ->join('users u', 'u.id = tc.id_user', 'left')
-            ->join('master_mesin mm', 'mm.id_mesin = tc.id_mesin', 'left');
-
-        // Filter berdasarkan role
-        if ($role === Role::Leader->value) {
-            $txBuilder->where('tc.jenis_check', JenisCheck::Overhaul->value)
-                      ->where('tc.status', 'Pending');
-            if ($line) {
-                $txBuilder->where('mm.line', $line);
-            }
-        } elseif ($role === Role::Sheadprd->value) {
-            $txBuilder->whereIn('tc.jenis_check', [JenisCheck::Overhaul->value, JenisCheck::Preventive->value])
-                      ->where('tc.status', 'Approved L1');
-        } elseif ($role === Role::Sheadmtc->value) {
-            $txBuilder->whereIn('tc.jenis_check', [JenisCheck::Overhaul->value, JenisCheck::Preventive->value])
-                      ->where('tc.status', 'Approved L2');
-        } elseif ($role === Role::Member->value) {
-            $txBuilder->groupStart()
-                        ->groupStart()
-                            ->where('tc.jenis_check', JenisCheck::Preventive->value)
-                            ->where('tc.status', 'Pending')
-                        ->groupEnd()
-                        ->orGroupStart()
-                            ->where('tc.jenis_check', JenisCheck::Overhaul->value)
-                            ->whereIn('tc.status', ['Pending', 'Approved L1', 'Approved L2'])
-                        ->groupEnd()
-                      ->groupEnd();
-        } elseif ($role === Role::Admin->value) {
-            $txBuilder->whereNotIn('tc.status', ['Approved']);
-        } else {
+        $transaksiModel = new \App\Models\TransaksiCheckModel();
+        if (!in_array($role, [\App\Enums\Role::Leader->value, \App\Enums\Role::Sheadprd->value, \App\Enums\Role::Sheadmtc->value, \App\Enums\Role::Member->value, \App\Enums\Role::Admin->value])) {
             return redirect()->to('/dashboard')->with('error', 'Akses tidak diizinkan.');
         }
-
-        $transaksiRows = $txBuilder->orderBy('tc.waktu_mulai', 'DESC')->get()->getResultArray();
+        $transaksiRows = $transaksiModel->getInboxApprovalTransaksi($role, $line);
 
         // ─── 2. CHECKLIST CONTROL BULANAN ────────────────────────────────────────
         // Bagian A: yang sudah ada di approval_bulanan (Pending, Approved L1/L2)
@@ -86,34 +40,8 @@ class ApprovalService
         if (in_array($role, [Role::Member->value, Role::Admin->value, Role::Sheadprd->value, Role::Sheadmtc->value], true)) {
 
             // -- A. Kontrol yang sudah di-submit ke approval_bulanan (ada status Pending/L1/L2) --
-            $kontrolBuilder = $db->table('approval_bulanan ab')
-                ->select('
-                    ab.id_approval   AS doc_id,
-                    ab.type          AS jenis_check,
-                    ab.kategori,
-                    ab.lokasi,
-                    ab.line,
-                    ab.bulan_tahun   AS doc_date,
-                    ab.status,
-                    "kontrol"        AS doc_source,
-                    NULL             AS lokasi_check,
-                    NULL             AS nama_pic,
-                    NULL             AS nama_staff,
-                    NULL             AS no_mesin,
-                    NULL             AS type_mesin,
-                    NULL             AS persen
-                ', false);
-
-            if ($role === Role::Sheadprd->value) {
-                $kontrolBuilder->where('ab.status', 'Approved L1');
-            } elseif ($role === Role::Sheadmtc->value) {
-                $kontrolBuilder->where('ab.status', 'Approved L2');
-            } elseif (in_array($role, [Role::Member->value, Role::Admin->value])) {
-                // Tampilkan semua kecuali yang sudah Final (Final → masuk History)
-                $kontrolBuilder->whereNotIn('ab.status', ['Final', 'Approved Final']);
-            }
-
-            $approvalRows = $kontrolBuilder->orderBy('ab.bulan_tahun', 'DESC')->get()->getResultArray();
+            $approvalModel = new \App\Models\ApprovalBulananModel();
+            $approvalRows = $approvalModel->getInboxApprovalKontrol($role);
 
             // -- B. Kontrol yang BELUM SELESAI diisi (belum ada di approval_bulanan) --
             // Hanya untuk role member & admin — agar bisa membuka dan melanjutkan pengisian
@@ -124,10 +52,8 @@ class ApprovalService
                 $bulanIni = date('Y-m');
 
                 // Total mesin per lokasi/line
-                $totalMesinData = $db->table('master_mesin')
-                    ->select('lokasi, line, COUNT(id_mesin) AS total')
-                    ->groupBy('lokasi, line')
-                    ->get()->getResultArray();
+                $mesinModel = new \App\Models\MesinModel();
+                $totalMesinData = $mesinModel->getTotalMesinPerLine();
                 $totalMesinMap = [];
                 foreach ($totalMesinData as $tm) {
                     $totalMesinMap[$tm['lokasi']][$tm['line']] = (int) $tm['total'];
@@ -140,25 +66,15 @@ class ApprovalService
                 ];
 
                 // Mesin yang sudah dicek bulan ini per lokasi/line/kategori
-                $checkedData = $db->table('ceklis_kontrol ck')
-                    ->select('mm.lokasi, mm.line, ck.kategori, COUNT(DISTINCT ck.id_mesin) AS checked')
-                    ->join('master_mesin mm', 'mm.id_mesin = ck.id_mesin')
-                    ->where('ck.bulan_tahun', $bulanIni)
-                    ->where("ck.pic_nama != 'PIC'")
-                    ->where("ck.pic_nama IS NOT NULL")
-                    ->groupBy('mm.lokasi, mm.line, ck.kategori')
-                    ->get()->getResultArray();
+                $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
+                $checkedData = $ceklisKontrolModel->getCheckedMachinesCount($bulanIni);
                 $checkedMap = [];
                 foreach ($checkedData as $cd) {
                     $checkedMap[$cd['lokasi']][$cd['line']][$cd['kategori']] = (int) $cd['checked'];
                 }
 
                 // Ambil daftar id_approval yang sudah ada untuk bulan ini (untuk hindari duplikat)
-                $existingApprovals = $db->table('approval_bulanan')
-                    ->select('lokasi, line, kategori')
-                    ->where('type', 'kontrol')
-                    ->where('bulan_tahun', $bulanIni)
-                    ->get()->getResultArray();
+                $existingApprovals = $approvalModel->getExistingApprovals($bulanIni);
                 $approvedSet = [];
                 foreach ($existingApprovals as $ea) {
                     $approvedSet[$ea['lokasi']][$ea['line']][$ea['kategori']] = true;

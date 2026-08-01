@@ -79,4 +79,27 @@ class ApprovalBulananModel extends Model
                     ->where('bulan_tahun', $bulanTahun)
                     ->delete();
     }
+
+    public function getInboxApprovalKontrol(string $role): array
+    {
+        $builder = $this->select('approval_bulanan.id_approval AS doc_id, approval_bulanan.type AS jenis_check, approval_bulanan.kategori, approval_bulanan.lokasi, approval_bulanan.line, approval_bulanan.bulan_tahun AS doc_date, approval_bulanan.status, "kontrol" AS doc_source, NULL AS lokasi_check, NULL AS nama_pic, NULL AS nama_staff, NULL AS no_mesin, NULL AS type_mesin, NULL AS persen', false);
+
+        if ($role === \App\Enums\Role::Sheadprd->value) {
+            $builder->where('approval_bulanan.status', 'Approved L1');
+        } elseif ($role === \App\Enums\Role::Sheadmtc->value) {
+            $builder->where('approval_bulanan.status', 'Approved L2');
+        } elseif (in_array($role, [\App\Enums\Role::Member->value, \App\Enums\Role::Admin->value])) {
+            $builder->whereNotIn('approval_bulanan.status', ['Final', 'Approved Final']);
+        }
+
+        return $builder->orderBy('approval_bulanan.bulan_tahun', 'DESC')->findAll();
+    }
+
+    public function getExistingApprovals(string $bulan): array
+    {
+        return $this->select('lokasi, line, kategori')
+                    ->where('type', 'kontrol')
+                    ->where('bulan_tahun', $bulan)
+                    ->findAll();
+    }
 }

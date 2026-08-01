@@ -310,4 +310,40 @@ class TransaksiCheckModel extends Model
         }
         return $builder->orderBy('id_transaksi', 'DESC')->first();
     }
+
+    public function getInboxApprovalTransaksi(string $role, ?string $line): array
+    {
+        $builder = $this->select('transaksi_check.id_transaksi AS doc_id, transaksi_check.jenis_check, transaksi_check.kategori, transaksi_check.lokasi_check, master_mesin.line, transaksi_check.nama_pic, users.nama AS nama_staff, transaksi_check.waktu_mulai AS doc_date, transaksi_check.status, master_mesin.no_mesin, master_mesin.type_mesin, "transaksi" AS doc_source, NULL AS lokasi, NULL AS persen', false)
+                        ->join('users', 'users.id = transaksi_check.id_user', 'left')
+                        ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin', 'left');
+
+        if ($role === \App\Enums\Role::Leader->value) {
+            $builder->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value)
+                    ->where('transaksi_check.status', 'Pending');
+            if ($line) {
+                $builder->where('master_mesin.line', $line);
+            }
+        } elseif ($role === \App\Enums\Role::Sheadprd->value) {
+            $builder->whereIn('transaksi_check.jenis_check', [\App\Enums\JenisCheck::Overhaul->value, \App\Enums\JenisCheck::Preventive->value])
+                    ->where('transaksi_check.status', 'Approved L1');
+        } elseif ($role === \App\Enums\Role::Sheadmtc->value) {
+            $builder->whereIn('transaksi_check.jenis_check', [\App\Enums\JenisCheck::Overhaul->value, \App\Enums\JenisCheck::Preventive->value])
+                    ->where('transaksi_check.status', 'Approved L2');
+        } elseif ($role === \App\Enums\Role::Member->value) {
+            $builder->groupStart()
+                        ->groupStart()
+                            ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Preventive->value)
+                            ->where('transaksi_check.status', 'Pending')
+                        ->groupEnd()
+                        ->orGroupStart()
+                            ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value)
+                            ->whereIn('transaksi_check.status', ['Pending', 'Approved L1', 'Approved L2'])
+                        ->groupEnd()
+                    ->groupEnd();
+        } elseif ($role === \App\Enums\Role::Admin->value) {
+            $builder->whereNotIn('transaksi_check.status', ['Approved']);
+        }
+        
+        return $builder->orderBy('transaksi_check.waktu_mulai', 'DESC')->findAll();
+    }
 }
