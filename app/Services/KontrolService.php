@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Enums\Role;
+use App\Enums\Lokasi;
+
 use App\Models\CeklisKontrolModel;
 use App\Models\MesinModel;
 use CodeIgniter\I18n\Time;
@@ -28,7 +31,7 @@ class KontrolService
         $ulasan      = $request->getPost('ulasan');
 
         $mesin = $this->mesinModel->find($idMesin);
-        $lokasiRedirect = $mesin ? $mesin['lokasi'] : 'MFG 1';
+        $lokasiRedirect = $mesin ? $mesin['lokasi'] : Lokasi::MFG1->value;
 
         $data = [
             'id_mesin'      => $idMesin,
@@ -68,12 +71,12 @@ class KontrolService
      
         public function pdf($request)
     {
-        $lokasi   = $request->getGet('lokasi') ?: 'MFG 1';
+        $lokasi   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
         $kategori = $request->getGet('kategori') ?: 'Penerangan';
         $bulan    = $request->getGet('bulan') ?: date('Y-m');
         $line     = $request->getGet('line') ?: null;
 
-        if ($lokasi === 'MFG 2') {
+        if ($lokasi === Lokasi::MFG2->value) {
             $categories = [
                 'Penerangan'     => 'Penerangan',
                 'Kabel dan Pipa' => 'Kabel dan Pipa',
@@ -95,9 +98,9 @@ class KontrolService
         }
 
         $availableLines = [];
-        if ($lokasi === 'MFG 1') {
+        if ($lokasi === Lokasi::MFG1->value) {
             $availableLines = ['Line 1', 'Line 2', 'Line 3'];
-        } elseif ($lokasi === 'MFG 2') {
+        } elseif ($lokasi === Lokasi::MFG2->value) {
             $availableLines = ['CG', 'Second'];
         }
 
@@ -168,20 +171,20 @@ class KontrolService
 
     public function pdfAllCategories($request)
     {
-        $lokasi   = $request->getGet('lokasi') ?: 'MFG 1';
+        $lokasi   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
         $bulan    = $request->getGet('bulan') ?: date('Y-m');
         $line     = $request->getGet('line') ?: null;
 
-        if ($lokasi === 'MFG 2') {
+        if ($lokasi === Lokasi::MFG2->value) {
             $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
         } else {
             $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
         }
 
         $availableLines = [];
-        if ($lokasi === 'MFG 1') {
+        if ($lokasi === Lokasi::MFG1->value) {
             $availableLines = ['Line 1', 'Line 2', 'Line 3'];
-        } elseif ($lokasi === 'MFG 2') {
+        } elseif ($lokasi === Lokasi::MFG2->value) {
             $availableLines = ['CG', 'Second'];
         }
 
@@ -271,8 +274,8 @@ class KontrolService
         $filterKategori = $request->getGet('filter_kategori') === 'all' ? '' : ($request->getGet('filter_kategori') ?: '');
         
         $lokasiList = [
-            'MFG 1' => ['Line 1', 'Line 2', 'Line 3'],
-            'MFG 2' => ['CG', 'Second']
+            Lokasi::MFG1->value => ['Line 1', 'Line 2', 'Line 3'],
+            Lokasi::MFG2->value => ['CG', 'Second']
         ];
         
         $allGrids = [];
@@ -281,7 +284,7 @@ class KontrolService
         foreach ($lokasiList as $lokasi => $lines) {
             if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
             
-            $categories = ($lokasi === 'MFG 2')
+            $categories = ($lokasi === Lokasi::MFG2->value)
                 ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor']
                 : ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
                 
@@ -384,13 +387,13 @@ class KontrolService
             return $this->summary($request);
         }
 
-        $lokasi   = $request->getGet('lokasi') ?: 'MFG 1';
+        $lokasi   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
         $kategori = $request->getGet('kategori') ?: 'Penerangan';
         $bulan    = $request->getGet('bulan') ?: date('Y-m');
         $line     = $request->getGet('line') ?: null;
 
         // Daftar kategori khusus Preventive
-        if ($lokasi === 'MFG 2') {
+        if ($lokasi === Lokasi::MFG2->value) {
             $categories = [
                 'Penerangan'     => 'Penerangan',
                 'Kabel dan Pipa' => 'Kabel dan Pipa',
@@ -422,9 +425,9 @@ class KontrolService
         }
 
         $availableLines = [];
-        if ($lokasi === 'MFG 1') {
+        if ($lokasi === Lokasi::MFG1->value) {
             $availableLines = ['Line 1', 'Line 2', 'Line 3'];
-        } elseif ($lokasi === 'MFG 2') {
+        } elseif ($lokasi === Lokasi::MFG2->value) {
             $availableLines = ['CG', 'Second'];
         }
 
@@ -489,10 +492,10 @@ class KontrolService
         $approvalStatus = $approval ? $approval['status'] : 'Pending';
 
         $roleSession = session()->get('role');
-        if ($roleSession === 'sheadprd' && $approvalStatus === 'Pending') {
+        if ($roleSession === Role::Sheadprd->value && $approvalStatus === 'Pending') {
             return redirect()->to('/kontrol')->with('error', 'Dokumen belum siap untuk Anda (Masih menunggu persetujuan Leader).');
         }
-        if ($roleSession === 'sheadmtc' && in_array($approvalStatus, ['Pending', 'Approved L1'], true)) {
+        if ($roleSession === Role::Sheadmtc->value && in_array($approvalStatus, ['Pending', 'Approved L1'], true)) {
             return redirect()->to('/kontrol')->with('error', 'Dokumen belum siap untuk Anda (Masih menunggu persetujuan SHead Produksi).');
         }
 
@@ -571,8 +574,8 @@ class KontrolService
 
         // Categories mapping
         $kategoriByLokasi = [
-            'MFG 1' => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
-            'MFG 2' => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor']
+            Lokasi::MFG1->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
+            Lokasi::MFG2->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor']
         ];
 
         // Buat list 12 bulan terakhir untuk dropdown filter
@@ -619,10 +622,10 @@ class KontrolService
                     
                     // Filter based on role
                     $roleSession = session()->get('role');
-                    if ($roleSession === 'sheadprd' && (empty($status) || in_array($status, ['Pending', 'Approved L1'], true))) {
+                    if ($roleSession === Role::Sheadprd->value && (empty($status) || in_array($status, ['Pending', 'Approved L1'], true))) {
                         continue;
                     }
-                    if ($roleSession === 'sheadmtc' && (empty($status) || in_array($status, ['Pending', 'Approved L1', 'Approved L2'], true))) {
+                    if ($roleSession === Role::Sheadmtc->value && (empty($status) || in_array($status, ['Pending', 'Approved L1', 'Approved L2'], true))) {
                         continue;
                     }
                     $badgeClass = 'bg-secondary';
@@ -646,7 +649,7 @@ class KontrolService
                     
                     // History hanya menampilkan yang sudah Final untuk role member/admin/leader
                     // Role approver (sheadprd/sheadmtc) sudah difilter di atas
-                    if (in_array($roleSession, ['member', 'admin', 'leader'], true)) {
+                    if (in_array($roleSession, [Role::Member->value, Role::Admin->value, Role::Leader->value], true)) {
                         if (!in_array($status, ['Final', 'Approved Final'], true)) {
                             continue; // Belum selesai → tetap di Approval Inbox
                         }
@@ -721,7 +724,7 @@ class KontrolService
     public function approveBulanan($request)
     {
         $role = session()->get('role');
-        if (!in_array($role, ['member', 'sheadprd', 'sheadmtc', 'admin'])) {
+        if (!in_array($role, [Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value])) {
             return ["status" => false, "message" => 'Akses ditolak.'];
         }
 
@@ -758,11 +761,11 @@ class KontrolService
         ];
 
         // Admin override
-        if ($role === 'admin') {
+        if ($role === Role::Admin->value) {
             $data['status'] = 'Approved Final';
             $data['approved_final_by'] = $userId;
             $data['approved_final_at'] = $now;
-        } elseif ($role === 'member') {
+        } elseif ($role === Role::Member->value) {
             if ($currentStatus !== 'Pending') return ["status" => false, "message" => 'Sudah diproses L1.'];
             
             $picLineNama = $request->getPost('pic_line_nama');
@@ -774,12 +777,12 @@ class KontrolService
             $data['approved_l1_by'] = $userId;
             $data['pic_line_nama']  = trim($picLineNama);
             $data['approved_l1_at'] = $now;
-        } elseif ($role === 'sheadprd') {
+        } elseif ($role === Role::Sheadprd->value) {
             if ($currentStatus !== 'Approved L1') return ["status" => false, "message" => 'Belum disetujui L1.'];
             $data['status'] = 'Approved L2';
             $data['approved_l2_by'] = $userId;
             $data['approved_l2_at'] = $now;
-        } elseif ($role === 'sheadmtc') {
+        } elseif ($role === Role::Sheadmtc->value) {
             if ($currentStatus !== 'Approved L2') return ["status" => false, "message" => 'Belum disetujui L2.'];
             $data['status'] = 'Approved Final';
             $data['approved_final_by'] = $userId;
@@ -802,7 +805,7 @@ class KontrolService
      */
     public function deleteApprovalBulanan($request)
     {
-        if (session()->get('role') !== 'admin') {
+        if (session()->get('role') !== Role::Admin->value) {
             return ["status" => false, "message" => 'Akses ditolak.'];
         }
 

@@ -68,7 +68,7 @@ class JadwalController extends BaseController
             $endDate   = date('Y-m-d', $saturdayTs); // FullCalendar end exclusive = Sabtu → bar sampai Jumat
 
             // Warna penanda mfg
-            $color = $s['lokasi'] === 'MFG 1' ? '#0d6efd' : '#198754'; // Biru mfg 1, hijau mfg 2
+            $color = $s['lokasi'] === Lokasi::MFG1->value ? '#0d6efd' : '#198754'; // Biru mfg 1, hijau mfg 2
 
             // Label: tampilkan rentang tanggal Senin-Jumat di judul
             $fridayTs = strtotime('+4 days', $mondayTs);
@@ -101,7 +101,7 @@ class JadwalController extends BaseController
      */
     public function store()
     {
-        if (!in_array(session()->get('role'), ['admin', 'member'], true)) {
+        if (!in_array(session()->get('role'), [Role::Admin->value, Role::Member->value], true)) {
             return redirect()->back()->with('error', 'Hanya Admin dan Member yang dapat membuat jadwal.');
         }
 
@@ -154,7 +154,7 @@ class JadwalController extends BaseController
      */
     public function delete(int $id)
     {
-        if (!in_array(session()->get('role'), ['admin', 'member'], true)) {
+        if (!in_array(session()->get('role'), [Role::Admin->value, Role::Member->value], true)) {
             return redirect()->back()->with('error', 'Hanya Admin dan Member yang dapat menghapus jadwal.');
         }
 
@@ -168,7 +168,7 @@ class JadwalController extends BaseController
         $transaksiModel = new \App\Models\TransaksiCheckModel();
         $bulanTahun = $schedule['bulan_tahun']; // e.g., '2026-07'
         
-        $cekTransaksi = $transaksiModel->where('jenis_check', 'Preventive')
+        $cekTransaksi = $transaksiModel->where('jenis_check', JenisCheck::Preventive->value)
                                        ->where('lokasi_check', $schedule['lokasi'])
                                        ->where('kategori', $schedule['kategori'])
                                        ->like('created_at', $bulanTahun . '-', 'after')
@@ -264,7 +264,7 @@ class JadwalController extends BaseController
      */
     public function import()
     {
-        if (!in_array(session()->get('role'), ['admin', 'member'], true)) {
+        if (!in_array(session()->get('role'), [Role::Admin->value, Role::Member->value], true)) {
             return redirect()->back()->with('error', 'Hanya Admin dan Member yang dapat mengimpor jadwal.');
         }
 

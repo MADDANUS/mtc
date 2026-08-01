@@ -179,8 +179,8 @@ class UserController extends BaseController
                     continue;
                 }
                 
-                if (! in_array($role, ['magang', 'member', 'sheadprd', 'sheadmtc', 'admin', 'leader'], true)) {
-                    $errors[] = "Baris {$rowNum}: Role '{$role}' tidak valid. Harus 'magang', 'member', 'sheadprd', 'sheadmtc', 'admin', atau 'leader'.";
+                if (! in_array($role, [Role::Magang->value, Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, Role::Leader->value], true)) {
+                    $errors[] = "Baris {$rowNum}: Role '{$role}' tidak valid. Harus Role::Magang->value, Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, atau 'leader'.";
                     continue;
                 }
                 

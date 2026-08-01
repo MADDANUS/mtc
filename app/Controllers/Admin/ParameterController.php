@@ -16,8 +16,8 @@ class ParameterController extends BaseController
 
     public function index()
     {
-        $lokasi     = $this->request->getGet('lokasi') ?: 'MFG 1';
-        $jenisCheck = $this->request->getGet('jenis_check') ?: 'Preventive';
+        $lokasi     = $this->request->getGet('lokasi') ?: Lokasi::MFG1->value;
+        $jenisCheck = $this->request->getGet('jenis_check') ?: JenisCheck::Preventive->value;
 
         // Ambil daftar kategori unik untuk lokasi + jenis check ini
         // Urutkan kategori berdasarkan urutan terkecil (urutan pertama baris parameter)
@@ -54,8 +54,8 @@ class ParameterController extends BaseController
             'title'     => 'Tambah Parameter Check',
             'parameter' => null,
             'prefill'   => [
-                'lokasi'      => $this->request->getGet('lokasi') ?: 'MFG 1',
-                'jenis_check' => $this->request->getGet('jenis_check') ?: 'Preventive',
+                'lokasi'      => $this->request->getGet('lokasi') ?: Lokasi::MFG1->value,
+                'jenis_check' => $this->request->getGet('jenis_check') ?: JenisCheck::Preventive->value,
                 'kategori'    => $this->request->getGet('kategori') ?: '',
             ]
         ]);
@@ -307,13 +307,13 @@ class ParameterController extends BaseController
                     continue;
                 }
                 
-                if (! in_array($lokasi, ['MFG 1', 'MFG 2'], true)) {
-                    $errors[] = "Baris {$row}: Lokasi '{$lokasi}' tidak valid. Harus 'MFG 1' atau 'MFG 2'.";
+                if (! in_array($lokasi, [Lokasi::MFG1->value, Lokasi::MFG2->value], true)) {
+                    $errors[] = "Baris {$row}: Lokasi '{$lokasi}' tidak valid. Harus Lokasi::MFG1->value atau 'MFG 2'.";
                     continue;
                 }
                 
-                if (! in_array($jenisCheck, ['Preventive', 'Overhaul'], true)) {
-                    $errors[] = "Baris {$row}: Jenis Check '{$jenisCheck}' tidak valid. Harus 'Preventive' atau 'Overhaul'.";
+                if (! in_array($jenisCheck, [JenisCheck::Preventive->value, JenisCheck::Overhaul->value], true)) {
+                    $errors[] = "Baris {$row}: Jenis Check '{$jenisCheck}' tidak valid. Harus JenisCheck::Preventive->value atau 'Overhaul'.";
                     continue;
                 }
                 

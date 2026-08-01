@@ -2,6 +2,10 @@
 
 namespace App\Controllers;
 
+use App\Enums\Role;
+use App\Enums\Lokasi;
+use App\Enums\JenisCheck;
+
 use App\Models\MesinModel;
 use App\Models\ParameterCheckModel;
 use App\Models\TransaksiCheckModel;
@@ -48,23 +52,23 @@ class ChecklistController extends BaseController
     private function resolveLokasi(string $slug): string
     {
         return match (strtolower($slug)) {
-            'mfg2'  => 'MFG 2',
-            default => 'MFG 1',
+            'mfg2'  => Lokasi::MFG2->value,
+            default => Lokasi::MFG1->value,
         };
     }
 
     private function resolveJenis(string $slug): string
     {
         return match (strtolower($slug)) {
-            'overhaul'         => 'Overhaul',
-            'checklist-report' => 'Preventive',
-            default            => 'Preventive',
+            'overhaul'         => JenisCheck::Overhaul->value,
+            'checklist-report' => JenisCheck::Preventive->value,
+            default            => JenisCheck::Preventive->value,
         };
     }
 
     private function resolveJenisDisplay(string $jenisName): string
     {
-        return $jenisName === 'Preventive' ? 'Checklist Report' : $jenisName;
+        return $jenisName === JenisCheck::Preventive->value ? 'Checklist Report' : $jenisName;
     }
 
     /**
@@ -106,7 +110,7 @@ class ChecklistController extends BaseController
         if ($idMesin && strtolower($jenisSlug) === 'overhaul') {
             $mesin = $this->mesinModel->find($idMesin);
             if ($mesin) {
-                if ($lokasiName === 'MFG 1') {
+                if ($lokasiName === Lokasi::MFG1->value) {
                     // MFG 1 Overhaul selalu memakai form mesin-cnc-bar-feeder
                     return redirect()->to("/checklist/{$lokasiSlug}/{$jenisSlug}/create/mesin-cnc-bar-feeder?id_mesin={$idMesin}");
                 } else if (!empty($mesin['jenis'])) {
@@ -118,13 +122,13 @@ class ChecklistController extends BaseController
         }
 
         // Jika Overhaul MFG 1 tanpa id_mesin, langsung arahkan ke form Mesin CNC & Bar Feeder
-        if (strtolower($jenisSlug) === 'overhaul' && $lokasiName === 'MFG 1') {
+        if (strtolower($jenisSlug) === 'overhaul' && $lokasiName === Lokasi::MFG1->value) {
             $redirectUrl = "/checklist/{$lokasiSlug}/{$jenisSlug}/create/mesin-cnc-bar-feeder";
             if ($idMesin) {
                 $redirectUrl .= "?id_mesin=" . $idMesin;
             }
             return redirect()->to($redirectUrl);
-        } else if (strtolower($jenisSlug) === 'overhaul' && $lokasiName === 'MFG 2') {
+        } else if (strtolower($jenisSlug) === 'overhaul' && $lokasiName === Lokasi::MFG2->value) {
             $categories = [
                 'thread'               => 'THREAD',
                 'double-milling'       => 'DOUBLE MILLING',
@@ -138,7 +142,7 @@ class ChecklistController extends BaseController
                 'centering-grinding'   => 'CENTERING GRINDING',
             ];
         } else {
-            if ($lokasiName === 'MFG 2') {
+            if ($lokasiName === Lokasi::MFG2->value) {
                 $categories = [
                     'penerangan'     => 'Penerangan',
                     'kabel-dan-pipa' => 'Kabel dan Pipa',
@@ -185,7 +189,7 @@ class ChecklistController extends BaseController
         $idMesin          = $this->request->getGet('id_mesin') ?: null;
 
         // NEW LOGIC: Block if Jadwal Preventive is not created for this month, location, and category
-        if ($jenisDbName === 'Preventive') {
+        if ($jenisDbName === JenisCheck::Preventive->value) {
             $jadwalModel = new \App\Models\JadwalPreventiveModel();
             $bulanIni = date('Y-m'); // e.g., '2026-07'
             
@@ -208,7 +212,7 @@ class ChecklistController extends BaseController
         }
 
         if (strtolower($jenisSlug) === 'overhaul') {
-            if ($lokasiName === 'MFG 2') {
+            if ($lokasiName === Lokasi::MFG2->value) {
                 $daftarMesin = $this->mesinModel->where('lokasi', $lokasiName)
                                                 ->where('jenis', $categoryName)
                                                 ->orderBy('no_mesin', 'ASC')
@@ -235,7 +239,7 @@ class ChecklistController extends BaseController
             'daftarMesin'       => $daftarMesin,
             'rows'              => $this->parameterModel->getFormRows($lokasiName, $jenisDbName, $categoryName),
             'masterPic'         => array_filter((new \App\Models\PicModel())->findAll(), function($p) {
-                return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), 'leader') === false;
+                return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), Role::Leader->value) === false;
             }),
             'namaStaff'         => session()->get('nama'),
             'waktuMulai'        => $waktuMulai->toDateTimeString(),
@@ -425,7 +429,7 @@ class ChecklistController extends BaseController
         }
 
         $roleSession = session()->get('role');
-        if ($roleSession === 'magang') {
+        if ($roleSession === Role::Magang->value) {
             $redirectUrl = "/riwayat/lokasi/{$lokasiSlug}?jenis_check=" . urlencode($jenisName) . "&kategori=" . urlencode($kategoriName);
         } else {
             $redirectUrl = "/approval";

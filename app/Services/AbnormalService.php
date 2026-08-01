@@ -2,6 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\Role;
+use App\Enums\Lokasi;
+use App\Enums\JenisCheck;
+
 use App\Models\LaporanAbnormalModel;
 use App\Models\MesinModel;
 
@@ -16,7 +20,7 @@ class AbnormalService
      
         public function pdf($request)
     {
-        $lokasiFilter   = $request->getGet('lokasi') ?: 'MFG 1';
+        $lokasiFilter   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
         $searchFilter   = $request->getGet('search') ?: '';
         $kategoriFilter = $request->getGet('kategori') ?: 'Penerangan';
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
@@ -53,7 +57,7 @@ class AbnormalService
                            ->get()
                            ->getResultArray();
 
-        if ($lokasiFilter === 'MFG 2') {
+        if ($lokasiFilter === Lokasi::MFG2->value) {
             $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
         } else {
             $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
@@ -77,11 +81,11 @@ class AbnormalService
 
     public function pdfAllCategories($request)
     {
-        $lokasiFilter   = $request->getGet('lokasi') ?: 'MFG 1';
+        $lokasiFilter   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
         $searchFilter   = $request->getGet('search') ?: '';
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
 
-        if ($lokasiFilter === 'MFG 2') {
+        if ($lokasiFilter === Lokasi::MFG2->value) {
             $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
         } else {
             $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
@@ -143,7 +147,7 @@ class AbnormalService
         $filterLine = $request->getGet('filter_line') === 'all' ? '' : ($request->getGet('filter_line') ?: '');
         $filterKategori = $request->getGet('filter_kategori') === 'all' ? '' : ($request->getGet('filter_kategori') ?: '');
         
-        $lokasiList = ['MFG 1', 'MFG 2'];
+        $lokasiList = [Lokasi::MFG1->value, Lokasi::MFG2->value];
         
         $allReportsData = [];
         $db = \Config\Database::connect();
@@ -151,7 +155,7 @@ class AbnormalService
         foreach ($lokasiList as $lokasi) {
             if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
             
-            $categories = ($lokasi === 'MFG 2')
+            $categories = ($lokasi === Lokasi::MFG2->value)
                 ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor']
                 : ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
                 
@@ -210,7 +214,7 @@ class AbnormalService
             return $this->summary($request);
         }
 
-        $lokasiFilter   = $request->getGet('lokasi') ?: 'MFG 1';
+        $lokasiFilter   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
         $searchFilter   = $request->getGet('search') ?: '';
         $kategoriFilter = $request->getGet('kategori') ?: 'Penerangan';
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
@@ -248,7 +252,7 @@ class AbnormalService
                            ->get()
                            ->getResultArray();
 
-        if ($lokasiFilter === 'MFG 2') {
+        if ($lokasiFilter === Lokasi::MFG2->value) {
             $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
         } else {
             $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
@@ -279,7 +283,7 @@ class AbnormalService
 
         $allPics = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
         $masterPic = array_filter($allPics, function($p) {
-            return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), 'leader') === false;
+            return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), Role::Leader->value) === false;
         });
 
         return [
@@ -343,8 +347,8 @@ class AbnormalService
         }
 
         $kategoriByLokasi = [
-            'MFG 1' => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
-            'MFG 2' => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor']
+            Lokasi::MFG1->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
+            Lokasi::MFG2->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor']
         ];
 
         // List bulan
@@ -515,7 +519,7 @@ class AbnormalService
             return $this->summaryOverhaul($request);
         }
 
-        $lokasiFilter = $request->getGet('lokasi') ?: 'MFG 1';
+        $lokasiFilter = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
         $searchFilter = $request->getGet('search') ?: '';
         $bulanFilter  = $request->getGet('bulan') ?: date('Y-m');
 
@@ -525,7 +529,7 @@ class AbnormalService
                       ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
                       ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left');
                       
-        $builder->where('transaksi_check.jenis_check', 'Overhaul');
+        $builder->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value);
 
         if (!empty($lokasiFilter) && $lokasiFilter !== 'all') {
             $builder->where('master_mesin.lokasi', $lokasiFilter);
@@ -551,7 +555,7 @@ class AbnormalService
 
         $allPics2 = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
         $masterPic = array_filter($allPics2, function($p) {
-            return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), 'leader') === false;
+            return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), Role::Leader->value) === false;
         });
 
         $bulanList = [];
@@ -588,8 +592,8 @@ class AbnormalService
         $db = \Config\Database::connect();
         
         $linesByLokasi = [
-            'MFG 1' => ['Brother', 'Milling', 'Kasahara', 'Knurling', 'Osl', 'Centering Grinding', 'Double Milling', 'Double Center Drill'],
-            'MFG 2' => ['Brother', 'Osl', 'Kasahara', 'Buffing', 'Thread', 'Burnishing']
+            Lokasi::MFG1->value => ['Brother', 'Milling', 'Kasahara', 'Knurling', 'Osl', 'Centering Grinding', 'Double Milling', 'Double Center Drill'],
+            Lokasi::MFG2->value => ['Brother', 'Osl', 'Kasahara', 'Buffing', 'Thread', 'Burnishing']
         ];
 
         $bulan = date('Y-m');
@@ -602,7 +606,7 @@ class AbnormalService
                       ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
                       ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left');
                       
-        $builder->where('transaksi_check.jenis_check', 'Overhaul');
+        $builder->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value);
 
         if (!empty($bulan)) {
             $builder->like('laporan_abnormal.pengecekan_tanggal', $bulan . '-', 'after');
@@ -704,7 +708,7 @@ class AbnormalService
 
     public function pdfOverhaul($request)
     {
-        $lokasiFilter   = $request->getGet('lokasi') ?: 'MFG 1';
+        $lokasiFilter   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
         $searchFilter   = $request->getGet('search') ?: '';
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
 
@@ -713,7 +717,7 @@ class AbnormalService
                       ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
                       ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
                       ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
-                      ->where('transaksi_check.jenis_check', 'Overhaul');
+                      ->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value);
 
         if (!empty($lokasiFilter) && $lokasiFilter !== 'all') {
             $builder->where('master_mesin.lokasi', $lokasiFilter);
@@ -744,7 +748,7 @@ class AbnormalService
             'searchFilter'   => $searchFilter,
             'bulanFilter'    => $bulanFilter,
             'isOverhaul'     => true,
-            'kategoriFilter' => 'Overhaul' // Dummy untuk file PDF jika diperlukan
+            'kategoriFilter' => JenisCheck::Overhaul->value // Dummy untuk file PDF jika diperlukan
         ];
 
     }
@@ -755,18 +759,18 @@ class AbnormalService
         $db = \Config\Database::connect();
         
         $linesByLokasi = [
-            'MFG 1' => ['Brother', 'Milling', 'Kasahara', 'Knurling', 'Osl', 'Centering Grinding', 'Double Milling', 'Double Center Drill'],
-            'MFG 2' => ['Brother', 'Osl', 'Kasahara', 'Buffing', 'Thread', 'Burnishing']
+            Lokasi::MFG1->value => ['Brother', 'Milling', 'Kasahara', 'Knurling', 'Osl', 'Centering Grinding', 'Double Milling', 'Double Center Drill'],
+            Lokasi::MFG2->value => ['Brother', 'Osl', 'Kasahara', 'Buffing', 'Thread', 'Burnishing']
         ];
         
         $allData = [];
         
-        foreach (['MFG 1', 'MFG 2'] as $lokasi) {
+        foreach ([Lokasi::MFG1->value, Lokasi::MFG2->value] as $lokasi) {
             $builder = $db->table('laporan_abnormal')
                           ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi')
                           ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
                           ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
-                          ->where('transaksi_check.jenis_check', 'Overhaul')
+                          ->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value)
                           ->where('master_mesin.lokasi', $lokasi)
                           ->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after');
                           
@@ -804,7 +808,7 @@ class AbnormalService
                              ->select('SUM(CASE WHEN laporan_abnormal.action IS NULL OR laporan_abnormal.action = \'\' THEN 1 ELSE 0 END) as totalOpen,
                                      COUNT(laporan_abnormal.id_abnormal) as totalAll')
                              ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
-                             ->where('transaksi_check.jenis_check', 'Overhaul')
+                             ->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value)
                              ->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after')
                              ->get()->getRowArray();
                              

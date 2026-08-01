@@ -2,6 +2,9 @@
 
 namespace App\Controllers;
 
+use App\Enums\Role;
+use App\Enums\Lokasi;
+
 use App\Models\TransaksiCheckModel;
 
 class LaporanController extends BaseController
@@ -9,8 +12,8 @@ class LaporanController extends BaseController
     public function durasi()
     {
         $role = session()->get('role');
-        $lokasiName = ($role === 'leader') ? session()->get('lokasi') : ($this->request->getGet('lokasi') === 'all' ? null : ($this->request->getGet('lokasi') ?: null));
-        $userLine = ($role === 'leader') ? session()->get('line') : null;
+        $lokasiName = ($role === Role::Leader->value) ? session()->get('lokasi') : ($this->request->getGet('lokasi') === 'all' ? null : ($this->request->getGet('lokasi') ?: null));
+        $userLine = ($role === Role::Leader->value) ? session()->get('line') : null;
 
         $filters = [
             'lokasi'      => $lokasiName,
@@ -40,9 +43,9 @@ class LaporanController extends BaseController
         $daftarMesin = $mesinModel->getByLokasi($lokasiName);
 
         $availableLines = [];
-        if ($lokasiName === 'MFG 1') {
+        if ($lokasiName === Lokasi::MFG1->value) {
             $availableLines = ['Line 1', 'Line 2', 'Line 3'];
-        } elseif ($lokasiName === 'MFG 2') {
+        } elseif ($lokasiName === Lokasi::MFG2->value) {
             $availableLines = ['CG', 'Second'];
         }
 
@@ -91,8 +94,8 @@ class LaporanController extends BaseController
     public function durasiPdf()
     {
         $role = session()->get('role');
-        $lokasiName = ($role === 'leader') ? session()->get('lokasi') : ($this->request->getGet('lokasi') === 'all' ? null : ($this->request->getGet('lokasi') ?: null));
-        $userLine = ($role === 'leader') ? session()->get('line') : null;
+        $lokasiName = ($role === Role::Leader->value) ? session()->get('lokasi') : ($this->request->getGet('lokasi') === 'all' ? null : ($this->request->getGet('lokasi') ?: null));
+        $userLine = ($role === Role::Leader->value) ? session()->get('line') : null;
 
         $filters = [
             'lokasi'      => $lokasiName,

@@ -23,7 +23,7 @@ class MesinController extends BaseController
         $builder = $this->model->orderBy('lokasi', 'ASC')->orderBy('no_mesin', 'ASC');
         
         // Filter by user role (Leader only sees their own location)
-        if ($role === 'leader' && $lokasiUser) {
+        if ($role === Role::Leader->value && $lokasiUser) {
             $builder->where('lokasi', $lokasiUser);
         }
 
@@ -43,7 +43,7 @@ class MesinController extends BaseController
 
         if (!empty($lokasi) && $lokasi !== 'all') {
             // Ensure leader cannot override their own location restriction
-            if ($role !== 'leader' || ($role === 'leader' && $lokasi === $lokasiUser)) {
+            if ($role !== Role::Leader->value || ($role === Role::Leader->value && $lokasi === $lokasiUser)) {
                 $builder->where('lokasi', $lokasi);
             }
         }
@@ -156,7 +156,7 @@ class MesinController extends BaseController
         $lokasiUser = session()->get('lokasi');
         $builder = $this->model->orderBy('lokasi', 'ASC')->orderBy('no_mesin', 'ASC');
         
-        if ($role === 'leader' && $lokasiUser) {
+        if ($role === Role::Leader->value && $lokasiUser) {
             $builder->where('lokasi', $lokasiUser);
         }
 
@@ -302,13 +302,13 @@ class MesinController extends BaseController
                     continue;
                 }
                 
-                if ($lokasi !== 'MFG 2' && (empty($typeMesin) || empty($serialNomor))) {
+                if ($lokasi !== Lokasi::MFG2->value && (empty($typeMesin) || empty($serialNomor))) {
                     $errors[] = "Baris {$row}: Type Mesin dan Serial Nomor wajib diisi untuk lokasi selain MFG 2.";
                     continue;
                 }
                 
-                if (! in_array($lokasi, ['MFG 1', 'MFG 2'], true)) {
-                    $errors[] = "Baris {$row}: Lokasi '{$lokasi}' tidak valid. Harus 'MFG 1' atau 'MFG 2'.";
+                if (! in_array($lokasi, [Lokasi::MFG1->value, Lokasi::MFG2->value], true)) {
+                    $errors[] = "Baris {$row}: Lokasi '{$lokasi}' tidak valid. Harus Lokasi::MFG1->value atau 'MFG 2'.";
                     continue;
                 }
                 
@@ -355,8 +355,8 @@ class MesinController extends BaseController
     {
         return [
             'no_mesin'        => 'required|max_length[50]',
-            'type_mesin'      => ($this->request->getPost('lokasi') === 'MFG 2' ? 'permit_empty|max_length[100]' : 'required|max_length[100]'),
-            'serial_nomor'    => ($this->request->getPost('lokasi') === 'MFG 2' ? 'permit_empty|max_length[100]' : 'required|max_length[100]'),
+            'type_mesin'      => ($this->request->getPost('lokasi') === Lokasi::MFG2->value ? 'permit_empty|max_length[100]' : 'required|max_length[100]'),
+            'serial_nomor'    => ($this->request->getPost('lokasi') === Lokasi::MFG2->value ? 'permit_empty|max_length[100]' : 'required|max_length[100]'),
             'lokasi'          => 'required|in_list[MFG 1,MFG 2]',
             'line'            => 'permit_empty|string|max_length[50]',
             'bar_feeder_type' => 'permit_empty|string|max_length[100]',
@@ -373,7 +373,7 @@ class MesinController extends BaseController
         $lokasi = session()->get('lokasi');
         $builder = $this->model->orderBy('lokasi', 'ASC')->orderBy('no_mesin', 'ASC');
         
-        if ($role === 'leader' && $lokasi) {
+        if ($role === Role::Leader->value && $lokasi) {
             $builder->where('lokasi', $lokasi);
         }
 

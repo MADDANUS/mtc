@@ -193,13 +193,13 @@ class PicController extends BaseController
                 
                 // Normalisasi Role PIC dari excel
                 $rolePicLower = strtolower(str_replace(' ', '', $rolePic));
-                if (strpos($rolePicLower, 'leader') !== false) {
+                if (strpos($rolePicLower, Role::Leader->value) !== false) {
                     if (strpos($rolePicLower, 'line1') !== false || $rolePicLower === 'leader1') $rolePic = 'leader1';
                     elseif (strpos($rolePicLower, 'line2') !== false || $rolePicLower === 'leader2') $rolePic = 'leader2';
                     elseif (strpos($rolePicLower, 'line3') !== false || $rolePicLower === 'leader3') $rolePic = 'leader3';
                     elseif (strpos($rolePicLower, 'cg') !== false) $rolePic = 'leadercg';
                     elseif (strpos($rolePicLower, 'sc') !== false || strpos($rolePicLower, 'second') !== false) $rolePic = 'leadersc';
-                } elseif ($rolePicLower === 'magang') {
+                } elseif ($rolePicLower === Role::Magang->value) {
                     $rolePic = 'Magang';
                 } else {
                     $rolePic = 'Staff';

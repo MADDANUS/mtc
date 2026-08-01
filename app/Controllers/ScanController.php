@@ -2,6 +2,8 @@
 
 namespace App\Controllers;
 
+use App\Enums\Lokasi;
+
 use App\Models\MesinModel;
 
 class ScanController extends BaseController
@@ -36,7 +38,7 @@ class ScanController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Mesin tidak ditemukan.');
         }
 
-        // Ubah lokasi ke format slug, misal 'MFG 1' -> 'mfg1'
+        // Ubah lokasi ke format slug, misal Lokasi::MFG1->value -> 'mfg1'
         $lokasiSlug = strtolower(str_replace(' ', '', $mesin['lokasi']));
 
         return view('scan/mesin', [

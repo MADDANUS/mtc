@@ -2,6 +2,10 @@
 
 namespace App\Controllers;
 
+use App\Enums\Role;
+use App\Enums\Lokasi;
+use App\Enums\JenisCheck;
+
 use App\Models\TransaksiCheckDetailModel;
 use App\Models\TransaksiCheckModel;
 use App\Models\MesinModel;
@@ -23,10 +27,10 @@ class RiwayatController extends BaseController
     private function resolveLokasi(string $slug): ?string
     {
         return match (strtolower($slug)) {
-            'mfg2'  => 'MFG 2',
-            'mfg1'  => 'MFG 1',
+            'mfg2'  => Lokasi::MFG2->value,
+            'mfg1'  => Lokasi::MFG1->value,
             'semua' => null,
-            default => 'MFG 1',
+            default => Lokasi::MFG1->value,
         };
     }
 
@@ -48,7 +52,7 @@ class RiwayatController extends BaseController
         $lokasiName = $this->resolveLokasi($lokasiSlug);
         
         // Validasi lokasi khusus untuk Leader Produksi
-        if (session()->get('role') === 'leader') {
+        if (session()->get('role') === Role::Leader->value) {
             $userLokasi = session()->get('lokasi');
             // Jika leader mencoba akses 'semua' atau lokasi yang bukan miliknya
             if ($userLokasi && $userLokasi !== $lokasiName) {
@@ -69,7 +73,7 @@ class RiwayatController extends BaseController
         $daftarMesin = $mesinModel->getByLokasi($lokasiName);
 
         // Ambil input filter pencarian
-        $userLine = (session()->get('role') === 'leader') ? session()->get('line') : null;
+        $userLine = (session()->get('role') === Role::Leader->value) ? session()->get('line') : null;
 
         // History hanya menampilkan dokumen yang sudah Approved Final
         // Admin bisa override via status=all
@@ -81,12 +85,12 @@ class RiwayatController extends BaseController
         } else {
             // Default history visibility based on role
             $role = session()->get('role');
-            if ($role === 'leader') {
+            if ($role === Role::Leader->value) {
                 $statusFilter = ['Approved L1', 'Approved L2', 'Approved', 'Approved Final'];
-            } elseif ($role === 'sheadprd') {
+            } elseif ($role === Role::Sheadprd->value) {
                 $statusFilter = ['Approved L2', 'Approved', 'Approved Final'];
-            } elseif ($role === 'sheadmtc') { $statusFilter = ['Approved', 'Approved Final'];
-            } elseif ($role === 'magang') { $statusFilter = null; } else { $statusFilter = ['Approved', 'Approved Final']; }
+            } elseif ($role === Role::Sheadmtc->value) { $statusFilter = ['Approved', 'Approved Final'];
+            } elseif ($role === Role::Magang->value) { $statusFilter = null; } else { $statusFilter = ['Approved', 'Approved Final']; }
         }
         
         $filters = [
@@ -110,7 +114,7 @@ class RiwayatController extends BaseController
         
         // Jenis check pada transaksi_check bisa "Checklist Report", "Preventive", "Overhaul", "Inspection Report"
         // Tapi di master_parameter_check cuma ada "Preventive" dan "Overhaul".
-        $jenisDb = (in_array(strtolower($filters['jenis_check']), ['preventive', 'checklist report'])) ? 'Preventive' : 'Overhaul';
+        $jenisDb = (in_array(strtolower($filters['jenis_check']), ['preventive', 'checklist report'])) ? JenisCheck::Preventive->value : JenisCheck::Overhaul->value;
         
         $catQuery = $parameterModel->select('kategori');
         if ($lokasiName !== null) {
@@ -126,13 +130,13 @@ class RiwayatController extends BaseController
             $categoriesList[$slug] = $cat['kategori'];
         }
 
-        $jenisLabel = $filters['jenis_check'] === 'Preventive' ? 'Checklist Report' : ($filters['jenis_check'] === 'Overhaul' ? 'Inspection Report' : 'Pengecekan');
+        $jenisLabel = $filters['jenis_check'] === JenisCheck::Preventive->value ? 'Checklist Report' : ($filters['jenis_check'] === JenisCheck::Overhaul->value ? 'Inspection Report' : 'Pengecekan');
         $title = "Riwayat {$jenisLabel} — {$lokasiName}";
 
         $availableLines = [];
-        if ($lokasiName === 'MFG 1') {
+        if ($lokasiName === Lokasi::MFG1->value) {
             $availableLines = ['Line 1', 'Line 2', 'Line 3'];
-        } elseif ($lokasiName === 'MFG 2') {
+        } elseif ($lokasiName === Lokasi::MFG2->value) {
             $availableLines = ['CG', 'Second'];
         } else {
             $availableLines = ['Line 1', 'Line 2', 'Line 3', 'CG', 'Second'];
@@ -279,14 +283,14 @@ class RiwayatController extends BaseController
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
-        $filename = 'Laporan_' . ($data['header']['jenis_check'] === 'Preventive' ? 'Checklist' : 'Inspection') . '_' . $data['header']['no_mesin'] . '_' . date('Ymd', strtotime($data['header']['waktu_mulai'])) . '.pdf';
+        $filename = 'Laporan_' . ($data['header']['jenis_check'] === JenisCheck::Preventive->value ? 'Checklist' : 'Inspection') . '_' . $data['header']['no_mesin'] . '_' . date('Ymd', strtotime($data['header']['waktu_mulai'])) . '.pdf';
         $dompdf->stream($filename, ["Attachment" => true]);
         exit();
     }
 
     public function edit(int $id)
     {
-        if (session()->get('role') !== 'admin') {
+        if (session()->get('role') !== Role::Admin->value) {
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
         $riwayatService = new \App\Services\RiwayatService();
@@ -299,7 +303,7 @@ class RiwayatController extends BaseController
 
     public function update(int $id)
     {
-        if (session()->get('role') !== 'admin') {
+        if (session()->get('role') !== Role::Admin->value) {
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
         $riwayatService = new \App\Services\RiwayatService();
@@ -315,7 +319,7 @@ class RiwayatController extends BaseController
 
     public function delete(int $id)
     {
-        if (session()->get('role') !== 'admin') {
+        if (session()->get('role') !== Role::Admin->value) {
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
         $riwayatService = new \App\Services\RiwayatService();

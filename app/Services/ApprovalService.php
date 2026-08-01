@@ -2,6 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\Role;
+use App\Enums\Lokasi;
+use App\Enums\JenisCheck;
+
 use App\Models\TransaksiCheckModel;
 use App\Models\MesinModel;
 
@@ -44,30 +48,30 @@ class ApprovalService
             ->join('master_mesin mm', 'mm.id_mesin = tc.id_mesin', 'left');
 
         // Filter berdasarkan role
-        if ($role === 'leader') {
-            $txBuilder->where('tc.jenis_check', 'Overhaul')
+        if ($role === Role::Leader->value) {
+            $txBuilder->where('tc.jenis_check', JenisCheck::Overhaul->value)
                       ->where('tc.status', 'Pending');
             if ($line) {
                 $txBuilder->where('mm.line', $line);
             }
-        } elseif ($role === 'sheadprd') {
-            $txBuilder->whereIn('tc.jenis_check', ['Overhaul', 'Preventive'])
+        } elseif ($role === Role::Sheadprd->value) {
+            $txBuilder->whereIn('tc.jenis_check', [JenisCheck::Overhaul->value, JenisCheck::Preventive->value])
                       ->where('tc.status', 'Approved L1');
-        } elseif ($role === 'sheadmtc') {
-            $txBuilder->whereIn('tc.jenis_check', ['Overhaul', 'Preventive'])
+        } elseif ($role === Role::Sheadmtc->value) {
+            $txBuilder->whereIn('tc.jenis_check', [JenisCheck::Overhaul->value, JenisCheck::Preventive->value])
                       ->where('tc.status', 'Approved L2');
-        } elseif ($role === 'member') {
+        } elseif ($role === Role::Member->value) {
             $txBuilder->groupStart()
                         ->groupStart()
-                            ->where('tc.jenis_check', 'Preventive')
+                            ->where('tc.jenis_check', JenisCheck::Preventive->value)
                             ->where('tc.status', 'Pending')
                         ->groupEnd()
                         ->orGroupStart()
-                            ->where('tc.jenis_check', 'Overhaul')
+                            ->where('tc.jenis_check', JenisCheck::Overhaul->value)
                             ->whereIn('tc.status', ['Pending', 'Approved L1', 'Approved L2'])
                         ->groupEnd()
                       ->groupEnd();
-        } elseif ($role === 'admin') {
+        } elseif ($role === Role::Admin->value) {
             $txBuilder->whereNotIn('tc.status', ['Approved']);
         } else {
             return redirect()->to('/dashboard')->with('error', 'Akses tidak diizinkan.');
@@ -79,7 +83,7 @@ class ApprovalService
         // Bagian A: yang sudah ada di approval_bulanan (Pending, Approved L1/L2)
         $kontrolRows = [];
 
-        if (in_array($role, ['member', 'admin', 'sheadprd', 'sheadmtc'], true)) {
+        if (in_array($role, [Role::Member->value, Role::Admin->value, Role::Sheadprd->value, Role::Sheadmtc->value], true)) {
 
             // -- A. Kontrol yang sudah di-submit ke approval_bulanan (ada status Pending/L1/L2) --
             $kontrolBuilder = $db->table('approval_bulanan ab')
@@ -100,11 +104,11 @@ class ApprovalService
                     NULL             AS persen
                 ', false);
 
-            if ($role === 'sheadprd') {
+            if ($role === Role::Sheadprd->value) {
                 $kontrolBuilder->where('ab.status', 'Approved L1');
-            } elseif ($role === 'sheadmtc') {
+            } elseif ($role === Role::Sheadmtc->value) {
                 $kontrolBuilder->where('ab.status', 'Approved L2');
-            } elseif (in_array($role, ['member', 'admin'])) {
+            } elseif (in_array($role, [Role::Member->value, Role::Admin->value])) {
                 // Tampilkan semua kecuali yang sudah Final (Final → masuk History)
                 $kontrolBuilder->whereNotIn('ab.status', ['Final', 'Approved Final']);
             }
@@ -114,7 +118,7 @@ class ApprovalService
             // -- B. Kontrol yang BELUM SELESAI diisi (belum ada di approval_bulanan) --
             // Hanya untuk role member & admin — agar bisa membuka dan melanjutkan pengisian
             $belumSelesaiRows = [];
-            if (in_array($role, ['member', 'admin'], true)) {
+            if (in_array($role, [Role::Member->value, Role::Admin->value], true)) {
 
                 // Ambil semua kombinasi lokasi/line/kategori/bulan yang sudah ada di ceklis_kontrol bulan ini
                 $bulanIni = date('Y-m');
@@ -131,8 +135,8 @@ class ApprovalService
 
                 // Kategori per lokasi
                 $kategoriByLokasi = [
-                    'MFG 1' => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
-                    'MFG 2' => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'],
+                    Lokasi::MFG1->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
+                    Lokasi::MFG2->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'],
                 ];
 
                 // Mesin yang sudah dicek bulan ini per lokasi/line/kategori
@@ -243,8 +247,8 @@ class ApprovalService
         $filtered = array_filter($allDocs, function($row) use ($filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin) {
             if ($filterJenis && $filterJenis !== 'all') {
                 $jenis = $row['jenis_check'] ?? '';
-                if ($filterJenis === 'Preventive' && strtolower($jenis) !== 'preventive') return false;
-                if ($filterJenis === 'Overhaul'   && strtolower($jenis) !== 'overhaul')   return false;
+                if ($filterJenis === JenisCheck::Preventive->value && strtolower($jenis) !== 'preventive') return false;
+                if ($filterJenis === JenisCheck::Overhaul->value   && strtolower($jenis) !== 'overhaul')   return false;
                 if ($filterJenis === 'kontrol'    && ($row['doc_source'] ?? '') !== 'kontrol') return false;
             }
             if ($filterBulan && $filterBulan !== 'all') {
@@ -256,9 +260,9 @@ class ApprovalService
                 $jenis  = $row['jenis_check'] ?? '';
                 
                 if ($filterStatus === 'Pending_Overhaul') {
-                    if ($status !== 'Pending' || $jenis !== 'Overhaul') return false;
+                    if ($status !== 'Pending' || $jenis !== JenisCheck::Overhaul->value) return false;
                 } elseif ($filterStatus === 'Pending_Preventive') {
-                    if ($status !== 'Pending' || $jenis !== 'Preventive') return false;
+                    if ($status !== 'Pending' || $jenis !== JenisCheck::Preventive->value) return false;
                 } else {
                     if ($status !== $filterStatus) return false;
                 }

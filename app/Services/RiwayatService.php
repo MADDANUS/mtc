@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Enums\Role;
+use App\Enums\JenisCheck;
+
 use App\Models\TransaksiCheckModel;
 use App\Models\TransaksiCheckDetailModel;
 use CodeIgniter\I18n\Time;
@@ -10,7 +13,7 @@ class RiwayatService
 {
     public function validateLeaderAccess(?string $lokasiName): ?string
     {
-        if (session()->get('role') === 'leader') {
+        if (session()->get('role') === Role::Leader->value) {
             $userLokasi = session()->get('lokasi');
             if ($userLokasi && $userLokasi !== $lokasiName) {
                 if ($lokasiName === null) {
@@ -26,7 +29,7 @@ class RiwayatService
     public function getPdfAllData(?string $lokasiName, array $getParams): array
     {
         $transaksiModel = new TransaksiCheckModel();
-        $userLine = (session()->get('role') === 'leader') ? session()->get('line') : null;
+        $userLine = (session()->get('role') === Role::Leader->value) ? session()->get('line') : null;
         
         $filters = [
             'lokasi'      => $lokasiName,
@@ -57,7 +60,7 @@ class RiwayatService
             }
         }
         
-        $jenisLabel = $filters['jenis_check'] === 'Preventive' ? 'Checklist Report' : ($filters['jenis_check'] === 'Overhaul' ? 'Inspection Report' : 'Pengecekan');
+        $jenisLabel = $filters['jenis_check'] === JenisCheck::Preventive->value ? 'Checklist Report' : ($filters['jenis_check'] === JenisCheck::Overhaul->value ? 'Inspection Report' : 'Pengecekan');
 
         return [
             'title'      => "Riwayat {$jenisLabel} - {$lokasiName}",
@@ -79,10 +82,10 @@ class RiwayatService
 
         $approvalStatus = $header['status'] ?? 'Pending';
         
-        if ($roleSession === 'sheadprd' && $approvalStatus === 'Pending') {
+        if ($roleSession === Role::Sheadprd->value && $approvalStatus === 'Pending') {
             throw new \Exception('Dokumen ini belum siap (Masih menunggu Leader).');
         }
-        if ($roleSession === 'sheadmtc' && in_array($approvalStatus, ['Pending', 'Approved L1'], true)) {
+        if ($roleSession === Role::Sheadmtc->value && in_array($approvalStatus, ['Pending', 'Approved L1'], true)) {
             throw new \Exception('Dokumen ini belum siap (Masih menunggu SHead Produksi).');
         }
 
@@ -96,7 +99,7 @@ class RiwayatService
         }
 
         $leaderPicModel = new \App\Models\PicModel();
-        if ($roleSession === 'leader') {
+        if ($roleSession === Role::Leader->value) {
             $userLine = session()->get('line');
             if ($userLine === 'Line 1') {
                 $leaderPicModel->where('role_pic', 'leader1');
@@ -109,10 +112,10 @@ class RiwayatService
             } elseif ($userLine === 'Second') {
                 $leaderPicModel->where('role_pic', 'leadersc');
             } else {
-                $leaderPicModel->like('role_pic', 'leader', 'both');
+                $leaderPicModel->like('role_pic', Role::Leader->value, 'both');
             }
         } else {
-            $leaderPicModel->like('role_pic', 'leader', 'both');
+            $leaderPicModel->like('role_pic', Role::Leader->value, 'both');
         }
         $leaderPicList = $leaderPicModel->findAll();
 
@@ -235,7 +238,7 @@ class RiwayatService
             'daftarMesin'       => $mesinModel->getByLokasi($header['lokasi_check']),
             'rows'              => $parameterModel->getFormRows($header['lokasi_check'], $header['jenis_check'], $header['kategori']),
             'masterPic'         => array_filter((new \App\Models\PicModel())->findAll(), function($p) {
-                return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), 'leader') === false;
+                return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), Role::Leader->value) === false;
             }),
             'staffPic'          => (new \App\Models\PicModel())->where('role_pic', 'Staff')->findAll(),
             'namaPic'           => $header['nama_pic'],
@@ -276,7 +279,7 @@ class RiwayatService
 
 public function updateTransaksi(int $id, $request, $validation)
     {
-        if (session()->get('role') !== 'admin') {
+        if (session()->get('role') !== Role::Admin->value) {
             return ["status" => false, "message" => 'Akses ditolak.'];
         }
 
@@ -480,7 +483,7 @@ public function updateTransaksi(int $id, $request, $validation)
 public function approveTransaksi($idTransaksi, $request)
     {
         $role = session()->get('role');
-        if (!in_array($role, ['member', 'sheadprd', 'sheadmtc', 'admin', 'leader'], true)) {
+        if (!in_array($role, [Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, Role::Leader->value], true)) {
             return ["status" => false, "message" => 'Anda tidak memiliki akses untuk menyetujui laporan.'];
         }
 
@@ -491,7 +494,7 @@ public function approveTransaksi($idTransaksi, $request)
             return ["status" => false, "message" => 'Laporan tidak ditemukan.'];
         }
 
-        if ($role === 'leader') {
+        if ($role === Role::Leader->value) {
             $mesinModel = new \App\Models\MesinModel();
             $mesinInfo = $mesinModel->find($transaksi['id_mesin']);
             
@@ -520,14 +523,14 @@ public function approveTransaksi($idTransaksi, $request)
 
         if ($jenisSlug === 'overhaul') {
             // MULTI-LEVEL APPROVAL UNTUK OVERHAUL
-            if ($role === 'admin') {
+            if ($role === Role::Admin->value) {
                 $newStatus = 'Approved';
                 $updateData = [
                     'status' => 'Approved',
                     'approved_by' => $userId,
                     'approved_at' => $now,
                 ];
-            } elseif ($role === 'leader') {
+            } elseif ($role === Role::Leader->value) {
                 if ($transaksi['status'] !== 'Pending') {
                     return ["status" => false, "message" => 'Laporan sudah diperiksa (bukan status Pending).'];
                 }
@@ -544,7 +547,7 @@ public function approveTransaksi($idTransaksi, $request)
                     'leader_nama' => trim($leaderNama),
                     'approval_l1_at' => $now,
                 ];
-            } elseif ($role === 'sheadprd') {
+            } elseif ($role === Role::Sheadprd->value) {
                 if ($transaksi['status'] !== 'Approved L1') {
                     return ["status" => false, "message" => 'Laporan belum diperiksa oleh Leader.'];
                 }
@@ -554,7 +557,7 @@ public function approveTransaksi($idTransaksi, $request)
                     'approval_l2_by' => $userId,
                     'approval_l2_at' => $now,
                 ];
-            } elseif ($role === 'sheadmtc') {
+            } elseif ($role === Role::Sheadmtc->value) {
                 if ($transaksi['status'] !== 'Approved L2') {
                     return ["status" => false, "message" => 'Laporan belum disetujui oleh S. Head Produksi.'];
                 }
@@ -569,7 +572,7 @@ public function approveTransaksi($idTransaksi, $request)
             }
         } else {
             // PREVENTIVE (SINGLE-LEVEL)
-            if (!in_array($role, ['admin', 'member'], true)) {
+            if (!in_array($role, [Role::Admin->value, Role::Member->value], true)) {
                 return ["status" => false, "message" => 'Hanya Admin atau Member MTC yang dapat menyetujui laporan Preventive.'];
             }
             
