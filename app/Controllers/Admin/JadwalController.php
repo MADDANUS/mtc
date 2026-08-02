@@ -7,9 +7,14 @@ use App\Models\JadwalPreventiveModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use App\Traits\AdminCrudTrait;
+use App\Enums\Lokasi;
+use App\Enums\Role;
+use App\Enums\JenisCheck;
 
 class JadwalController extends BaseController
 {
+    use AdminCrudTrait;
     protected JadwalPreventiveModel $jadwalModel;
 
     public function __construct()
@@ -112,7 +117,7 @@ class JadwalController extends BaseController
         ];
 
         if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return $this->redirectValidationError();
         }
 
         $lokasi         = $this->request->getPost('lokasi');
@@ -146,7 +151,7 @@ class JadwalController extends BaseController
             'tanggal_rencana' => $tanggalRencana,
         ]);
 
-        return redirect()->to('/admin/jadwal')->with('success', 'Jadwal preventive berhasil disimpan.');
+        return $this->redirectSuccess('/admin/jadwal', 'Jadwal preventive berhasil disimpan.');
     }
 
     /**
@@ -161,7 +166,7 @@ class JadwalController extends BaseController
         $schedule = $this->jadwalModel->find($id);
 
         if (!$schedule) {
-            return redirect()->back()->with('error', 'Jadwal tidak ditemukan.');
+            return $this->redirectNotFound('/admin/jadwal', 'Jadwal');
         }
 
         // Cek apakah sudah ada checklist (transaksi_check) yang dibuat untuk jadwal ini
@@ -180,7 +185,7 @@ class JadwalController extends BaseController
 
         $this->jadwalModel->delete($id);
 
-        return redirect()->to('/admin/jadwal')->with('success', 'Jadwal preventive berhasil dihapus.');
+        return $this->redirectSuccess('/admin/jadwal', 'Jadwal preventive berhasil dihapus.');
     }
 
     /**
