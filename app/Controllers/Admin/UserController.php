@@ -4,9 +4,11 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\UserModel;
+use App\Traits\AdminCrudTrait;
 
 class UserController extends BaseController
 {
+    use AdminCrudTrait;
     protected UserModel $model;
 
     public function __construct()
@@ -37,7 +39,7 @@ class UserController extends BaseController
         $rules['password']   = 'required|min_length[6]';
 
         if (! $this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return $this->redirectValidationError();
         }
 
         $this->model->insert([
@@ -48,14 +50,14 @@ class UserController extends BaseController
             'line'     => $this->request->getPost('line') ?: null,
         ]);
 
-        return redirect()->to('/admin/user')->with('success', 'User berhasil ditambahkan.');
+        return $this->redirectSuccess('/admin/user', 'User berhasil ditambahkan.');
     }
 
     public function edit(int $id)
     {
         $user = $this->model->find($id);
         if (! $user) {
-            return redirect()->to('/admin/user')->with('error', 'User tidak ditemukan.');
+            return $this->redirectNotFound('/admin/user', 'User');
         }
 
         return view('admin/user/form', [
@@ -68,7 +70,7 @@ class UserController extends BaseController
     {
         $existing = $this->model->find($id);
         if (! $existing) {
-            return redirect()->to('/admin/user')->with('error', 'User tidak ditemukan.');
+            return $this->redirectNotFound('/admin/user', 'User');
         }
 
         $rules = $this->rules();
@@ -79,7 +81,7 @@ class UserController extends BaseController
         }
 
         if (! $this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return $this->redirectValidationError();
         }
 
         $data = [
@@ -95,24 +97,24 @@ class UserController extends BaseController
 
         $this->model->update($id, $data);
 
-        return redirect()->to('/admin/user')->with('success', 'User berhasil diperbarui.');
+        return $this->redirectSuccess('/admin/user', 'User berhasil diperbarui.');
     }
 
     public function delete(int $id)
     {
         if ((int) $id === (int) session()->get('user_id')) {
-            return redirect()->to('/admin/user')->with('error', 'Tidak bisa menghapus akun yang sedang login.');
+            return $this->redirectError('/admin/user', 'Tidak bisa menghapus akun yang sedang login.');
         }
 
         if (! $this->model->find($id)) {
-            return redirect()->to('/admin/user')->with('error', 'User tidak ditemukan.');
+            return $this->redirectNotFound('/admin/user', 'User');
         }
 
         try {
             $this->model->delete($id);
-            return redirect()->to('/admin/user')->with('success', 'User berhasil dihapus.');
+            return $this->redirectSuccess('/admin/user', 'User berhasil dihapus.');
         } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
-            return redirect()->to('/admin/user')->with('error', 'User ini tidak bisa dihapus karena memiliki data transaksi atau riwayat pengecekan terkait.');
+            return $this->redirectError('/admin/user', 'User ini tidak bisa dihapus karena memiliki data transaksi atau riwayat pengecekan terkait.');
         }
     }
 
