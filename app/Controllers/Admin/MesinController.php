@@ -6,9 +6,11 @@ use App\Controllers\BaseController;
 use App\Models\MesinModel;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use App\Traits\AdminCrudTrait;
 
 class MesinController extends BaseController
 {
+    use AdminCrudTrait;
     protected MesinModel $model;
 
     public function __construct()
@@ -82,7 +84,7 @@ class MesinController extends BaseController
     public function store()
     {
         if (! $this->validate($this->rules())) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return $this->redirectValidationError();
         }
 
         $this->model->insert([
@@ -96,7 +98,7 @@ class MesinController extends BaseController
         ]);
 
         $redirectUrl = session()->get('last_mesin_url') ?? '/admin/mesin';
-        return redirect()->to($redirectUrl)->with('success', 'Mesin berhasil ditambahkan.');
+        return $this->redirectSuccess($redirectUrl, 'Mesin berhasil ditambahkan.');
     }
 
     public function edit(int $id)
@@ -104,7 +106,7 @@ class MesinController extends BaseController
         $mesin = $this->model->find($id);
         if (! $mesin) {
             $redirectUrl = session()->get('last_mesin_url') ?? '/admin/mesin';
-            return redirect()->to($redirectUrl)->with('error', 'Mesin tidak ditemukan.');
+            return $this->redirectNotFound($redirectUrl, 'Mesin');
         }
 
         return view('admin/mesin/form', [
@@ -118,11 +120,11 @@ class MesinController extends BaseController
         $redirectUrl = session()->get('last_mesin_url') ?? '/admin/mesin';
 
         if (! $this->model->find($id)) {
-            return redirect()->to($redirectUrl)->with('error', 'Mesin tidak ditemukan.');
+            return $this->redirectNotFound($redirectUrl, 'Mesin');
         }
 
         if (! $this->validate($this->rules())) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return $this->redirectValidationError();
         }
 
         $this->model->update($id, [
@@ -135,7 +137,7 @@ class MesinController extends BaseController
             'jenis'           => $this->request->getPost('jenis') ?: null,
         ]);
 
-        return redirect()->to($redirectUrl)->with('success', 'Mesin berhasil diperbarui.');
+        return $this->redirectSuccess($redirectUrl, 'Mesin berhasil diperbarui.');
     }
 
     public function delete(int $id)
@@ -143,11 +145,11 @@ class MesinController extends BaseController
         $redirectUrl = session()->get('last_mesin_url') ?? '/admin/mesin';
 
         if (! $this->model->find($id)) {
-            return redirect()->to($redirectUrl)->with('error', 'Mesin tidak ditemukan.');
+            return $this->redirectNotFound($redirectUrl, 'Mesin');
         }
 
         $this->model->delete($id);
-        return redirect()->to($redirectUrl)->with('success', 'Mesin berhasil dihapus.');
+        return $this->redirectSuccess($redirectUrl, 'Mesin berhasil dihapus.');
     }
 
     public function export()
