@@ -58,7 +58,7 @@ class TransaksiCheckModel extends Model
     /**
      * Daftar riwayat transaksi terfilter (join users + master_mesin), terbaru dulu.
      */
-    public function getRiwayatFiltered(array $filters = [], ?int $userId = null, ?int $limit = null): array
+    public function getRiwayatFiltered(array $filters = [], ?int $userId = null, ?int $limit = null, ?int $perPage = null): array
     {
         $builder = $this->select('transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.line as line')
                          ->join('users', 'users.id = transaksi_check.id_user')
@@ -130,6 +130,10 @@ class TransaksiCheckModel extends Model
 
         if ($limit !== null) {
             $builder->limit($limit);
+        }
+
+        if ($perPage !== null) {
+            return $builder->paginate($perPage, 'riwayat');
         }
 
         return $builder->findAll();
