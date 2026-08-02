@@ -158,7 +158,7 @@ class TransaksiCheckModel extends Model
     /**
      * Laporan durasi pengecekan (analisis efisiensi) untuk Leader/Admin.
      */
-    public function getLaporanDurasi(array $filters = []): array
+    public function getLaporanDurasi(array $filters = [], ?int $perPage = null): array
     {
         $builder = $this->select("transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.line, master_mesin.lokasi as lokasi_mesin, TIMESTAMPDIFF(SECOND, transaksi_check.waktu_mulai, transaksi_check.waktu_selesai) as durasi_detik, transaksi_overhaul.bar_feeder_type, transaksi_overhaul.support_pic, transaksi_overhaul.note_recommendation")
                     ->join('users', 'users.id = transaksi_check.id_user')
@@ -209,8 +209,55 @@ class TransaksiCheckModel extends Model
 
         $sortField = $allowedSortFields[$sortBy] ?? 'transaksi_check.id_transaksi';
 
-        return $builder->orderBy($sortField, $order)
-                       ->findAll();
+        $builder->orderBy($sortField, $order);
+
+        if ($perPage !== null) {
+            return $builder->paginate($perPage, 'durasi');
+        }
+
+        return $builder->findAll();
+    }
+
+    /**
+     * Menghitung Rata-rata Durasi Pengecekan tanpa meload seluruh data.
+     * Replikasi pasti dari logika intdiv(total, count) lama.
+     */
+    public function getRataRataDurasiFiltered(array $filters = []): int
+    {
+        $builder = $this->select("SUM(TIMESTAMPDIFF(SECOND, transaksi_check.waktu_mulai, transaksi_check.waktu_selesai)) as sum_detik, COUNT(TIMESTAMPDIFF(SECOND, transaksi_check.waktu_mulai, transaksi_check.waktu_selesai)) as count_detik")
+                    ->join('users', 'users.id = transaksi_check.id_user')
+                    ->join('users as approver', 'approver.id = transaksi_check.approved_by', 'left')
+                    ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
+                    ->join('transaksi_overhaul', 'transaksi_overhaul.id_transaksi = transaksi_check.id_transaksi', 'left');
+                    
+        if (!empty($filters['lokasi'])) {
+            $builder->where('master_mesin.lokasi', $filters['lokasi']);
+        }
+        if (!empty($filters['line'])) {
+            $builder->where('master_mesin.line', $filters['line']);
+        }
+        if (!empty($filters['id_mesin'])) {
+            $builder->where('transaksi_check.id_mesin', (int)$filters['id_mesin']);
+        }
+        if (!empty($filters['jenis_check'])) {
+            $builder->where('transaksi_check.jenis_check', $filters['jenis_check']);
+        }
+        if (!empty($filters['bulan'])) {
+            $builder->like('transaksi_check.waktu_mulai', $filters['bulan'], 'after');
+        }
+        if (!empty($filters['pic'])) {
+            $builder->groupStart()
+                    ->where('users.nama', $filters['pic'])
+                    ->orLike('transaksi_check.nama_pic', $filters['pic'], 'both')
+                    ->groupEnd();
+        }
+
+        $row = $builder->first();
+
+        $sum = (int) ($row['sum_detik'] ?? 0);
+        $count = (int) ($row['count_detik'] ?? 0);
+
+        return $count > 0 ? intdiv($sum, $count) : 0;
     }
 
     public function getTerbaruKhususLine(?string $lokasiLine = null): array
