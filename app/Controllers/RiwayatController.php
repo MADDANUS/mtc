@@ -106,8 +106,30 @@ class RiwayatController extends BaseController
             'order'       => $this->request->getGet('order') ?: 'desc',
         ];
 
+        $perPage = (int) ($this->request->getGet('per_page') ?: 15);
+        $currentPage = (int) ($this->request->getGet('page_riwayat') ?: 1);
+
         // Semua role bisa lihat riwayat yang sudah Approved
-        $riwayat = $transaksiModel->getRiwayatFiltered($filters);
+        $riwayat = $transaksiModel->getRiwayatFiltered($filters, null, null, $perPage);
+        $pager = $transaksiModel->pager;
+        $totalItems = $pager ? $pager->getTotal('riwayat') : 0;
+        $totalPages = $pager ? $pager->getPageCount('riwayat') : 1;
+        $startNo = ($currentPage - 1) * $perPage + 1;
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'html'        => view('riwayat/_rows', [
+                                    'riwayat'    => $riwayat,
+                                    'startNo'    => $startNo,
+                                    'lokasiSlug' => $lokasiSlug
+                                 ]),
+                'currentPage' => $currentPage,
+                'totalPages'  => $totalPages,
+                'totalItems'  => $totalItems,
+                'perPage'     => $perPage,
+                'startNo'     => $startNo
+            ]);
+        }
 
         // Pisahkan kategori dropdown berdasarkan Lokasi & Jenis Check secara dinamis
         $parameterModel = new \App\Models\ParameterCheckModel();
@@ -188,6 +210,9 @@ class RiwayatController extends BaseController
             'categories'      => $categoriesList,
             'riwayat'         => $riwayat,
             'selectedFilters' => $filters,
+            'startNo'         => $startNo,
+            'totalItems'      => $totalItems,
+            'perPage'         => $perPage,
         ]);
     }
 
