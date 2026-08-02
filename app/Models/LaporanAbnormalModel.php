@@ -42,7 +42,7 @@ class LaporanAbnormalModel extends Model
                     ->findAll();
     }
 
-    public function getPdfLaporan(string $lokasi, string $kategori, string $bulan, string $search): array
+    public function getPdfLaporan(string $lokasi, string $kategori, string $bulan, string $search, ?int $perPage = null): array
     {
         $builder = $this->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
                         ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
@@ -64,9 +64,13 @@ class LaporanAbnormalModel extends Model
                     ->orLike('master_mesin.type_mesin', $search)
                     ->groupEnd();
         }
-        return $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
-                       ->orderBy('laporan_abnormal.id_abnormal', 'DESC')
-                       ->findAll();
+        $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
+                ->orderBy('laporan_abnormal.id_abnormal', 'DESC');
+                
+        if ($perPage !== null) {
+            return $builder->paginate($perPage, 'abnormal');
+        }
+        return $builder->findAll();
     }
 
     public function getPdfAllCategoriesLaporan(string $lokasi, string $kategori, string $bulan, string $search): array
@@ -110,9 +114,9 @@ class LaporanAbnormalModel extends Model
                        ->findAll();
     }
 
-    public function getIndexLaporan(string $lokasi, string $kategori, string $bulan, string $search): array
+    public function getIndexLaporan(string $lokasi, string $kategori, string $bulan, string $search, ?int $perPage = null): array
     {
-        return $this->getPdfLaporan($lokasi, $kategori, $bulan, $search);
+        return $this->getPdfLaporan($lokasi, $kategori, $bulan, $search, $perPage);
     }
 
     public function getDashboardSummaryAbnormal(string $bulan): array
@@ -125,7 +129,7 @@ class LaporanAbnormalModel extends Model
                     ->findAll();
     }
 
-    public function getOverhaulLaporan(string $lokasi, string $bulan, string $search): array
+    public function getOverhaulLaporan(string $lokasi, string $bulan, string $search, ?int $perPage = null): array
     {
         $builder = $this->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
                         ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
@@ -145,9 +149,13 @@ class LaporanAbnormalModel extends Model
                     ->orLike('master_mesin.type_mesin', $search)
                     ->groupEnd();
         }
-        return $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
-                       ->orderBy('laporan_abnormal.id_abnormal', 'DESC')
-                       ->findAll();
+        $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
+                ->orderBy('laporan_abnormal.id_abnormal', 'DESC');
+                
+        if ($perPage !== null) {
+            return $builder->paginate($perPage, 'abnormal_overhaul');
+        }
+        return $builder->findAll();
     }
 
     public function getOverhaulPdfLaporan(string $bulan): array

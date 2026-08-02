@@ -153,36 +153,17 @@ class AbnormalService
 
         // Build query
         
-        $builder = $db->table('laporan_abnormal')
-                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
-                      ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
-                      ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left');
-
-        if (!empty($lokasiFilter)) {
-            $builder->where('master_mesin.lokasi', $lokasiFilter);
-        }
-
-        if (!empty($kategoriFilter)) {
-            $builder->where('transaksi_check.kategori', $kategoriFilter);
-        }
-
-        if (!empty($bulanFilter)) {
-            $builder->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after');
-        }
-
-        if (!empty($searchFilter)) {
-            $builder->groupStart()
-                    ->like('laporan_abnormal.point_check', $searchFilter)
-                    ->orLike('laporan_abnormal.abnormal_condition', $searchFilter)
-                    ->orLike('master_mesin.no_mesin', $searchFilter)
-                    ->orLike('master_mesin.type_mesin', $searchFilter)
-                    ->groupEnd();
-        }
-
-        $reports = $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
-                           ->orderBy('laporan_abnormal.id_abnormal', 'DESC')
-                           ->get()
-                           ->getResultArray();
+        $abnormalModel = new \App\Models\LaporanAbnormalModel();
+        
+        $perPage = (int) ($request->getGet('per_page') ?: 15);
+        $currentPage = (int) ($request->getGet('page_abnormal') ?: 1);
+        
+        $reports = $abnormalModel->getIndexLaporan($lokasiFilter, $kategoriFilter, $bulanFilter, $searchFilter, $perPage);
+        
+        $pager = $abnormalModel->pager;
+        $totalItems = $pager ? $pager->getTotal('abnormal') : 0;
+        $totalPages = $pager ? $pager->getPageCount('abnormal') : 1;
+        $startNo = ($currentPage - 1) * $perPage + 1;
 
         if ($lokasiFilter === Lokasi::MFG2->value) {
             $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
@@ -205,20 +186,12 @@ class AbnormalService
         }
 
         // Cek semua terisi
-        $allFilled = true;
-        foreach ($reports as $r) {
-            if (empty($r['action'])) {
-                $allFilled = false;
-                break;
-            }
-        }
-
         $allPics = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
         $masterPic = array_filter($allPics, function($p) {
             return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), Role::Leader->value) === false;
         });
 
-        return [
+        $responseData = [
             'title'          => 'Laporan Abnormal Condition',
             'reports'        => $reports,
             'lokasiFilter'   => $lokasiFilter,
@@ -227,9 +200,19 @@ class AbnormalService
             'bulanFilter'    => $bulanFilter,
             'categories'     => $categories,
             'bulanList'      => $bulanList,
-            'allFilled'      => $allFilled,
             'masterPic'      => $masterPic,
+            'totalItems'     => $totalItems,
+            'perPage'        => $perPage,
+            'startNo'        => $startNo,
+            'currentPage'    => $currentPage,
+            'totalPages'     => $totalPages,
         ];
+        
+        if ($request->isAJAX()) {
+            $responseData['html'] = view('abnormal/_rows', $responseData);
+        }
+        
+        return $responseData;
     }
 
     /**
@@ -447,34 +430,17 @@ class AbnormalService
         $bulanFilter  = $request->getGet('bulan') ?: date('Y-m');
 
         
-        $builder = $db->table('laporan_abnormal')
-                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
-                      ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
-                      ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left');
-                      
-        $builder->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value);
+        $abnormalModel = new \App\Models\LaporanAbnormalModel();
+        
+        $perPage = (int) ($request->getGet('per_page') ?: 15);
+        $currentPage = (int) ($request->getGet('page_abnormal_overhaul') ?: 1);
 
-        if (!empty($lokasiFilter) && $lokasiFilter !== 'all') {
-            $builder->where('master_mesin.lokasi', $lokasiFilter);
-        }
+        $reports = $abnormalModel->getOverhaulLaporan($lokasiFilter, $bulanFilter, $searchFilter, $perPage);
 
-        if (!empty($bulanFilter) && $bulanFilter !== 'all') {
-            $builder->like('laporan_abnormal.pengecekan_tanggal', $bulanFilter . '-', 'after');
-        }
-
-        if (!empty($searchFilter)) {
-            $builder->groupStart()
-                    ->like('laporan_abnormal.point_check', $searchFilter)
-                    ->orLike('laporan_abnormal.abnormal_condition', $searchFilter)
-                    ->orLike('master_mesin.no_mesin', $searchFilter)
-                    ->orLike('master_mesin.type_mesin', $searchFilter)
-                    ->groupEnd();
-        }
-
-        $reports = $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
-                           ->orderBy('laporan_abnormal.id_abnormal', 'DESC')
-                           ->get()
-                           ->getResultArray();
+        $pager = $abnormalModel->pager;
+        $totalItems = $pager ? $pager->getTotal('abnormal_overhaul') : 0;
+        $totalPages = $pager ? $pager->getPageCount('abnormal_overhaul') : 1;
+        $startNo = ($currentPage - 1) * $perPage + 1;
 
         $allPics2 = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
         $masterPic = array_filter($allPics2, function($p) {
@@ -498,7 +464,16 @@ class AbnormalService
             'bulanFilter'    => $bulanFilter,
             'masterPic'      => $masterPic,
             'bulanList'      => $bulanList,
+            'totalItems'     => $totalItems,
+            'perPage'        => $perPage,
+            'startNo'        => $startNo,
+            'currentPage'    => $currentPage,
+            'totalPages'     => $totalPages,
         ];
+        
+        if ($request->isAJAX()) {
+            $data['html'] = view('abnormal/_rows_overhaul', $data);
+        }
 
         return $data;
     }
