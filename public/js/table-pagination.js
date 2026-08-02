@@ -221,7 +221,8 @@ document.addEventListener("DOMContentLoaded", function() {
             isFetching = true;
             
             const url = new URL(window.location.href);
-            url.searchParams.set('page_riwayat', page);
+            const pageParam = table.getAttribute('data-page-param') || 'page_riwayat';
+            url.searchParams.set(pageParam, page);
             url.searchParams.set('per_page', perPage);
             
             tbody.style.opacity = '0.5';
