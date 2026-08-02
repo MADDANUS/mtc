@@ -176,14 +176,7 @@ class AbnormalService
         }
 
         // Buat list bulan untuk filter
-        $bulanList = [];
-        $bulanIndo = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
-        for ($i = 0; $i < 12; $i++) {
-            $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
-            $val  = $time->format('Y-m');
-            $label = $bulanIndo[$time->format('m')] . ' ' . $time->format('Y');
-            $bulanList[$val] = $label;
-        }
+        $bulanList = $this->buildBulanList();
 
         // Cek semua terisi
         $allPics = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
@@ -447,14 +440,7 @@ class AbnormalService
             return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), Role::Leader->value) === false;
         });
 
-        $bulanList = [];
-        $bulanIndo = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
-        for ($i = 0; $i < 12; $i++) {
-            $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
-            $val  = $time->format('Y-m');
-            $label = $bulanIndo[$time->format('m')] . ' ' . $time->format('Y');
-            $bulanList[$val] = $label;
-        }
+        $bulanList = $this->buildBulanList();
 
         $data = [
             'title'          => 'Laporan Abnormal Overhaul',
@@ -854,4 +840,27 @@ class AbnormalService
         return ['success' => true, 'message' => 'Foto berhasil dihapus.'];
     }
 
+    /**
+     * Membangun daftar 12 bulan terakhir untuk dropdown filter.
+     * 
+     * @return array Array dengan format ['Y-m' => 'NamaBulan YYYY']
+     */
+    private function buildBulanList(): array
+    {
+        $bulanList = [];
+        $bulanIndo = [
+            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
+            '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
+            '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+        ];
+        
+        for ($i = 0; $i < 12; $i++) {
+            $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
+            $val  = $time->format('Y-m');
+            $label = $bulanIndo[$time->format('m')] . ' ' . $time->format('Y');
+            $bulanList[$val] = $label;
+        }
+        
+        return $bulanList;
+    }
 }
