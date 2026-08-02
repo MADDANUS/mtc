@@ -4,9 +4,11 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\PicModel;
+use App\Traits\AdminCrudTrait;
 
 class PicController extends BaseController
 {
+    use AdminCrudTrait;
     protected $picModel;
 
     public function __construct()
@@ -34,7 +36,7 @@ class PicController extends BaseController
     public function store()
     {
         if (!$this->validate($this->picModel->getValidationRules())) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return $this->redirectValidationError();
         }
 
         $this->picModel->insert([
@@ -43,14 +45,14 @@ class PicController extends BaseController
             'role_pic' => $this->request->getPost('role_pic') ?: 'Staff'
         ]);
 
-        return redirect()->to('/admin/pic')->with('success', 'Data PIC berhasil ditambahkan.');
+        return $this->redirectSuccess('/admin/pic', 'Data PIC berhasil ditambahkan.');
     }
 
     public function edit($id)
     {
         $pic = $this->picModel->find($id);
         if (!$pic) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->redirectNotFound('/admin/pic', 'PIC');
         }
 
         $data = [
@@ -64,7 +66,7 @@ class PicController extends BaseController
     {
         $pic = $this->picModel->find($id);
         if (!$pic) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+            return $this->redirectNotFound('/admin/pic', 'PIC');
         }
 
         // Validate except for unique constraint if ID is the same
@@ -75,7 +77,7 @@ class PicController extends BaseController
         }
 
         if (!$this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return $this->redirectValidationError();
         }
 
         // If ID changed, we need to manually update since it's the primary key
@@ -92,13 +94,13 @@ class PicController extends BaseController
             ]);
         }
 
-        return redirect()->to('/admin/pic')->with('success', 'Data PIC berhasil diperbarui.');
+        return $this->redirectSuccess('/admin/pic', 'Data PIC berhasil diperbarui.');
     }
 
     public function delete($id)
     {
         $this->picModel->delete($id);
-        return redirect()->to('/admin/pic')->with('success', 'Data PIC berhasil dihapus.');
+        return $this->redirectSuccess('/admin/pic', 'Data PIC berhasil dihapus.');
     }
     public function export()
     {
