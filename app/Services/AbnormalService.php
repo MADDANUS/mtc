@@ -28,11 +28,7 @@ class AbnormalService
         $abnormalModel = new \App\Models\LaporanAbnormalModel();
         $reports = $abnormalModel->getPdfLaporan($lokasiFilter, $kategoriFilter, $bulanFilter, $searchFilter);
 
-        if ($lokasiFilter === Lokasi::MFG2->value) {
-            $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
-        } else {
-            $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
-        }
+        $categories = $this->resolveKategoriList($lokasiFilter);
 
         if (!in_array($kategoriFilter, $categories)) {
             $kategoriFilter = 'Penerangan';
@@ -56,11 +52,7 @@ class AbnormalService
         $searchFilter   = $request->getGet('search') ?: '';
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
 
-        if ($lokasiFilter === Lokasi::MFG2->value) {
-            $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
-        } else {
-            $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
-        }
+        $categories = $this->resolveKategoriList($lokasiFilter);
 
         $allReportsData = [];
         
@@ -104,9 +96,7 @@ class AbnormalService
         foreach ($lokasiList as $lokasi) {
             if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
             
-            $categories = ($lokasi === Lokasi::MFG2->value)
-                ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor']
-                : ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
+            $categories = $this->resolveKategoriList($lokasi);
                 
             foreach ($categories as $cat) {
                 if (!empty($filterKategori) && $cat !== $filterKategori) continue;
@@ -165,11 +155,7 @@ class AbnormalService
         $totalPages = $pager ? $pager->getPageCount('abnormal') : 1;
         $startNo = ($currentPage - 1) * $perPage + 1;
 
-        if ($lokasiFilter === Lokasi::MFG2->value) {
-            $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
-        } else {
-            $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
-        }
+        $categories = $this->resolveKategoriList($lokasiFilter);
 
         if (!in_array($kategoriFilter, $categories)) {
             $kategoriFilter = 'Penerangan';
@@ -246,19 +232,12 @@ class AbnormalService
         }
 
         $kategoriByLokasi = [
-            Lokasi::MFG1->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
-            Lokasi::MFG2->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor']
+            Lokasi::MFG1->value => $this->resolveKategoriList(Lokasi::MFG1->value),
+            Lokasi::MFG2->value => $this->resolveKategoriList(Lokasi::MFG2->value)
         ];
 
         // List bulan
-        $bulanList = [];
-        $bulanIndo = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
-        for ($i = 0; $i < 12; $i++) {
-            $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
-            $val  = $time->format('Y-m');
-            $label = $bulanIndo[$time->format('m')] . ' ' . $time->format('Y');
-            $bulanList[$val] = $label;
-        }
+        $bulanList = $this->buildBulanList();
 
         // Build flat array for summary rows
         $summaryRows = [];
@@ -862,5 +841,20 @@ class AbnormalService
         }
         
         return $bulanList;
+    }
+
+    /**
+     * Menentukan daftar kategori berdasarkan lokasi.
+     *
+     * @param string $lokasi Lokasi (MFG1/MFG2)
+     * @return array Daftar kategori
+     */
+    private function resolveKategoriList(string $lokasi): array
+    {
+        if ($lokasi === Lokasi::MFG2->value) {
+            return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
+        }
+        
+        return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
     }
 }
