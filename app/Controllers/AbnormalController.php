@@ -61,6 +61,18 @@ class AbnormalController extends BaseController
         if (isset($data['is_summary']) && $data['is_summary']) {
             return view('abnormal/summary', $data);
         }
+        
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'html' => $data['html'] ?? '',
+                'currentPage' => $data['currentPage'] ?? 1,
+                'totalPages' => $data['totalPages'] ?? 1,
+                'totalItems' => $data['totalItems'] ?? 0,
+                'perPage' => $data['perPage'] ?? 15,
+                'startNo' => $data['startNo'] ?? 1,
+            ]);
+        }
+        
         return view('abnormal/index', $data);
     }
 
@@ -81,6 +93,18 @@ class AbnormalController extends BaseController
         if (isset($data['is_summary']) && $data['is_summary']) {
             return view('abnormal/summary', $data);
         }
+        
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'html' => $data['html'] ?? '',
+                'currentPage' => $data['currentPage'] ?? 1,
+                'totalPages' => $data['totalPages'] ?? 1,
+                'totalItems' => $data['totalItems'] ?? 0,
+                'perPage' => $data['perPage'] ?? 15,
+                'startNo' => $data['startNo'] ?? 1,
+            ]);
+        }
+        
         return view('abnormal/index_overhaul', $data);
     }
 
