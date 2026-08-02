@@ -33,7 +33,7 @@
 <div class="card border-0 shadow-sm bg-white overflow-hidden mb-4">
   <div class="card-body p-0">
     <div class="table-responsive" style="border: 2px solid #cbd5e1 !important; border-radius: 8px;">
-      <table class="table align-middle text-center mb-0 abnormal-table" style="font-size: 0.8rem; border-collapse: collapse;">
+      <table class="table align-middle text-center mb-0 abnormal-table paginated-table" data-ajax-pagination="true" data-page-param="page_abnormal" data-total-items="<?= esc($totalItems ?? 0) ?>" data-per-page="<?= esc($perPage ?? 15) ?>" data-current-page="<?= esc($_GET['page_abnormal'] ?? 1) ?>" style="font-size: 0.8rem; border-collapse: collapse;">
         <thead>
           <tr class="table-light">
             <th rowspan="3" style="width: 3%; font-weight:800; border-bottom: 2px solid #cbd5e1 !important;">NO</th>
@@ -59,109 +59,11 @@
             <th style="font-weight:800; border-bottom: 2px solid #cbd5e1 !important;">TANGGAL</th>
           </tr>
         </thead>
-        <tbody>
-          <?php if (empty($reports)): ?>
-            <tr>
-              <td colspan="12" class="p-5 text-muted">
-                <i class="bi bi-shield-check text-success" style="font-size: 2.5rem; display:block; margin-bottom:0.5rem;"></i>
-                Tidak ada temuan kondisi abnormal yang tercatat.
-              </td>
-            </tr>
-          <?php else: ?>
-            <?php $no = 1; foreach ($reports as $r): ?>
-              <?php 
-                $role = session()->get('role');
-                $isFilled = !empty($r['type_sparepart']) || !empty($r['progres_stock']) || !empty($r['progres_tanggal']) || !empty($r['action']) || !empty($r['repair_pic']) || !empty($r['keterangan']) || !empty($r['foto_perbaikan']) || !empty($r['foto_perbaikan_2']);
-                
-                $canEdit = false;
-                if (in_array($role, ['member', 'sheadprd', 'sheadmtc', 'admin', 'magang'], true)) {
-                    if ($isFilled) {
-                        $canEdit = ($role === 'admin');
-                    } else {
-                        $canEdit = true;
-                    }
-                }
-                
-                $rowClass = $canEdit ? 'row-editable' : '';
-              ?>
-              <tr class="<?= $rowClass ?>" 
-                  style="<?= $canEdit ? 'cursor: pointer;' : '' ?> transition: background-color 0.15s;"
-                  data-id-abnormal="<?= $r['id_abnormal'] ?>"
-                  data-mesin="<?= esc($r['no_mesin'] . ' - ' . $r['type_mesin'] . ' (' . $r['lokasi'] . ')') ?>"
-                  data-point-check="<?= esc($r['point_check']) ?>"
-                  data-abnormal-condition="<?= esc($r['abnormal_condition']) ?>"
-                  data-type-sparepart="<?= esc($r['type_sparepart'] ?? '') ?>"
-                  data-progres-stock="<?= esc($r['progres_stock'] ?? '') ?>"
-                  data-progres-tanggal="<?= esc($r['progres_tanggal'] ?? '') ?>"
-                  data-action="<?= esc($r['action'] ?? '') ?>"
-                  data-repair-pic="<?= esc($r['repair_pic'] ?? '') ?>"
-                  data-keterangan="<?= esc($r['keterangan'] ?? '') ?>"
-                  data-foto-abnormal="<?= !empty($r['foto_abnormal']) ? base_url('uploads/abnormal/' . $r['foto_abnormal']) : '' ?>"
-                  data-foto-perbaikan="<?= !empty($r['foto_perbaikan']) ? base_url('uploads/abnormal/' . $r['foto_perbaikan']) : '' ?>"
-                  data-foto-perbaikan-2="<?= !empty($r['foto_perbaikan_2']) ? base_url('uploads/abnormal/' . $r['foto_perbaikan_2']) : '' ?>">
-                
-                <td class="fw-bold font-monospace text-secondary" style="background-color: #f8fafc;"><?= $no++ ?></td>
-                <td class="text-start fw-bold text-dark ps-3"><?= esc($r['no_mesin']) ?> - <?= esc($r['type_mesin']) ?></td>
-                <td><?= esc($r['point_check']) ?></td>
-                <td class="text-danger fw-semibold">
-                  <?= esc($r['abnormal_condition']) ?>
-                  <div class="d-flex justify-content-center align-items-center gap-1 mt-1">
-                    <?php if (!empty($r['foto_abnormal'])): ?>
-                      <a href="<?= base_url('uploads/abnormal/' . $r['foto_abnormal']) ?>" target="_blank" title="Lihat Foto Abnormal 1">
-                        <img src="<?= base_url('uploads/abnormal/' . $r['foto_abnormal']) ?>" alt="Foto Abnormal 1" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
-                      </a>
-                    <?php endif; ?>
-                    <?php if (!empty($r['foto_abnormal_2'])): ?>
-                      <a href="<?= base_url('uploads/abnormal/' . $r['foto_abnormal_2']) ?>" target="_blank" title="Lihat Foto Abnormal 2">
-                        <img src="<?= base_url('uploads/abnormal/' . $r['foto_abnormal_2']) ?>" alt="Foto Abnormal 2" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
-                      </a>
-                    <?php endif; ?>
-                  </div>
-                </td>
-                <td><?= esc($r['type_sparepart']) ?: '<span class="text-muted small">-</span>' ?></td>
-                
-                <!-- Pengecekan -->
-                <td class="font-monospace"><?= date('d-m-Y', strtotime($r['pengecekan_tanggal'])) ?></td>
-                <td><span class="fw-semibold text-dark"><?= esc($r['pengecekan_pic']) ?></span></td>
-                
-                <!-- Rencana Perbaikan -->
-                <td>
-                  <?php if ($r['progres_stock'] === 'Ready'): ?>
-                    <span class="badge bg-success">Ready</span>
-                  <?php elseif ($r['progres_stock'] === 'Indent'): ?>
-                    <span class="badge bg-warning text-dark">Indent</span>
-                  <?php elseif ($r['progres_stock'] === 'Not Available'): ?>
-                    <span class="badge bg-danger">Not Available</span>
-                  <?php else: ?>
-                    <span class="text-muted">-</span>
-                  <?php endif; ?>
-                </td>
-                <td class="font-monospace"><?= $r['progres_tanggal'] ? date('d-m-Y', strtotime($r['progres_tanggal'])) : '<span class="text-muted">-</span>' ?></td>
-                <td class="text-start" onclick="event.stopPropagation()">
-                  <?= esc($r['action']) ?: '<span class="text-muted">-</span>' ?>
-                  <div class="d-flex justify-content-start align-items-center gap-1 mt-1">
-                    <!-- Slot 1 -->
-                    <?php if (!empty($r['foto_perbaikan'])): ?>
-                      <a href="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan']) ?>" target="_blank" title="Lihat Foto Perbaikan 1">
-                        <img src="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan']) ?>" alt="Foto Perbaikan 1" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
-                      </a>
-                    <?php endif; ?>
-
-                    <!-- Slot 2 -->
-                    <?php if (!empty($r['foto_perbaikan_2'])): ?>
-                      <a href="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan_2']) ?>" target="_blank" title="Lihat Foto Perbaikan 2">
-                        <img src="<?= base_url('uploads/abnormal/' . $r['foto_perbaikan_2']) ?>" alt="Foto Perbaikan 2" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
-                      </a>
-                    <?php endif; ?>
-                  </div>
-                </td>
-                <td><span class="fw-semibold text-dark"><?= esc($r['repair_pic']) ?: '<span class="text-muted">-</span>' ?></span></td>
-                
-                <td><?= esc($r['keterangan']) ?: '<span class="text-muted">-</span>' ?></td>
-                
-              </tr>
-            <?php endforeach; ?>
-          <?php endif; ?>
+        <tbody id="abnormalTableBody">
+            <?= view('abnormal/_rows', [
+                'reports' => $reports,
+                'startNo' => $startNo ?? 1
+            ]) ?>
         </tbody>
       </table>
     </div>
@@ -286,21 +188,20 @@
 <script>
   document.addEventListener("DOMContentLoaded", function() {
     const editModal = new bootstrap.Modal(document.getElementById("editAbnormalModal"));
-    const rows = document.querySelectorAll(".row-editable");
+    document.addEventListener("click", function(e) {
+      const row = e.target.closest(".row-editable");
+      if (row) {
+        document.getElementById("modalIdAbnormal").value = row.getAttribute("data-id-abnormal");
+        document.getElementById("modalMesinLabel").innerText = row.getAttribute("data-mesin");
+        document.getElementById("modalPointCheckLabel").innerText = row.getAttribute("data-point-check");
+        document.getElementById("modalConditionLabel").innerText = row.getAttribute("data-abnormal-condition");
 
-    rows.forEach(row => {
-      row.addEventListener("click", function() {
-        document.getElementById("modalIdAbnormal").value = this.getAttribute("data-id-abnormal");
-        document.getElementById("modalMesinLabel").innerText = this.getAttribute("data-mesin");
-        document.getElementById("modalPointCheckLabel").innerText = this.getAttribute("data-point-check");
-        document.getElementById("modalConditionLabel").innerText = this.getAttribute("data-abnormal-condition");
-
-        document.getElementById("modalTypeSparepart").value = this.getAttribute("data-type-sparepart");
-        document.getElementById("modalProgresStock").value = this.getAttribute("data-progres-stock");
-        document.getElementById("modalProgresTanggal").value = this.getAttribute("data-progres-tanggal");
-        document.getElementById("modalAction").value = this.getAttribute("data-action");
+        document.getElementById("modalTypeSparepart").value = row.getAttribute("data-type-sparepart");
+        document.getElementById("modalProgresStock").value = row.getAttribute("data-progres-stock");
+        document.getElementById("modalProgresTanggal").value = row.getAttribute("data-progres-tanggal");
+        document.getElementById("modalAction").value = row.getAttribute("data-action");
         
-        let repairPicVal = this.getAttribute("data-repair-pic");
+        let repairPicVal = row.getAttribute("data-repair-pic");
         if (window.tomSelectRepairPic) {
             // Add option if it doesn't exist so we can select it
             window.tomSelectRepairPic.addOption({value: repairPicVal, text: repairPicVal});
@@ -309,10 +210,10 @@
             document.getElementById("modalRepairPic").value = repairPicVal;
         }
 
-        document.getElementById("modalKeterangan").value = this.getAttribute("data-keterangan");
+        document.getElementById("modalKeterangan").value = row.getAttribute("data-keterangan");
         
-        let foto1 = this.getAttribute("data-foto-perbaikan");
-        let foto2 = this.getAttribute("data-foto-perbaikan-2");
+        let foto1 = row.getAttribute("data-foto-perbaikan");
+        let foto2 = row.getAttribute("data-foto-perbaikan-2");
         let preview1 = document.getElementById("modalFoto1Preview");
         let preview2 = document.getElementById("modalFoto2Preview");
 
@@ -339,7 +240,7 @@
         }
 
         editModal.show();
-      });
+      }
     });
 
     const form = document.getElementById("abnormalUpdateForm");
