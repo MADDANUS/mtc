@@ -26,17 +26,33 @@ class LaporanController extends BaseController
             'order'       => $this->request->getGet('order') ?: 'desc',
         ];
         
-        $laporan = (new TransaksiCheckModel())->getLaporanDurasi($filters);
+        $transaksiModel = new TransaksiCheckModel();
+        
+        $perPage = (int) ($this->request->getGet('per_page') ?: 15);
+        $currentPage = (int) ($this->request->getGet('page_durasi') ?: 1);
 
-        $totalDurasi = 0;
-        $count       = 0;
-        foreach ($laporan as $l) {
-            if ($l['durasi_detik'] !== null) {
-                $totalDurasi += (int) $l['durasi_detik'];
-                $count++;
-            }
+        $laporan = $transaksiModel->getLaporanDurasi($filters, $perPage);
+        
+        $pager = $transaksiModel->pager;
+        $totalItems = $pager ? $pager->getTotal('durasi') : 0;
+        $totalPages = $pager ? $pager->getPageCount('durasi') : 1;
+        $startNo = ($currentPage - 1) * $perPage + 1;
+
+        $rataDetik = $transaksiModel->getRataRataDurasiFiltered($filters);
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'html'        => view('laporan/_durasi_rows', [
+                                    'laporan' => $laporan,
+                                    'startNo' => $startNo
+                                 ]),
+                'currentPage' => $currentPage,
+                'totalPages'  => $totalPages,
+                'totalItems'  => $totalItems,
+                'perPage'     => $perPage,
+                'startNo'     => $startNo
+            ]);
         }
-        $rataDetik = $count > 0 ? intdiv($totalDurasi, $count) : 0;
         
         // Fetch dropdown options
         $mesinModel = new \App\Models\MesinModel();
@@ -82,6 +98,9 @@ class LaporanController extends BaseController
             'availablePics'   => $availablePics,
             'bulanList'       => $bulanList,
             'userLine'        => $userLine,
+            'startNo'         => $startNo,
+            'totalItems'      => $totalItems,
+            'perPage'         => $perPage,
         ]);
     }
 
