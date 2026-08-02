@@ -206,122 +206,30 @@ class AbnormalService
 
         
 
-        // Ambil semua data master mesin
-        $mesinModel = new \App\Models\MesinModel();
-        $mesinQuery = $mesinModel->getTotalMesinPerLine();
-
-        $linesByLokasi = [];
-        foreach($mesinQuery as $m) {
-            $linesByLokasi[$m['lokasi']][] = $m['line'];
-        }
-
-        // Hitung abnormal terbuka (belum ada action) dan total abnormal per lokasi, line, kategori
-        $abnormalModel = new \App\Models\LaporanAbnormalModel();
-        $allAbnormal = $abnormalModel->getDashboardSummaryAbnormal($bulan);
-                           
-        $abnormalData = [];
-        foreach($allAbnormal as $oa) {
-            $kategori = $oa['kategori'] ?: 'Penerangan'; // Default fallback
-            $abnormalData[$oa['lokasi']][$oa['line']][$kategori] = [
-                'totalOpen' => (int) $oa['totalOpen'],
-                'totalAll'  => (int) $oa['totalAll']
-            ];
-        }
-
-        $kategoriByLokasi = [
-            Lokasi::MFG1->value => $this->resolveKategoriList(Lokasi::MFG1->value),
-            Lokasi::MFG2->value => $this->resolveKategoriList(Lokasi::MFG2->value)
-        ];
-
-        // List bulan
-        $bulanList = $this->buildBulanList();
-
-        // Build flat array for summary rows
-        $summaryRows = [];
-        foreach ($kategoriByLokasi as $lokasi => $categories) {
-            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
-            
-            $lines = isset($linesByLokasi[$lokasi]) ? array_unique($linesByLokasi[$lokasi]) : [];
-            sort($lines);
-
-            foreach ($lines as $line) {
-                if (!empty($filterLine) && $line !== $filterLine) continue;
-
-                foreach ($categories as $kategori) {
-                    if (!empty($filterKategori) && $kategori !== $filterKategori) continue;
-                    
-                    $abData = $abnormalData[$lokasi][$line][$kategori] ?? ['totalOpen' => 0, 'totalAll' => 0];
-                    $totalOpen = $abData['totalOpen'];
-                    $totalAll  = $abData['totalAll'];
-                    
-                    if ($totalAll == 0) continue;
-                    
-                    if ($totalOpen > 0) {
-                        $badgeClass = 'bg-danger';
-                        $statusText = 'Belum Perbaikan';
-                    } else {
-                        $badgeClass = 'bg-success';
-                        $statusText = 'Sudah Perbaikan';
-                    }
-                    
-                    if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
-
-                    $summaryRows[] = [
-                        'lokasi'      => $lokasi,
-                        'line'        => $line,
-                        'kategori'    => $kategori,
-                        'totalOpen'   => $totalOpen,
-                        'statusText'  => $statusText,
-                        'badgeClass'  => $badgeClass
-                    ];
-                }
-            }
-        }
-
-        // Sort the flat array
-        usort($summaryRows, function($a, $b) use ($sortBy, $order) {
-            $valA = $a[$sortBy] ?? '';
-            $valB = $b[$sortBy] ?? '';
-            
-            if ($valA == $valB) return 0;
-            
-            $cmp = ($valA < $valB) ? -1 : 1;
-            return ($order === 'asc') ? $cmp : -$cmp;
-        });
-
-        // Determine available lines and categories for the dropdowns
-        $availableLines = [];
-        $availableCategories = [];
-        if (!empty($filterLokasi)) {
-            $availableLines = isset($linesByLokasi[$filterLokasi]) ? array_unique($linesByLokasi[$filterLokasi]) : [];
-            $availableCategories = isset($kategoriByLokasi[$filterLokasi]) ? array_unique($kategoriByLokasi[$filterLokasi]) : [];
-        } else {
-            foreach ($linesByLokasi as $lines) {
-                $availableLines = array_merge($availableLines, $lines);
-            }
-            $availableLines = array_unique($availableLines);
-            foreach ($kategoriByLokasi as $cats) {
-                $availableCategories = array_merge($availableCategories, $cats);
-            }
-            $availableCategories = array_unique($availableCategories);
-        }
-        sort($availableLines);
-        sort($availableCategories);
+        $summaryData = $this->calculateSummaryData([
+            'bulan'          => $bulan,
+            'filterLokasi'   => $filterLokasi,
+            'filterLine'     => $filterLine,
+            'filterKategori' => $filterKategori,
+            'filterStatus'   => $filterStatus,
+            'sortBy'         => $sortBy,
+            'order'          => $order
+        ]);
 
         return [
             'is_summary'       => true,
             'title'            => 'Ringkasan Laporan Abnormal',
             'bulan'            => $bulan,
             'bulanList'        => $bulanList,
-            'summaryRows'      => $summaryRows,
+            'summaryRows'      => $summaryData['summaryRows'],
             'filterLokasi'     => $filterLokasi,
             'filterLine'       => $filterLine,
             'filterKategori'   => $filterKategori,
             'filterStatus'     => $filterStatus,
             'sortBy'           => $sortBy,
             'order'            => $order,
-            'availableLines'   => $availableLines,
-            'availableCategories'=> $availableCategories,
+            'availableLines'   => $summaryData['availableLines'],
+            'availableCategories'=> $summaryData['availableCategories'],
         ];
     }
 
@@ -864,5 +772,122 @@ class AbnormalService
         return array_filter($allPics, function($p) {
             return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), Role::Leader->value) === false;
         });
+    }
+
+    /**
+     * Memproses data untuk tabel ringkasan (summary) abnormal.
+     *
+     * @param array $filters Array berisi bulan, filterLokasi, filterLine, filterKategori, filterStatus, sortBy, order
+     * @return array Array asosiatif: ['summaryRows' => [], 'availableLines' => [], 'availableCategories' => []]
+     */
+    private function calculateSummaryData(array $filters): array
+    {
+        $bulan          = $filters['bulan'];
+        $filterLokasi   = $filters['filterLokasi'];
+        $filterLine     = $filters['filterLine'];
+        $filterKategori = $filters['filterKategori'];
+        $filterStatus   = $filters['filterStatus'];
+        $sortBy         = $filters['sortBy'];
+        $order          = $filters['order'];
+
+        $mesinModel = new \App\Models\MesinModel();
+        $mesinQuery = $mesinModel->getTotalMesinPerLine();
+
+        $linesByLokasi = [];
+        foreach($mesinQuery as $m) {
+            $linesByLokasi[$m['lokasi']][] = $m['line'];
+        }
+
+        $abnormalModel = new \App\Models\LaporanAbnormalModel();
+        $allAbnormal = $abnormalModel->getDashboardSummaryAbnormal($bulan);
+                           
+        $abnormalData = [];
+        foreach($allAbnormal as $oa) {
+            $kategori = $oa['kategori'] ?: 'Penerangan'; // Default fallback
+            $abnormalData[$oa['lokasi']][$oa['line']][$kategori] = [
+                'totalOpen' => (int) $oa['totalOpen'],
+                'totalAll'  => (int) $oa['totalAll']
+            ];
+        }
+
+        $kategoriByLokasi = [
+            Lokasi::MFG1->value => $this->resolveKategoriList(Lokasi::MFG1->value),
+            Lokasi::MFG2->value => $this->resolveKategoriList(Lokasi::MFG2->value)
+        ];
+
+        $summaryRows = [];
+        foreach ($kategoriByLokasi as $lokasi => $categories) {
+            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
+            
+            $lines = isset($linesByLokasi[$lokasi]) ? array_unique($linesByLokasi[$lokasi]) : [];
+            sort($lines);
+
+            foreach ($lines as $line) {
+                if (!empty($filterLine) && $line !== $filterLine) continue;
+
+                foreach ($categories as $kategori) {
+                    if (!empty($filterKategori) && $kategori !== $filterKategori) continue;
+                    
+                    $abData = $abnormalData[$lokasi][$line][$kategori] ?? ['totalOpen' => 0, 'totalAll' => 0];
+                    $totalOpen = $abData['totalOpen'];
+                    $totalAll  = $abData['totalAll'];
+                    
+                    if ($totalAll == 0) continue;
+                    
+                    if ($totalOpen > 0) {
+                        $badgeClass = 'bg-danger';
+                        $statusText = 'Belum Perbaikan';
+                    } else {
+                        $badgeClass = 'bg-success';
+                        $statusText = 'Sudah Perbaikan';
+                    }
+                    
+                    if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
+
+                    $summaryRows[] = [
+                        'lokasi'      => $lokasi,
+                        'line'        => $line,
+                        'kategori'    => $kategori,
+                        'totalOpen'   => $totalOpen,
+                        'statusText'  => $statusText,
+                        'badgeClass'  => $badgeClass
+                    ];
+                }
+            }
+        }
+
+        usort($summaryRows, function($a, $b) use ($sortBy, $order) {
+            $valA = $a[$sortBy] ?? '';
+            $valB = $b[$sortBy] ?? '';
+            
+            if ($valA == $valB) return 0;
+            
+            $cmp = ($valA < $valB) ? -1 : 1;
+            return ($order === 'asc') ? $cmp : -$cmp;
+        });
+
+        $availableLines = [];
+        $availableCategories = [];
+        if (!empty($filterLokasi)) {
+            $availableLines = isset($linesByLokasi[$filterLokasi]) ? array_unique($linesByLokasi[$filterLokasi]) : [];
+            $availableCategories = isset($kategoriByLokasi[$filterLokasi]) ? array_unique($kategoriByLokasi[$filterLokasi]) : [];
+        } else {
+            foreach ($linesByLokasi as $lines) {
+                $availableLines = array_merge($availableLines, $lines);
+            }
+            $availableLines = array_unique($availableLines);
+            foreach ($kategoriByLokasi as $cats) {
+                $availableCategories = array_merge($availableCategories, $cats);
+            }
+            $availableCategories = array_unique($availableCategories);
+        }
+        sort($availableLines);
+        sort($availableCategories);
+
+        return [
+            'summaryRows'         => $summaryRows,
+            'availableLines'      => $availableLines,
+            'availableCategories' => $availableCategories
+        ];
     }
 }
