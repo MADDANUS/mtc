@@ -4,9 +4,11 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\ParameterCheckModel;
+use App\Traits\AdminCrudTrait;
 
 class ParameterController extends BaseController
 {
+    use AdminCrudTrait;
     protected ParameterCheckModel $model;
 
     public function __construct()
@@ -64,7 +66,7 @@ class ParameterController extends BaseController
     public function store()
     {
         if (! $this->validate($this->rules())) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return $this->redirectValidationError();
         }
 
         $this->model->insert([
@@ -79,14 +81,15 @@ class ParameterController extends BaseController
             'urutan'         => (int) $this->request->getPost('urutan'),
         ]);
 
-        return redirect()->to('/admin/parameter?lokasi=' . urlencode($this->request->getPost('lokasi')) . '&jenis_check=' . urlencode($this->request->getPost('jenis_check')) . '&kategori=' . urlencode($this->request->getPost('kategori')))->with('success', 'Parameter check berhasil ditambahkan.');
+        $url = '/admin/parameter?lokasi=' . urlencode($this->request->getPost('lokasi')) . '&jenis_check=' . urlencode($this->request->getPost('jenis_check')) . '&kategori=' . urlencode($this->request->getPost('kategori'));
+        return $this->redirectSuccess($url, 'Parameter check berhasil ditambahkan.');
     }
 
     public function edit(int $id)
     {
         $parameter = $this->model->find($id);
         if (! $parameter) {
-            return redirect()->to('/admin/parameter')->with('error', 'Parameter tidak ditemukan.');
+            return $this->redirectNotFound('/admin/parameter', 'Parameter');
         }
 
         return view('admin/parameter/form', [
@@ -99,11 +102,11 @@ class ParameterController extends BaseController
     public function update(int $id)
     {
         if (! $this->model->find($id)) {
-            return redirect()->to('/admin/parameter')->with('error', 'Parameter tidak ditemukan.');
+            return $this->redirectNotFound('/admin/parameter', 'Parameter');
         }
 
         if (! $this->validate($this->rules())) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return $this->redirectValidationError();
         }
 
         $this->model->update($id, [
@@ -118,18 +121,20 @@ class ParameterController extends BaseController
             'urutan'         => (int) $this->request->getPost('urutan'),
         ]);
 
-        return redirect()->to('/admin/parameter?lokasi=' . urlencode($this->request->getPost('lokasi')) . '&jenis_check=' . urlencode($this->request->getPost('jenis_check')) . '&kategori=' . urlencode($this->request->getPost('kategori')))->with('success', 'Parameter check berhasil diperbarui.');
+        $url = '/admin/parameter?lokasi=' . urlencode($this->request->getPost('lokasi')) . '&jenis_check=' . urlencode($this->request->getPost('jenis_check')) . '&kategori=' . urlencode($this->request->getPost('kategori'));
+        return $this->redirectSuccess($url, 'Parameter check berhasil diperbarui.');
     }
 
     public function delete(int $id)
     {
         $parameter = $this->model->find($id);
         if (! $parameter) {
-            return redirect()->to('/admin/parameter')->with('error', 'Parameter tidak ditemukan.');
+            return $this->redirectNotFound('/admin/parameter', 'Parameter');
         }
 
         $this->model->delete($id);
-        return redirect()->to('/admin/parameter?lokasi=' . urlencode($parameter['lokasi']) . '&jenis_check=' . urlencode($parameter['jenis_check']))->with('success', 'Parameter check berhasil dihapus.');
+        $url = '/admin/parameter?lokasi=' . urlencode($parameter['lokasi']) . '&jenis_check=' . urlencode($parameter['jenis_check']);
+        return $this->redirectSuccess($url, 'Parameter check berhasil dihapus.');
     }
 
     public function fixUrutan()
