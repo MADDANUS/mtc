@@ -2,6 +2,12 @@ document.addEventListener("DOMContentLoaded", function() {
     const tables = document.querySelectorAll('.paginated-table');
     
     tables.forEach(table => {
+        const isAjax = table.getAttribute('data-ajax-pagination') === 'true';
+        if (isAjax) {
+            initAjaxPagination(table);
+            return;
+        }
+
         const tbody = table.querySelector('tbody');
         if (!tbody) return;
         
@@ -140,4 +146,131 @@ document.addEventListener("DOMContentLoaded", function() {
         // Initialize
         renderTable();
     });
+
+    function initAjaxPagination(table) {
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+        
+        let totalItems = parseInt(table.getAttribute('data-total-items') || '0', 10);
+        let itemsPerPage = parseInt(table.getAttribute('data-per-page') || '15', 10);
+        let currentPage = parseInt(table.getAttribute('data-current-page') || '1', 10);
+        
+        if (totalItems <= 15 && itemsPerPage === 15 && currentPage === 1) {
+            if (totalItems === 0) return;
+        }
+
+        const controlsContainer = document.createElement('div');
+        controlsContainer.className = 'd-flex justify-content-between align-items-center mt-3 mb-3 pagination-controls';
+        
+        const selectorHTML = `
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">Tampilkan:</span>
+                <select class="form-select form-select-sm items-per-page-select" style="width: 70px; border-radius: 8px;">
+                    <option value="15" ${itemsPerPage === 15 ? 'selected' : ''}>15</option>
+                    <option value="30" ${itemsPerPage === 30 ? 'selected' : ''}>30</option>
+                    <option value="50" ${itemsPerPage === 50 ? 'selected' : ''}>50</option>
+                </select>
+                <span class="text-muted small">baris</span>
+            </div>
+        `;
+        
+        const navHTML = `
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small me-3 page-info"></span>
+                <button class="btn btn-sm btn-outline-secondary btn-prev" style="border-radius: 8px;"><i class="bi bi-chevron-left"></i></button>
+                <button class="btn btn-sm btn-outline-secondary btn-next" style="border-radius: 8px;"><i class="bi bi-chevron-right"></i></button>
+            </div>
+        `;
+        
+        controlsContainer.innerHTML = selectorHTML + navHTML;
+        
+        let parentWrapper = table.closest('.table-responsive') || table;
+        parentWrapper.parentNode.insertBefore(controlsContainer, parentWrapper.nextSibling);
+
+        const selectEl = controlsContainer.querySelector('.items-per-page-select');
+        const prevBtn = controlsContainer.querySelector('.btn-prev');
+        const nextBtn = controlsContainer.querySelector('.btn-next');
+        const infoEl = controlsContainer.querySelector('.page-info');
+        
+        let isFetching = false;
+
+        function updateUI(cPage, iPerPage, tItems) {
+            const totalPages = Math.ceil(tItems / iPerPage) || 1;
+            const startIndex = (cPage - 1) * iPerPage;
+            const endIndex = Math.min(startIndex + iPerPage, tItems);
+            
+            if (tItems > 0) {
+                infoEl.textContent = `Menampilkan ${startIndex + 1} - ${endIndex} dari ${tItems} data`;
+            } else {
+                infoEl.textContent = `0 data`;
+            }
+            
+            prevBtn.disabled = cPage <= 1;
+            nextBtn.disabled = cPage >= totalPages || totalPages === 0;
+            selectEl.value = iPerPage;
+            
+            if (tItems <= 15 && iPerPage === 15 && cPage === 1) {
+                controlsContainer.style.display = 'none';
+            } else {
+                controlsContainer.style.display = 'flex';
+            }
+        }
+
+        async function fetchPage(page, perPage) {
+            if (isFetching) return;
+            isFetching = true;
+            
+            const url = new URL(window.location.href);
+            url.searchParams.set('page_riwayat', page);
+            url.searchParams.set('per_page', perPage);
+            
+            tbody.style.opacity = '0.5';
+            
+            try {
+                const response = await fetch(url.toString(), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.html !== undefined) {
+                        tbody.innerHTML = data.html;
+                        
+                        currentPage = data.currentPage;
+                        itemsPerPage = data.perPage;
+                        totalItems = data.totalItems;
+                        
+                        updateUI(currentPage, itemsPerPage, totalItems);
+                        
+                        window.history.pushState({}, '', url.toString());
+                    }
+                }
+            } catch (e) {
+                console.error("AJAX Pagination Error:", e);
+            } finally {
+                tbody.style.opacity = '1';
+                isFetching = false;
+            }
+        }
+        
+        selectEl.addEventListener('change', function() {
+            fetchPage(1, parseInt(this.value, 10));
+        });
+        
+        prevBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (currentPage > 1) fetchPage(currentPage - 1, itemsPerPage);
+        });
+        
+        nextBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            if (currentPage < totalPages) fetchPage(currentPage + 1, itemsPerPage);
+        });
+
+        // Initialize UI on first load
+        updateUI(currentPage, itemsPerPage, totalItems);
+    }
 });

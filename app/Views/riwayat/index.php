@@ -68,7 +68,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
 
 <div class="card border-0 shadow-sm bg-white mb-4">
     <div class="table-responsive text-nowrap">
-      <table class="table align-middle table-hover paginated-table">
+      <table class="table align-middle table-hover paginated-table" data-ajax-pagination="true" data-total-items="<?= esc($totalItems ?? 0) ?>" data-per-page="<?= esc($perPage ?? 15) ?>" data-current-page="<?= esc($_GET['page_riwayat'] ?? 1) ?>">
                 <thead class="table-light">
                     <!-- Baris Kolom dan Sorting -->
           <tr>
