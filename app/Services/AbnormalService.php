@@ -165,10 +165,7 @@ class AbnormalService
         $bulanList = $this->buildBulanList();
 
         // Cek semua terisi
-        $allPics = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
-        $masterPic = array_filter($allPics, function($p) {
-            return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), Role::Leader->value) === false;
-        });
+        $masterPic = $this->getFilteredMasterPic();
 
         $responseData = [
             'title'          => 'Laporan Abnormal Condition',
@@ -414,10 +411,7 @@ class AbnormalService
         $totalPages = $pager ? $pager->getPageCount('abnormal_overhaul') : 1;
         $startNo = ($currentPage - 1) * $perPage + 1;
 
-        $allPics2 = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
-        $masterPic = array_filter($allPics2, function($p) {
-            return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), Role::Leader->value) === false;
-        });
+        $masterPic = $this->getFilteredMasterPic();
 
         $bulanList = $this->buildBulanList();
 
@@ -856,5 +850,19 @@ class AbnormalService
         }
         
         return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
+    }
+
+    /**
+     * Mendapatkan daftar master PIC dengan filter (tanpa role Leader).
+     *
+     * @return array Daftar PIC
+     */
+    private function getFilteredMasterPic(): array
+    {
+        $allPics = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
+        
+        return array_filter($allPics, function($p) {
+            return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), Role::Leader->value) === false;
+        });
     }
 }
