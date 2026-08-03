@@ -120,7 +120,7 @@ class ApprovalService
         $checkedData = $ceklisKontrolModel->getCheckedMachinesCount($bulanIni);
         $checkedMap = [];
         foreach ($checkedData as $cd) {
-            $checkedMap[$cd['lokasi']][$cd['line']][$cd['kategori']] = (int) $cd['checked'];
+            $checkedMap[$cd['lokasi']][$cd['line']][$cd['kategori']] = (int) $cd['checked_count'];
         }
 
         $existingApprovals = $approvalModel->getExistingApprovals($bulanIni);
