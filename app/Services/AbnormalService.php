@@ -400,7 +400,7 @@ class AbnormalService
         sort($availableLines);
         $bulanList = $this->buildBulanList();
 
-        return view('abnormal/summary_overhaul', [
+        return [
             'is_summary'       => true,
             'title'            => 'Ringkasan Laporan Abnormal Overhaul',
             'bulan'            => $bulan,
@@ -412,7 +412,7 @@ class AbnormalService
             'sortBy'           => $sortBy,
             'order'            => $order,
             'availableLines'   => $availableLines,
-        ]);
+        ];
     }
 
     public function pdfOverhaul($request)

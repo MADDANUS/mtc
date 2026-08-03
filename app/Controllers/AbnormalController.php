@@ -91,7 +91,7 @@ class AbnormalController extends BaseController
         $service = new AbnormalService();
         $data = $service->overhaul($this->request);
         if (isset($data['is_summary']) && $data['is_summary']) {
-            return view('abnormal/summary', $data);
+            return view('abnormal/summary_overhaul', $data);
         }
         
         if ($this->request->isAJAX()) {
