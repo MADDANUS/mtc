@@ -737,7 +737,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
             <i class="bi bi-calendar2-check"></i>Ceklis Kontrol
           </a>
           <?php endif; ?>
-          <?php if (!in_array($role, ['sheadprd', 'sheadmtc'])): ?>
+          <?php if (!in_array($role, ['sheadprd', 'sheadmtc', 'leader'])): ?>
           <a href="<?= site_url('abnormal') ?>" class="menu-item <?= ($seg1 === 'abnormal' && $seg2 !== 'overhaul') ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 10px;">
             <i class="bi bi-exclamation-triangle"></i>Laporan Abnormal
           </a>
@@ -748,7 +748,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
           <a href="<?= site_url('riwayat/lokasi/semua?jenis_check=Overhaul') ?>" class="menu-item <?= $isOverhaulMenu ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
             <i class="bi bi-tools"></i>Inspection Report
           </a>
-          <?php if (!in_array($role, ['sheadprd', 'sheadmtc'])): ?>
+          <?php if (!in_array($role, ['sheadprd', 'sheadmtc', 'leader'])): ?>
           <a href="<?= site_url('abnormal/overhaul') ?>" class="menu-item <?= ($seg1 === 'abnormal' && $seg2 === 'overhaul') ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 10px;">
             <i class="bi bi-exclamation-triangle"></i>Laporan Abnormal
           </a>
