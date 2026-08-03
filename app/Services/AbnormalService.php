@@ -238,58 +238,7 @@ class AbnormalService
      */
     public function update($request)
     {
-        $idAbnormal = (int) $request->getPost('id_abnormal');
-        if ($idAbnormal <= 0) {
-            return ["status" => false, "message" => 'Laporan Abnormal tidak valid.'];
-        }
-
-        $data = [
-            'type_sparepart'  => $request->getPost('type_sparepart') ?: null,
-            'progres_stock'   => $request->getPost('progres_stock') ?: null,
-            'progres_tanggal' => $request->getPost('progres_tanggal') ?: null,
-            'action'          => $request->getPost('action') ?: null,
-            'repair_pic'      => $request->getPost('repair_pic') ?: null,
-            'keterangan'      => $request->getPost('keterangan') ?: null,
-        ];
-        
-        $isHapusSemua = $request->getPost('hapus_semua') == '1';
-        if ($isHapusSemua) {
-            $existing = (new \App\Models\LaporanAbnormalModel())->find($idAbnormal);
-            if ($existing) {
-                if (!empty($existing['foto_perbaikan'])) {
-                    @unlink(FCPATH . 'uploads/abnormal/' . $existing['foto_perbaikan']);
-                    $data['foto_perbaikan'] = null;
-                }
-                if (!empty($existing['foto_perbaikan_2'])) {
-                    @unlink(FCPATH . 'uploads/abnormal/' . $existing['foto_perbaikan_2']);
-                    $data['foto_perbaikan_2'] = null;
-                }
-            }
-        }
-
-        // Handle foto_perbaikan
-        $file1 = $request->getFile('foto_perbaikan');
-        if ($file1 && $file1->isValid() && !$file1->hasMoved()) {
-            $newName = 'repair_' . time() . '_1_' . uniqid() . '.' . $file1->getClientExtension();
-            $file1->move(FCPATH . 'uploads/abnormal/', $newName);
-            $data['foto_perbaikan'] = $newName;
-            $data['updated_at'] = date('Y-m-d H:i:s');
-        }
-
-        // Handle foto_perbaikan_2
-        $file2 = $request->getFile('foto_perbaikan_2');
-        if ($file2 && $file2->isValid() && !$file2->hasMoved()) {
-            $newName = 'repair_' . time() . '_2_' . uniqid() . '.' . $file2->getClientExtension();
-            $file2->move(FCPATH . 'uploads/abnormal/', $newName);
-            $data['foto_perbaikan_2'] = $newName;
-            $data['updated_at'] = date('Y-m-d H:i:s');
-        }
-
-        if ((new \App\Models\LaporanAbnormalModel())->update($idAbnormal, $data)) {
-            return ["status" => true, "message" => 'Rencana perbaikan Laporan Abnormal berhasil diperbarui.'];
-        }
-
-        return ["status" => false, "message" => 'Gagal memperbarui Laporan Abnormal.'];
+        return $this->processUpdateAbnormal($request, 'Rencana perbaikan Laporan Abnormal berhasil diperbarui.', 'Gagal memperbarui Laporan Abnormal.');
     }
 
     /**
@@ -345,7 +294,7 @@ class AbnormalService
         return $data;
     }
 
-    protected function summaryOverhaul()
+    protected function summaryOverhaul($request)
     {
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
         $filterLokasi   = $request->getGet('filter_lokasi') ?: '';
@@ -354,8 +303,6 @@ class AbnormalService
         $sortBy         = $request->getGet('sort_by') ?: 'lokasi';
         $order          = $request->getGet('order') ?: 'asc';
 
-        
-        
         $linesByLokasi = [
             Lokasi::MFG1->value => ['Brother', 'Milling', 'Kasahara', 'Knurling', 'Osl', 'Centering Grinding', 'Double Milling', 'Double Center Drill'],
             Lokasi::MFG2->value => ['Brother', 'Osl', 'Kasahara', 'Buffing', 'Thread', 'Burnishing']
@@ -366,6 +313,7 @@ class AbnormalService
             $bulan = $bulanFilter;
         }
 
+        $db = \Config\Database::connect();
         $builder = $db->table('laporan_abnormal')
                       ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
                       ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
@@ -393,14 +341,7 @@ class AbnormalService
             }
         }
 
-        $bulanList = [];
-        $bulanIndo = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
-        for ($i = 0; $i < 12; $i++) {
-            $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
-            $val  = $time->format('Y-m');
-            $label = $bulanIndo[$time->format('m')] . ' ' . $time->format('Y');
-            $bulanList[$val] = $label;
-        }
+        $bulanList = $this->buildBulanList();
 
         $summaryRows = [];
         foreach ($linesByLokasi as $lokasi => $lines) {
@@ -477,7 +418,7 @@ class AbnormalService
         $searchFilter   = $request->getGet('search') ?: '';
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
 
-        
+        $db = \Config\Database::connect();
         $builder = $db->table('laporan_abnormal')
                       ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
                       ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
@@ -584,58 +525,7 @@ class AbnormalService
 
     public function updateOverhaul($request)
     {
-        $idAbnormal = (int) $request->getPost('id_abnormal');
-        if ($idAbnormal <= 0) {
-            return ["status" => false, "message" => 'Laporan Abnormal tidak valid.'];
-        }
-
-        $data = [
-            'type_sparepart'  => $request->getPost('type_sparepart') ?: null,
-            'progres_stock'   => $request->getPost('progres_stock') ?: null,
-            'progres_tanggal' => $request->getPost('progres_tanggal') ?: null,
-            'action'          => $request->getPost('action') ?: null,
-            'repair_pic'      => $request->getPost('repair_pic') ?: null,
-            'keterangan'      => $request->getPost('keterangan') ?: null,
-        ];
-        
-        $isHapusSemua = $request->getPost('hapus_semua') == '1';
-        if ($isHapusSemua) {
-            $existing = (new \App\Models\LaporanAbnormalModel())->find($idAbnormal);
-            if ($existing) {
-                if (!empty($existing['foto_perbaikan'])) {
-                    @unlink(FCPATH . 'uploads/abnormal/' . $existing['foto_perbaikan']);
-                    $data['foto_perbaikan'] = null;
-                }
-                if (!empty($existing['foto_perbaikan_2'])) {
-                    @unlink(FCPATH . 'uploads/abnormal/' . $existing['foto_perbaikan_2']);
-                    $data['foto_perbaikan_2'] = null;
-                }
-            }
-        }
-
-        // Handle foto_perbaikan
-        $file1 = $request->getFile('foto_perbaikan');
-        if ($file1 && $file1->isValid() && !$file1->hasMoved()) {
-            $newName = 'repair_' . time() . '_1_' . uniqid() . '.' . $file1->getClientExtension();
-            $file1->move(FCPATH . 'uploads/abnormal/', $newName);
-            $data['foto_perbaikan'] = $newName;
-            $data['updated_at'] = date('Y-m-d H:i:s');
-        }
-
-        // Handle foto_perbaikan_2
-        $file2 = $request->getFile('foto_perbaikan_2');
-        if ($file2 && $file2->isValid() && !$file2->hasMoved()) {
-            $newName = 'repair_' . time() . '_2_' . uniqid() . '.' . $file2->getClientExtension();
-            $file2->move(FCPATH . 'uploads/abnormal/', $newName);
-            $data['foto_perbaikan_2'] = $newName;
-            $data['updated_at'] = date('Y-m-d H:i:s');
-        }
-
-        if ((new \App\Models\LaporanAbnormalModel())->update($idAbnormal, $data)) {
-            return ["status" => true, "message" => 'Rencana perbaikan Laporan Abnormal Overhaul berhasil diperbarui.'];
-        }
-
-        return ["status" => false, "message" => 'Gagal memperbarui Laporan Abnormal Overhaul.'];
+        return $this->processUpdateAbnormal($request, 'Rencana perbaikan Laporan Abnormal Overhaul berhasil diperbarui.', 'Gagal memperbarui Laporan Abnormal Overhaul.');
     }
 
     /**
@@ -889,5 +779,66 @@ class AbnormalService
             'availableLines'      => $availableLines,
             'availableCategories' => $availableCategories
         ];
+    }
+
+    /**
+     * Private helper to process abnormal report updates for both normal and overhaul reports.
+     */
+    private function processUpdateAbnormal($request, string $successMsg, string $failMsg): array
+    {
+        $idAbnormal = (int) $request->getPost('id_abnormal');
+        if ($idAbnormal <= 0) {
+            return ["status" => false, "message" => 'Laporan Abnormal tidak valid.'];
+        }
+
+        $data = [
+            'type_sparepart'  => $request->getPost('type_sparepart') ?: null,
+            'progres_stock'   => $request->getPost('progres_stock') ?: null,
+            'progres_tanggal' => $request->getPost('progres_tanggal') ?: null,
+            'action'          => $request->getPost('action') ?: null,
+            'repair_pic'      => $request->getPost('repair_pic') ?: null,
+            'keterangan'      => $request->getPost('keterangan') ?: null,
+        ];
+        
+        $isHapusSemua = $request->getPost('hapus_semua') == '1';
+        $abnormalModel = new \App\Models\LaporanAbnormalModel();
+        
+        if ($isHapusSemua) {
+            $existing = $abnormalModel->find($idAbnormal);
+            if ($existing) {
+                if (!empty($existing['foto_perbaikan'])) {
+                    @unlink(FCPATH . 'uploads/abnormal/' . $existing['foto_perbaikan']);
+                    $data['foto_perbaikan'] = null;
+                }
+                if (!empty($existing['foto_perbaikan_2'])) {
+                    @unlink(FCPATH . 'uploads/abnormal/' . $existing['foto_perbaikan_2']);
+                    $data['foto_perbaikan_2'] = null;
+                }
+            }
+        }
+
+        // Handle foto_perbaikan
+        $file1 = $request->getFile('foto_perbaikan');
+        if ($file1 && $file1->isValid() && !$file1->hasMoved()) {
+            $newName = 'repair_' . time() . '_1_' . uniqid() . '.' . $file1->getClientExtension();
+            $file1->move(FCPATH . 'uploads/abnormal/', $newName);
+            $data['foto_perbaikan'] = $newName;
+            $data['updated_at'] = date('Y-m-d H:i:s');
+        }
+
+        // Handle foto_perbaikan_2
+        $file2 = $request->getFile('foto_perbaikan_2');
+        if ($file2 && $file2->isValid() && !$file2->hasMoved()) {
+            $newName = 'repair_' . time() . '_2_' . uniqid() . '.' . $file2->getClientExtension();
+            $file2->move(FCPATH . 'uploads/abnormal/', $newName);
+            $data['foto_perbaikan_2'] = $newName;
+            $data['updated_at'] = date('Y-m-d H:i:s');
+        }
+
+        if ($abnormalModel->update($idAbnormal, $data)) {
+            return ["status" => true, "message" => $successMsg];
+        }
+
+        return ["status" => false, "message" => $failMsg];
     }
 }
