@@ -128,36 +128,8 @@ class ChecklistController extends BaseController
                 $redirectUrl .= "?id_mesin=" . $idMesin;
             }
             return redirect()->to($redirectUrl);
-        } else if (strtolower($jenisSlug) === 'overhaul' && $lokasiName === Lokasi::MFG2->value) {
-            $categories = [
-                'thread'               => 'THREAD',
-                'double-milling'       => 'DOUBLE MILLING',
-                'milling'              => 'MILLING',
-                'double-center-drill'  => 'DOUBLE CENTER DRILL',
-                'osl'                  => 'OSL',
-                'knurling'             => 'KNURLING',
-                'brother'              => 'BROTHER',
-                'burnishing'           => 'BURNISHING',
-                'buffing'              => 'BUFFING',
-                'centering-grinding'   => 'CENTERING GRINDING',
-            ];
         } else {
-            if ($lokasiName === Lokasi::MFG2->value) {
-                $categories = [
-                    'penerangan'     => 'Penerangan',
-                    'kabel-dan-pipa' => 'Kabel dan Pipa',
-                    'angin-bocor'    => 'Angin Bocor',
-                ];
-            } else {
-                $categories = [
-                    'penerangan'     => 'Penerangan',
-                    'kabel-dan-pipa' => 'Kabel dan Pipa',
-                    'angin-bocor'    => 'Angin Bocor',
-                    'bearing-cam'    => 'Bearing Cam',
-                    'gearbox'        => 'Gearbox',
-                    'belt-cam'       => 'Belt Cam',
-                ];
-            }
+            $categories = $this->resolveCategoriesList($jenisSlug, $lokasiName);
         }
 
         return view('checklist/index', [
@@ -310,18 +282,7 @@ class ChecklistController extends BaseController
      */
     public function store(string $lokasiSlug, string $jenisSlug)
     {
-        $rules = [
-            'id_mesin'    => 'required|numeric',
-            'waktu_mulai' => 'required',
-            'kategori'    => 'required',
-        ];
-
-        if (strtolower($jenisSlug) === 'overhaul') {
-            $rules['bar_feeder_type'] = 'permit_empty|string';
-            $rules['support_pic.*']   = 'permit_empty|string';
-        }
-
-        if (! $this->validate($rules)) {
+        if (! $this->validateStoreRules($jenisSlug)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -358,60 +319,12 @@ class ChecklistController extends BaseController
             return redirect()->back()->withInput()->with('error', 'Gagal membuat header transaksi pengecekan.');
         }
 
-        $uploadPath = FCPATH . 'uploads/abnormal/';
-        $detailData = [];
-        foreach ($hasilCheck as $idParameter => $hasil) {
-            $fotoAbnormal = null;
-            $fotoAbnormal2 = null;
-
-            // Jika hasil Δ, upload foto (wajib)
-            if ($hasil === 'Δ') {
-                $file = $this->request->getFile("foto_abnormal.{$idParameter}");
-                if ($file && $file->isValid() && !$file->hasMoved()) {
-                    $newName = time() . '_1_' . uniqid() . '.' . $file->getClientExtension();
-                    $file->move($uploadPath, $newName);
-                    $fotoAbnormal = $newName;
-                }
-                
-                $file2 = $this->request->getFile("foto_abnormal_2.{$idParameter}");
-                if ($file2 && $file2->isValid() && !$file2->hasMoved()) {
-                    $newName2 = time() . '_2_' . uniqid() . '.' . $file2->getClientExtension();
-                    $file2->move($uploadPath, $newName2);
-                    $fotoAbnormal2 = $newName2;
-                }
-            }
-
-            $idDetail = $this->detailModel->insert([
-                'id_transaksi'    => $idTransaksi,
-                'id_parameter'    => (int) $idParameter,
-                'hasil_check'     => $hasil !== '' ? $hasil : null,
-                'ulasan'          => $ulasan[$idParameter] ?? null,
-                'foto_abnormal'   => $fotoAbnormal,
-                'foto_abnormal_2' => $fotoAbnormal2,
-            ]);
-            // (Logika laporan_abnormal dipindah ke proses Approval)
-        }
+        $this->processChecklistDetails($idTransaksi, $hasilCheck, $ulasan);
 
         // (Logika ceklis_kontrol dipindah ke proses Approval)
 
-        // Simpan metadata khusus Overhaul (Opsi C: Tabel transaksi_overhaul)
         if (strtolower($jenisSlug) === 'overhaul') {
-                $rawSupport = $this->request->getPost('support_pic');
-                $supportStr = null;
-                if (is_array($rawSupport)) {
-                    $filtered = array_filter(array_map('trim', $rawSupport));
-                    if (!empty($filtered)) {
-                        $supportStr = implode(', ', $filtered);
-                    }
-                }
-                
-                $overhaulModel = new \App\Models\TransaksiOverhaulModel();
-                $overhaulModel->insert([
-                    'id_transaksi'        => $idTransaksi,
-                    'bar_feeder_type'     => $this->request->getPost('bar_feeder_type') ?: null,
-                    'support_pic'         => $supportStr,
-                    'note_recommendation' => $this->request->getPost('note_recommendation') ?: null,
-                ]);
+            $this->processOverhaulMetadata($idTransaksi);
         }
 
         $db->transComplete();
@@ -448,5 +361,110 @@ class ChecklistController extends BaseController
         $sisaDetik = $detik % 60;
 
         return "{$menit} menit {$sisaDetik} detik";
+    }
+
+    private function validateStoreRules(string $jenisSlug): bool
+    {
+        $rules = [
+            'id_mesin'    => 'required|numeric',
+            'waktu_mulai' => 'required',
+            'kategori'    => 'required',
+        ];
+
+        if (strtolower($jenisSlug) === 'overhaul') {
+            $rules['bar_feeder_type'] = 'permit_empty|string';
+            $rules['support_pic.*']   = 'permit_empty|string';
+        }
+
+        return $this->validate($rules);
+    }
+
+    private function processChecklistDetails(int $idTransaksi, array $hasilCheck, array $ulasan): void
+    {
+        $uploadPath = FCPATH . 'uploads/abnormal/';
+        foreach ($hasilCheck as $idParameter => $hasil) {
+            $fotoAbnormal = null;
+            $fotoAbnormal2 = null;
+
+            if ($hasil === 'Δ') {
+                $file = $this->request->getFile("foto_abnormal.{$idParameter}");
+                if ($file && $file->isValid() && !$file->hasMoved()) {
+                    $newName = time() . '_1_' . uniqid() . '.' . $file->getClientExtension();
+                    $file->move($uploadPath, $newName);
+                    $fotoAbnormal = $newName;
+                }
+                
+                $file2 = $this->request->getFile("foto_abnormal_2.{$idParameter}");
+                if ($file2 && $file2->isValid() && !$file2->hasMoved()) {
+                    $newName2 = time() . '_2_' . uniqid() . '.' . $file2->getClientExtension();
+                    $file2->move($uploadPath, $newName2);
+                    $fotoAbnormal2 = $newName2;
+                }
+            }
+
+            $this->detailModel->insert([
+                'id_transaksi'    => $idTransaksi,
+                'id_parameter'    => (int) $idParameter,
+                'hasil_check'     => $hasil !== '' ? $hasil : null,
+                'ulasan'          => $ulasan[$idParameter] ?? null,
+                'foto_abnormal'   => $fotoAbnormal,
+                'foto_abnormal_2' => $fotoAbnormal2,
+            ]);
+        }
+    }
+
+    private function processOverhaulMetadata(int $idTransaksi): void
+    {
+        $rawSupport = $this->request->getPost('support_pic');
+        $supportStr = null;
+        if (is_array($rawSupport)) {
+            $filtered = array_filter(array_map('trim', $rawSupport));
+            if (!empty($filtered)) {
+                $supportStr = implode(', ', $filtered);
+            }
+        }
+        
+        $overhaulModel = new \App\Models\TransaksiOverhaulModel();
+        $overhaulModel->insert([
+            'id_transaksi'        => $idTransaksi,
+            'bar_feeder_type'     => $this->request->getPost('bar_feeder_type') ?: null,
+            'support_pic'         => $supportStr,
+            'note_recommendation' => $this->request->getPost('note_recommendation') ?: null,
+        ]);
+    }
+
+    private function resolveCategoriesList(string $jenisSlug, string $lokasiName): array
+    {
+        if (strtolower($jenisSlug) === 'overhaul' && $lokasiName === Lokasi::MFG2->value) {
+            return [
+                'thread'               => 'THREAD',
+                'double-milling'       => 'DOUBLE MILLING',
+                'milling'              => 'MILLING',
+                'double-center-drill'  => 'DOUBLE CENTER DRILL',
+                'osl'                  => 'OSL',
+                'knurling'             => 'KNURLING',
+                'brother'              => 'BROTHER',
+                'burnishing'           => 'BURNISHING',
+                'buffing'              => 'BUFFING',
+                'centering-grinding'   => 'CENTERING GRINDING',
+            ];
+        }
+
+        if ($lokasiName === Lokasi::MFG2->value) {
+            return [
+                'penerangan'     => 'Penerangan',
+                'kabel-dan-pipa' => 'Kabel dan Pipa',
+                'angin-bocor'    => 'Angin Bocor',
+            ];
+        }
+
+        return [
+            'penerangan'     => 'Penerangan',
+            'kabel-dan-pipa' => 'Kabel dan Pipa',
+            'angin-bocor'    => 'Angin Bocor',
+            'bearing-cam'    => 'Bearing Cam',
+            'gearbox'        => 'Gearbox',
+            'belt-cam'       => 'Belt Cam',
+        ];
     }
 }
