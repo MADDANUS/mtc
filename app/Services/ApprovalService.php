@@ -45,77 +45,7 @@ class ApprovalService
 
             // -- B. Kontrol yang BELUM SELESAI diisi (belum ada di approval_bulanan) --
             // Hanya untuk role member & admin — agar bisa membuka dan melanjutkan pengisian
-            $belumSelesaiRows = [];
-            if (in_array($role, [Role::Member->value, Role::Admin->value], true)) {
-
-                // Ambil semua kombinasi lokasi/line/kategori/bulan yang sudah ada di ceklis_kontrol bulan ini
-                $bulanIni = date('Y-m');
-
-                // Total mesin per lokasi/line
-                $mesinModel = new \App\Models\MesinModel();
-                $totalMesinData = $mesinModel->getTotalMesinPerLine();
-                $totalMesinMap = [];
-                foreach ($totalMesinData as $tm) {
-                    $totalMesinMap[$tm['lokasi']][$tm['line']] = (int) $tm['total'];
-                }
-
-                // Kategori per lokasi
-                $kategoriByLokasi = [
-                    Lokasi::MFG1->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
-                    Lokasi::MFG2->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'],
-                ];
-
-                // Mesin yang sudah dicek bulan ini per lokasi/line/kategori
-                $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
-                $checkedData = $ceklisKontrolModel->getCheckedMachinesCount($bulanIni);
-                $checkedMap = [];
-                foreach ($checkedData as $cd) {
-                    $checkedMap[$cd['lokasi']][$cd['line']][$cd['kategori']] = (int) $cd['checked'];
-                }
-
-                // Ambil daftar id_approval yang sudah ada untuk bulan ini (untuk hindari duplikat)
-                $existingApprovals = $approvalModel->getExistingApprovals($bulanIni);
-                $approvedSet = [];
-                foreach ($existingApprovals as $ea) {
-                    $approvedSet[$ea['lokasi']][$ea['line']][$ea['kategori']] = true;
-                }
-
-                // Bangun list "Belum Selesai"
-                foreach ($kategoriByLokasi as $lok => $kats) {
-                    if (!isset($totalMesinMap[$lok])) continue;
-                    foreach ($totalMesinMap[$lok] as $ln => $totalMesin) {
-                        foreach ($kats as $kat) {
-                            // Sudah ada di approval_bulanan? Lewati, sudah ditangani di bagian A
-                            if (isset($approvedSet[$lok][$ln][$kat])) continue;
-
-                            $checked = $checkedMap[$lok][$ln][$kat] ?? 0;
-                            $persen = $totalMesin > 0 ? round(($checked / $totalMesin) * 100) : 0;
-
-                            // Hanya tampilkan jika ada data yang diisi (ada setidaknya 1 mesin tercek)
-                            // atau kalau persen < 100 (belum selesai)
-                            // Kalau 0% dan tidak ada isian sama sekali, tidak perlu ditampilkan
-                            if ($checked === 0) continue;
-
-                            $belumSelesaiRows[] = [
-                                'doc_id'      => null,
-                                'jenis_check' => 'kontrol',
-                                'kategori'    => $kat,
-                                'lokasi'      => $lok,
-                                'line'        => $ln,
-                                'doc_date'    => $bulanIni,
-                                'status'      => 'Belum Selesai',
-                                'doc_source'  => 'kontrol',
-                                'lokasi_check'=> null,
-                                'nama_pic'    => null,
-                                'nama_staff'  => null,
-                                'no_mesin'    => null,
-                                'type_mesin'  => null,
-                                'persen'      => $persen,
-                            ];
-                        }
-                    }
-                }
-            }
+            $belumSelesaiRows = $this->getBelumSelesaiRows($role, date('Y-m'), $approvalModel);
 
             $kontrolRows = array_merge($approvalRows, $belumSelesaiRows);
         }
@@ -123,7 +53,117 @@ class ApprovalService
         // ─── 3. Gabungkan & apply filter GET ──────────────────────────────────────
         $allDocs = array_merge($transaksiRows, $kontrolRows);
 
-        // Ekstrak data unik untuk dropdown
+        [$uniqueLokasi, $uniqueKategori, $uniqueMesin] = $this->extractUniqueFilters($allDocs);
+
+        $filterJenis    = $request->getGet('jenis') ?: null;
+        $filterBulan    = $request->getGet('bulan') ?: null;
+        $filterStatus   = $request->getGet('status') ?: null;
+        $filterLokasi   = $request->getGet('lokasi') ?: null;
+        $filterKategori = $request->getGet('kategori') ?: null;
+        $filterMesin    = $request->getGet('mesin') ?: null;
+
+        $filtered = $this->applyGetFilters($allDocs, $filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin);
+        $filtered = array_values($filtered);
+
+        // ─── 4. Pagination ─────────────────────────────────────────────────────────
+        $perPage     = 15;
+        $totalItems  = count($filtered);
+        $totalPages  = max(1, (int) ceil($totalItems / $perPage));
+        $currentPage = max(1, (int) ($request->getGet('page') ?: 1));
+        if ($currentPage > $totalPages) $currentPage = $totalPages;
+        $offset   = ($currentPage - 1) * $perPage;
+        $paginated = array_slice($filtered, $offset, $perPage);
+
+        // ─── 5. Daftar bulan untuk dropdown ──────────────────────────────────────
+        $bulanList = $this->buildBulanList();
+
+        return [
+            'title'       => 'Approval',
+            'docs'        => $paginated,
+            'totalItems'  => $totalItems,
+            'totalPages'  => $totalPages,
+            'currentPage' => $currentPage,
+            'perPage'     => $perPage,
+            'bulanList'   => $bulanList,
+            'filterJenis'    => $filterJenis,
+            'filterBulan'    => $filterBulan,
+            'filterStatus'   => $filterStatus,
+            'filterLokasi'   => $filterLokasi,
+            'filterKategori' => $filterKategori,
+            'filterMesin'    => $filterMesin,
+            'uniqueLokasi'   => $uniqueLokasi,
+            'uniqueKategori' => $uniqueKategori,
+            'uniqueMesin'    => $uniqueMesin,
+        ];
+    }
+
+    private function getBelumSelesaiRows(string $role, string $bulanIni, \App\Models\ApprovalBulananModel $approvalModel): array
+    {
+        $belumSelesaiRows = [];
+        if (!in_array($role, [Role::Member->value, Role::Admin->value], true)) {
+            return $belumSelesaiRows;
+        }
+
+        $mesinModel = new \App\Models\MesinModel();
+        $totalMesinData = $mesinModel->getTotalMesinPerLine();
+        $totalMesinMap = [];
+        foreach ($totalMesinData as $tm) {
+            $totalMesinMap[$tm['lokasi']][$tm['line']] = (int) $tm['total'];
+        }
+
+        $kategoriByLokasi = [
+            Lokasi::MFG1->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
+            Lokasi::MFG2->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'],
+        ];
+
+        $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
+        $checkedData = $ceklisKontrolModel->getCheckedMachinesCount($bulanIni);
+        $checkedMap = [];
+        foreach ($checkedData as $cd) {
+            $checkedMap[$cd['lokasi']][$cd['line']][$cd['kategori']] = (int) $cd['checked'];
+        }
+
+        $existingApprovals = $approvalModel->getExistingApprovals($bulanIni);
+        $approvedSet = [];
+        foreach ($existingApprovals as $ea) {
+            $approvedSet[$ea['lokasi']][$ea['line']][$ea['kategori']] = true;
+        }
+
+        foreach ($kategoriByLokasi as $lok => $kats) {
+            if (!isset($totalMesinMap[$lok])) continue;
+            foreach ($totalMesinMap[$lok] as $ln => $totalMesin) {
+                foreach ($kats as $kat) {
+                    if (isset($approvedSet[$lok][$ln][$kat])) continue;
+
+                    $checked = $checkedMap[$lok][$ln][$kat] ?? 0;
+                    $persen = $totalMesin > 0 ? round(($checked / $totalMesin) * 100) : 0;
+
+                    if ($checked === 0) continue;
+
+                    $belumSelesaiRows[] = [
+                        'doc_id'      => null,
+                        'jenis_check' => 'kontrol',
+                        'kategori'    => $kat,
+                        'lokasi'      => $lok,
+                        'line'        => $ln,
+                        'doc_date'    => $bulanIni,
+                        'status'      => 'Belum Selesai',
+                        'doc_source'  => 'kontrol',
+                        'lokasi_check'=> null,
+                        'nama_pic'    => null,
+                        'nama_staff'  => null,
+                        'no_mesin'    => null,
+                        'type_mesin'  => null,
+                        'persen'      => $persen,
+                    ];
+                }
+            }
+        }
+        return $belumSelesaiRows;
+    }
+
+    private function extractUniqueFilters(array $allDocs): array
+    {
         $uniqueLokasi = [];
         $uniqueKategori = [];
         $uniqueMesin = [];
@@ -153,14 +193,12 @@ class ApprovalService
         asort($uniqueKategori);
         asort($uniqueMesin);
 
-        $filterJenis    = $request->getGet('jenis') ?: null;
-        $filterBulan    = $request->getGet('bulan') ?: null;
-        $filterStatus   = $request->getGet('status') ?: null;
-        $filterLokasi   = $request->getGet('lokasi') ?: null;
-        $filterKategori = $request->getGet('kategori') ?: null;
-        $filterMesin    = $request->getGet('mesin') ?: null;
+        return [$uniqueLokasi, $uniqueKategori, $uniqueMesin];
+    }
 
-        $filtered = array_filter($allDocs, function($row) use ($filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin) {
+    private function applyGetFilters(array $allDocs, ?string $filterJenis, ?string $filterBulan, ?string $filterStatus, ?string $filterLokasi, ?string $filterKategori, ?string $filterMesin): array
+    {
+        return array_filter($allDocs, function($row) use ($filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin) {
             if ($filterJenis && $filterJenis !== 'all') {
                 $jenis = $row['jenis_check'] ?? '';
                 if ($filterJenis === JenisCheck::Preventive->value && strtolower($jenis) !== 'preventive') return false;
@@ -200,18 +238,10 @@ class ApprovalService
             }
             return true;
         });
-        $filtered = array_values($filtered);
+    }
 
-        // ─── 4. Pagination ─────────────────────────────────────────────────────────
-        $perPage     = 15;
-        $totalItems  = count($filtered);
-        $totalPages  = max(1, (int) ceil($totalItems / $perPage));
-        $currentPage = max(1, (int) ($request->getGet('page') ?: 1));
-        if ($currentPage > $totalPages) $currentPage = $totalPages;
-        $offset   = ($currentPage - 1) * $perPage;
-        $paginated = array_slice($filtered, $offset, $perPage);
-
-        // ─── 5. Daftar bulan untuk dropdown ──────────────────────────────────────
+    private function buildBulanList(): array
+    {
         $bulanIndo = ['01'=>'Januari','02'=>'Februari','03'=>'Maret','04'=>'April','05'=>'Mei','06'=>'Juni',
                       '07'=>'Juli','08'=>'Agustus','09'=>'September','10'=>'Oktober','11'=>'November','12'=>'Desember'];
         $bulanList = [];
@@ -219,24 +249,6 @@ class ApprovalService
             $t = \CodeIgniter\I18n\Time::now()->subMonths($i);
             $bulanList[$t->format('Y-m')] = $bulanIndo[$t->format('m')] . ' ' . $t->format('Y');
         }
-
-        return [
-            'title'       => 'Approval',
-            'docs'        => $paginated,
-            'totalItems'  => $totalItems,
-            'totalPages'  => $totalPages,
-            'currentPage' => $currentPage,
-            'perPage'     => $perPage,
-            'bulanList'   => $bulanList,
-            'filterJenis'    => $filterJenis,
-            'filterBulan'    => $filterBulan,
-            'filterStatus'   => $filterStatus,
-            'filterLokasi'   => $filterLokasi,
-            'filterKategori' => $filterKategori,
-            'filterMesin'    => $filterMesin,
-            'uniqueLokasi'   => $uniqueLokasi,
-            'uniqueKategori' => $uniqueKategori,
-            'uniqueMesin'    => $uniqueMesin,
-        ];
+        return $bulanList;
     }
 }
