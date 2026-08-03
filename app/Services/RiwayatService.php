@@ -288,6 +288,9 @@ public function updateTransaksi(int $id, $request, $validation)
             'kategori'    => 'required',
         ];
 
+        $idMesin      = (int) $request->getPost('id_mesin');
+        $namaPic      = $request->getPost('nama_pic');
+        $waktuMulai   = $request->getPost('waktu_mulai');
         $kategoriName = $request->getPost('kategori');
         $waktuSelesai = $header['waktu_selesai']; // Tetap pakai waktu selesai asli
 
