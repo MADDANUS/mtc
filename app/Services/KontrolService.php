@@ -76,34 +76,13 @@ class KontrolService
         $bulan    = $request->getGet('bulan') ?: date('Y-m');
         $line     = $request->getGet('line') ?: null;
 
-        if ($lokasi === Lokasi::MFG2->value) {
-            $categories = [
-                'Penerangan'     => 'Penerangan',
-                'Kabel dan Pipa' => 'Kabel dan Pipa',
-                'Angin Bocor'    => 'Angin Bocor',
-            ];
-        } else {
-            $categories = [
-                'Penerangan'     => 'Penerangan',
-                'Kabel dan Pipa' => 'Kabel dan Pipa',
-                'Angin Bocor'    => 'Angin Bocor',
-                'Bearing Cam'    => 'Bearing Cam',
-                'Gearbox'        => 'Gearbox',
-                'Belt Cam'       => 'Belt Cam',
-            ];
-        }
-
-        if (!isset($categories[$kategori])) {
+        $categoriesList = $this->resolveCategories($lokasi);
+        if (!in_array($kategori, $categoriesList)) {
             $kategori = 'Penerangan';
         }
+        $categories = array_combine($categoriesList, $categoriesList);
 
-        $availableLines = [];
-        if ($lokasi === Lokasi::MFG1->value) {
-            $availableLines = ['Line 1', 'Line 2', 'Line 3'];
-        } elseif ($lokasi === Lokasi::MFG2->value) {
-            $availableLines = ['CG', 'Second'];
-        }
-
+        $availableLines = $this->resolveAvailableLines($lokasi);
         if (empty($line) && !empty($availableLines)) {
             $line = $availableLines[0];
         }
@@ -114,25 +93,11 @@ class KontrolService
         $jadwalModel = new \App\Models\JadwalPreventiveModel();
         $schedule = $jadwalModel->getJadwalForChecklist($lokasi, $kategori, $bulan);
 
-        $columnDates = [];
-        $hasSchedule = false;
-
-        if ($schedule) {
-            $hasSchedule    = true;
-            $tglRencana     = strtotime($schedule['tanggal_rencana']);
-            $dayOfWeek      = (int) date('N', $tglRencana);
-            $mondayTs       = strtotime('-' . ($dayOfWeek - 1) . ' days', $tglRencana);
-
-            for ($d = 0; $d < 5; $d++) {
-                $columnDates[$d + 1] = date('Y-m-d', strtotime("+${d} days", $mondayTs));
-            }
-        }
+        $hasSchedule = !empty($schedule);
+        $columnDates = $this->calculateColumnDates($schedule);
 
         $approvalModel = new \App\Models\ApprovalBulananModel();
-        $approval = $approvalModel->getApprovalWithUsers($lokasi, $kategori, $bulan, $line);
-        // DUMMY ASSIGNMENT TO KEEP REST WORKING
-        $approvalQuery = true;
-
+        $approval = $approvalModel->getApprovalWithUsers($lokasi, $kategori, $bulan, $line ?: 'NONE');
         
         $approvalStatus = $approval ? $approval['status'] : 'Pending';
 
@@ -160,19 +125,8 @@ class KontrolService
         $bulan    = $request->getGet('bulan') ?: date('Y-m');
         $line     = $request->getGet('line') ?: null;
 
-        if ($lokasi === Lokasi::MFG2->value) {
-            $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
-        } else {
-            $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
-        }
-
-        $availableLines = [];
-        if ($lokasi === Lokasi::MFG1->value) {
-            $availableLines = ['Line 1', 'Line 2', 'Line 3'];
-        } elseif ($lokasi === Lokasi::MFG2->value) {
-            $availableLines = ['CG', 'Second'];
-        }
-
+        $categories = $this->resolveCategories($lokasi);
+        $availableLines = $this->resolveAvailableLines($lokasi);
         if (empty($line) && !empty($availableLines)) {
             $line = $availableLines[0];
         }
@@ -185,21 +139,13 @@ class KontrolService
             $jadwalModel = new \App\Models\JadwalPreventiveModel();
             $schedule = $jadwalModel->getJadwalForChecklist($lokasi, $cat, $bulan);
                            
-            $columnDates = [];
             $hasSchedule = false;
             $tglRencanaStr = '-';
             if ($schedule) {
                 $hasSchedule = true;
                 $tglRencanaStr = date('d-m-Y', strtotime($schedule['tanggal_rencana']));
-                
-                $tglRencanaTs = strtotime($schedule['tanggal_rencana']);
-                $dayOfWeek      = (int) date('N', $tglRencanaTs);
-                $mondayTs       = strtotime('-' . ($dayOfWeek - 1) . ' days', $tglRencanaTs);
-
-                for ($d = 0; $d < 5; $d++) {
-                    $columnDates[$d + 1] = date('Y-m-d', strtotime("+$d days", $mondayTs));
-                }
             }
+            $columnDates = $this->calculateColumnDates($schedule);
 
             $approvalModel = new \App\Models\ApprovalBulananModel();
             $approval = $approvalModel->getApprovalWithUsers($lokasi, $cat, $bulan, $line ?: 'NONE') ?: [];
@@ -214,11 +160,7 @@ class KontrolService
             ];
         }
         
-        $bulanList = [];
-        for ($i = 0; $i < 12; $i++) {
-            $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
-            $bulanList[$time->format('Y-m')] = $time->toLocalizedString('MMMM yyyy');
-        }
+        $bulanList = $this->buildBulanList();
 
         $data = [
             'title'      => "Checklist Control - {$lokasi} - Semua Kategori",
@@ -344,44 +286,15 @@ class KontrolService
         $line     = $request->getGet('line') ?: null;
 
         // Daftar kategori khusus Preventive
-        if ($lokasi === Lokasi::MFG2->value) {
-            $categories = [
-                'Penerangan'     => 'Penerangan',
-                'Kabel dan Pipa' => 'Kabel dan Pipa',
-                'Angin Bocor'    => 'Angin Bocor',
-            ];
-        } else {
-            $categories = [
-                'Penerangan'     => 'Penerangan',
-                'Kabel dan Pipa' => 'Kabel dan Pipa',
-                'Angin Bocor'    => 'Angin Bocor',
-                'Bearing Cam'    => 'Bearing Cam',
-                'Gearbox'        => 'Gearbox',
-                'Belt Cam'       => 'Belt Cam',
-            ];
-        }
-
-        // Fallback jika kategori tidak valid untuk lokasi saat ini
-        if (!isset($categories[$kategori])) {
+        $categoriesList = $this->resolveCategories($lokasi);
+        if (!in_array($kategori, $categoriesList)) {
             $kategori = 'Penerangan';
         }
+        $categories = array_combine($categoriesList, $categoriesList);
 
-        // Buat list 12 bulan terakhir untuk dropdown filter
-        $bulanList = [];
-        for ($i = 0; $i < 12; $i++) {
-            $time = Time::now()->subMonths($i);
-            $val  = $time->format('Y-m');
-            $label = $time->toLocalizedString('MMMM yyyy');
-            $bulanList[$val] = $label;
-        }
+        $bulanList = $this->buildBulanList();
 
-        $availableLines = [];
-        if ($lokasi === Lokasi::MFG1->value) {
-            $availableLines = ['Line 1', 'Line 2', 'Line 3'];
-        } elseif ($lokasi === Lokasi::MFG2->value) {
-            $availableLines = ['CG', 'Second'];
-        }
-
+        $availableLines = $this->resolveAvailableLines($lokasi);
         if (empty($line) && !empty($availableLines)) {
             $line = $availableLines[0];
         }
@@ -394,19 +307,8 @@ class KontrolService
         $schedule = $jadwalModel->getJadwalForChecklist($lokasi, $kategori, $bulan);
 
         // Hitung 5 tanggal hari kerja (Senin-Jumat) dari pekan terjadwal
-        $columnDates = []; // Array 5 elemen: tanggal Senin s.d Jumat
-        $hasSchedule = false;
-
-        if ($schedule) {
-            $hasSchedule    = true;
-            $tglRencana     = strtotime($schedule['tanggal_rencana']);
-            $dayOfWeek      = (int) date('N', $tglRencana); // 1=Senin ... 7=Minggu
-            $mondayTs       = strtotime('-' . ($dayOfWeek - 1) . ' days', $tglRencana);
-
-            for ($d = 0; $d < 5; $d++) {
-                $columnDates[$d + 1] = date('Y-m-d', strtotime("+{$d} days", $mondayTs));
-            }
-        }
+        $hasSchedule = !empty($schedule);
+        $columnDates = $this->calculateColumnDates($schedule);
 
         $allChecked = true;
         foreach ($grid as $row) {
@@ -418,18 +320,7 @@ class KontrolService
 
         // Ambil status approval beserta nama approver
         $approvalModel = new \App\Models\ApprovalBulananModel();
-        $approval = $approvalModel->getApprovalWithUsers($lokasi, $kategori, $bulan, $line);
-        // DUMMY ASSIGNMENT TO KEEP REST WORKING
-        $approvalQuery = true;
-
-        if ($line) {
-            $approvalQuery->where('a.line', $line);
-        } else {
-            // Jika tidak ada line yang dipilih, paksakan tidak menemukan approval (atau bisa juga buat kondisi 'IS NULL')
-            $approvalQuery->where('a.line', 'NONE');
-        }
-        
-        $approval = $approvalQuery->get()->getRowArray();
+        $approval = $approvalModel->getApprovalWithUsers($lokasi, $kategori, $bulan, $line ?: 'NONE');
 
         $approvalStatus = $approval ? $approval['status'] : 'Pending';
 
@@ -511,13 +402,7 @@ class KontrolService
         ];
 
         // Buat list 12 bulan terakhir untuk dropdown filter
-        $bulanList = [];
-        for ($i = 0; $i < 12; $i++) {
-            $time = Time::now()->subMonths($i);
-            $val  = $time->format('Y-m');
-            $label = $time->toLocalizedString('MMMM yyyy');
-            $bulanList[$val] = $label;
-        }
+        $bulanList = $this->buildBulanList();
 
         // Build flat array for summary rows
         $summaryRows = [];
@@ -744,5 +629,48 @@ class KontrolService
         $approvalModel->deleteApprovalKontrol($lokasi, $line, $kategori, $bulan);
 
         return ["status" => true, "message" => 'Data approval Checklist Control berhasil dihapus (Reset ke Belum Selesai).'];
+    }
+
+    private function resolveCategories(string $lokasi): array
+    {
+        if ($lokasi === Lokasi::MFG2->value) {
+            return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
+        }
+        return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
+    }
+
+    private function resolveAvailableLines(string $lokasi): array
+    {
+        if ($lokasi === Lokasi::MFG1->value) {
+            return ['Line 1', 'Line 2', 'Line 3'];
+        } elseif ($lokasi === Lokasi::MFG2->value) {
+            return ['CG', 'Second'];
+        }
+        return [];
+    }
+
+    private function calculateColumnDates($schedule): array
+    {
+        $columnDates = [];
+        if ($schedule && !empty($schedule['tanggal_rencana'])) {
+            $tglRencana = strtotime($schedule['tanggal_rencana']);
+            $dayOfWeek = (int) date('N', $tglRencana);
+            $mondayTs = strtotime('-' . ($dayOfWeek - 1) . ' days', $tglRencana);
+
+            for ($d = 0; $d < 5; $d++) {
+                $columnDates[$d + 1] = date('Y-m-d', strtotime("+$d days", $mondayTs));
+            }
+        }
+        return $columnDates;
+    }
+
+    private function buildBulanList(): array
+    {
+        $bulanList = [];
+        for ($i = 0; $i < 12; $i++) {
+            $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
+            $bulanList[$time->format('Y-m')] = $time->toLocalizedString('MMMM yyyy');
+        }
+        return $bulanList;
     }
 }
