@@ -212,7 +212,7 @@ class RiwayatController extends BaseController
         if (!$data) {
             return redirect()->back()->with('error', 'Transaksi tidak ditemukan.');
         }
-        return view('riwayat/edit', $data);
+        return view('checklist/form', $data);
     }
 
     public function update(int $id)
