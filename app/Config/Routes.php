@@ -74,6 +74,7 @@ $routes->group('kontrol', ['filter' => 'auth'], static function ($routes) {
     $routes->get('pdf-all-summary', 'KontrolController::pdfAllSummary', ['filter' => 'role:member,admin']);
     $routes->post('update-cell', 'KontrolController::updateCell');
     $routes->post('approve', 'KontrolController::approveBulanan');
+    $routes->post('delete-approval', 'KontrolController::deleteApprovalBulanan');
 });
 
 // Laporan Abnormal Condition (semua role login)
