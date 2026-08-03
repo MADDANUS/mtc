@@ -29,38 +29,13 @@ class RiwayatService
     public function getPdfAllData(?string $lokasiName, array $getParams): array
     {
         $transaksiModel = new TransaksiCheckModel();
-        $userLine = (session()->get('role') === Role::Leader->value) ? session()->get('line') : null;
-        
-        $filters = [
-            'lokasi'      => $lokasiName,
-            'id_mesin'    => ($getParams['id_mesin'] ?? 'all') === 'all' ? null : ($getParams['id_mesin'] ?? null),
-            'line'        => $userLine ?: (($getParams['line'] ?? 'all') === 'all' ? null : ($getParams['line'] ?? null)),
-            'jenis_check' => ($getParams['jenis_check'] ?? 'all') === 'all' ? null : ($getParams['jenis_check'] ?? null),
-            'kategori'    => ($getParams['kategori'] ?? 'all') === 'all' ? null : ($getParams['kategori'] ?? null),
-            'bulan'       => ($getParams['bulan'] ?? 'all') === 'all' ? null : ($getParams['bulan'] ?? null),
-            'status'      => ($getParams['status'] ?? 'all') === 'all' ? null : ($getParams['status'] ?? null),
-            'pic'         => ($getParams['pic'] ?? 'all') === 'all' ? null : ($getParams['pic'] ?? null),
-            'sort_by'     => $getParams['sort_by'] ?? 'id_transaksi',
-            'order'       => $getParams['order'] ?? 'desc',
-        ];
+        $filters        = $this->buildPdfFilters($lokasiName, $getParams);
+        $riwayat        = $transaksiModel->getRiwayatFiltered($filters);
+        $allReports     = $this->buildAllReports($riwayat);
 
-        $riwayat = $transaksiModel->getRiwayatFiltered($filters);
-        
-        $detailModel = new TransaksiCheckDetailModel();
-        $allReports = [];
-        foreach ($riwayat as $row) {
-            $header = $transaksiModel->getDetailTransaksi($row['id_transaksi']);
-            if ($header) {
-                $details = $detailModel->getDetailByTransaksi($row['id_transaksi']);
-                $details = $detailModel->calculateRowspans($details, $header['jenis_check']);
-                $allReports[] = [
-                    'header' => $header,
-                    'details' => $details
-                ];
-            }
-        }
-        
-        $jenisLabel = $filters['jenis_check'] === JenisCheck::Preventive->value ? 'Checklist Report' : ($filters['jenis_check'] === JenisCheck::Overhaul->value ? 'Inspection Report' : 'Pengecekan');
+        $jenisLabel = $filters['jenis_check'] === JenisCheck::Preventive->value
+            ? 'Checklist Report'
+            : ($filters['jenis_check'] === JenisCheck::Overhaul->value ? 'Inspection Report' : 'Pengecekan');
 
         return [
             'title'      => "Riwayat {$jenisLabel} - {$lokasiName}",
@@ -81,7 +56,7 @@ class RiwayatService
         }
 
         $approvalStatus = $header['status'] ?? 'Pending';
-        
+
         if ($roleSession === Role::Sheadprd->value && $approvalStatus === 'Pending') {
             throw new \Exception('Dokumen ini belum siap (Masih menunggu Leader).');
         }
@@ -89,40 +64,14 @@ class RiwayatService
             throw new \Exception('Dokumen ini belum siap (Masih menunggu SHead Produksi).');
         }
 
-        $detailModel = new TransaksiCheckDetailModel();
-        $details     = $detailModel->getDetailByTransaksi($id);
-        $details     = $detailModel->calculateRowspans($details, $header['jenis_check']);
-
-        $durasiDetik = null;
-        if (! empty($header['waktu_mulai']) && ! empty($header['waktu_selesai'])) {
-            $durasiDetik = strtotime($header['waktu_selesai']) - strtotime($header['waktu_mulai']);
-        }
-
-        $leaderPicModel = new \App\Models\PicModel();
-        if ($roleSession === Role::Leader->value) {
-            $userLine = session()->get('line');
-            if ($userLine === 'Line 1') {
-                $leaderPicModel->where('role_pic', 'leader1');
-            } elseif ($userLine === 'Line 2') {
-                $leaderPicModel->where('role_pic', 'leader2');
-            } elseif ($userLine === 'Line 3') {
-                $leaderPicModel->where('role_pic', 'leader3');
-            } elseif ($userLine === 'CG') {
-                $leaderPicModel->where('role_pic', 'leadercg');
-            } elseif ($userLine === 'Second') {
-                $leaderPicModel->where('role_pic', 'leadersc');
-            } else {
-                $leaderPicModel->like('role_pic', Role::Leader->value, 'both');
-            }
-        } else {
-            $leaderPicModel->like('role_pic', Role::Leader->value, 'both');
-        }
-        $leaderPicList = $leaderPicModel->findAll();
+        [$details] = $this->fetchHeaderAndDetails($id, $header);
+        $durasiDetik   = $this->calculateDurasiDetik($header);
+        $leaderPicList = $this->resolveLeaderPicList($roleSession);
 
         return [
-            'header'      => $header,
-            'details'     => $details,
-            'durasiDetik' => $durasiDetik,
+            'header'       => $header,
+            'details'      => $details,
+            'durasiDetik'  => $durasiDetik,
             'staffPicList' => (new \App\Models\PicModel())->where('role_pic', 'Staff')->findAll(),
             'leaderPicList'=> $leaderPicList,
         ];
@@ -167,14 +116,8 @@ class RiwayatService
             return null;
         }
 
-        $detailModel = new TransaksiCheckDetailModel();
-        $details     = $detailModel->getDetailByTransaksi($id);
-        $details     = $detailModel->calculateRowspans($details, $header['jenis_check']);
-
-        $durasiDetik = null;
-        if (! empty($header['waktu_mulai']) && ! empty($header['waktu_selesai'])) {
-            $durasiDetik = strtotime($header['waktu_selesai']) - strtotime($header['waktu_mulai']);
-        }
+        [$details] = $this->fetchHeaderAndDetails($id, $header);
+        $durasiDetik = $this->calculateDurasiDetik($header);
 
         return [
             'header'      => $header,
@@ -754,4 +697,106 @@ public function approveTransaksi($idTransaksi, $request)
         }
     }
 
+    // =========================================================================
+    // PRIVATE HELPERS
+    // =========================================================================
+
+    /**
+     * Normalisasi GET params menjadi array $filters standar untuk PDF all.
+     */
+    private function buildPdfFilters(?string $lokasiName, array $getParams): array
+    {
+        $userLine = (session()->get('role') === Role::Leader->value) ? session()->get('line') : null;
+
+        return [
+            'lokasi'      => $lokasiName,
+            'id_mesin'    => ($getParams['id_mesin'] ?? 'all') === 'all' ? null : ($getParams['id_mesin'] ?? null),
+            'line'        => $userLine ?: (($getParams['line'] ?? 'all') === 'all' ? null : ($getParams['line'] ?? null)),
+            'jenis_check' => ($getParams['jenis_check'] ?? 'all') === 'all' ? null : ($getParams['jenis_check'] ?? null),
+            'kategori'    => ($getParams['kategori'] ?? 'all') === 'all' ? null : ($getParams['kategori'] ?? null),
+            'bulan'       => ($getParams['bulan'] ?? 'all') === 'all' ? null : ($getParams['bulan'] ?? null),
+            'status'      => ($getParams['status'] ?? 'all') === 'all' ? null : ($getParams['status'] ?? null),
+            'pic'         => ($getParams['pic'] ?? 'all') === 'all' ? null : ($getParams['pic'] ?? null),
+            'sort_by'     => $getParams['sort_by'] ?? 'id_transaksi',
+            'order'       => $getParams['order'] ?? 'desc',
+        ];
+    }
+
+    /**
+     * Loop fetch header+detail+rowspan setiap transaksi, return $allReports[].
+     */
+    private function buildAllReports(array $riwayat): array
+    {
+        $transaksiModel = new TransaksiCheckModel();
+        $detailModel    = new TransaksiCheckDetailModel();
+        $allReports     = [];
+
+        foreach ($riwayat as $row) {
+            $header = $transaksiModel->getDetailTransaksi($row['id_transaksi']);
+            if ($header) {
+                $details = $detailModel->getDetailByTransaksi($row['id_transaksi']);
+                $details = $detailModel->calculateRowspans($details, $header['jenis_check']);
+                $allReports[] = [
+                    'header'  => $header,
+                    'details' => $details,
+                ];
+            }
+        }
+
+        return $allReports;
+    }
+
+    /**
+     * Fetch details + calculateRowspans untuk satu transaksi.
+     * Return [$details] sehingga bisa di-destructure: [$details] = $this->fetchHeaderAndDetails(...).
+     */
+    private function fetchHeaderAndDetails(int $id, array $header): array
+    {
+        $detailModel = new TransaksiCheckDetailModel();
+        $details     = $detailModel->getDetailByTransaksi($id);
+        $details     = $detailModel->calculateRowspans($details, $header['jenis_check']);
+
+        return [$details];
+    }
+
+    /**
+     * Hitung durasi dalam detik dari waktu_mulai dan waktu_selesai header.
+     * Return null jika salah satu tidak ada.
+     */
+    private function calculateDurasiDetik(array $header): ?int
+    {
+        if (! empty($header['waktu_mulai']) && ! empty($header['waktu_selesai'])) {
+            return strtotime($header['waktu_selesai']) - strtotime($header['waktu_mulai']);
+        }
+
+        return null;
+    }
+
+    /**
+     * Fetch daftar PIC leader berdasarkan role dan line sesi yang sedang login.
+     */
+    private function resolveLeaderPicList(?string $roleSession): array
+    {
+        $leaderPicModel = new \App\Models\PicModel();
+
+        if ($roleSession === Role::Leader->value) {
+            $userLine = session()->get('line');
+            $lineMap  = [
+                'Line 1' => 'leader1',
+                'Line 2' => 'leader2',
+                'Line 3' => 'leader3',
+                'CG'     => 'leadercg',
+                'Second' => 'leadersc',
+            ];
+            if (isset($lineMap[$userLine])) {
+                $leaderPicModel->where('role_pic', $lineMap[$userLine]);
+            } else {
+                $leaderPicModel->like('role_pic', Role::Leader->value, 'both');
+            }
+        } else {
+            $leaderPicModel->like('role_pic', Role::Leader->value, 'both');
+        }
+
+        return $leaderPicModel->findAll();
+    }
 }
