@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\PicModel;
+use App\Enums\Role;
 use App\Traits\AdminCrudTrait;
 
 class PicController extends BaseController

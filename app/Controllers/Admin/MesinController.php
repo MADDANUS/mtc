@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\MesinModel;
+use App\Enums\Role;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use App\Traits\AdminCrudTrait;
