@@ -51,19 +51,14 @@ class RiwayatController extends BaseController
     {
         $lokasiName = $this->resolveLokasi($lokasiSlug);
         
-        // Validasi lokasi khusus untuk Leader Produksi
-        if (session()->get('role') === Role::Leader->value) {
-            $userLokasi = session()->get('lokasi');
-            // Jika leader mencoba akses 'semua' atau lokasi yang bukan miliknya
-            if ($userLokasi && $userLokasi !== $lokasiName) {
-                if ($lokasiName === null) {
-                    // Paksa ke lokasinya
-                    $lokasiName = $userLokasi;
-                    $lokasiSlug = strtolower(str_replace(' ', '', $userLokasi));
-                } else {
-                    return redirect()->to('/dashboard')->with('error', 'Akses ditolak. Anda hanya dapat mengakses riwayat lokasi ' . $userLokasi);
-                }
-            }
+        $riwayatService = new \App\Services\RiwayatService();
+        try {
+            $lokasiName = $riwayatService->validateLeaderAccess($lokasiName);
+        } catch (\Exception $e) {
+            return redirect()->to('/dashboard')->with('error', 'Akses ditolak. Anda hanya dapat mengakses riwayat lokasi ' . session()->get('lokasi'));
+        }
+        if ($lokasiName && $lokasiName !== $this->resolveLokasi($lokasiSlug)) {
+             $lokasiSlug = strtolower(str_replace(' ', '', $lokasiName));
         }
 
         $mesinModel = new MesinModel();
@@ -72,39 +67,8 @@ class RiwayatController extends BaseController
         // Dropdown filter mesin dinamis (semua mesin jika lokasi null)
         $daftarMesin = $mesinModel->getByLokasi($lokasiName);
 
-        // Ambil input filter pencarian
         $userLine = (session()->get('role') === Role::Leader->value) ? session()->get('line') : null;
-
-        // History hanya menampilkan dokumen yang sudah Approved Final
-        // Admin bisa override via status=all
-                $rawStatus = $this->request->getGet('status');
-        if ($rawStatus === 'all') {
-            $statusFilter = null;
-        } elseif ($rawStatus && $rawStatus !== 'all') {
-            $statusFilter = $rawStatus;
-        } else {
-            // Default history visibility based on role
-            $role = session()->get('role');
-            if ($role === Role::Leader->value) {
-                $statusFilter = ['Approved L1', 'Approved L2', 'Approved', 'Approved Final'];
-            } elseif ($role === Role::Sheadprd->value) {
-                $statusFilter = ['Approved L2', 'Approved', 'Approved Final'];
-            } elseif ($role === Role::Sheadmtc->value) { $statusFilter = ['Approved', 'Approved Final'];
-            } elseif ($role === Role::Magang->value) { $statusFilter = null; } else { $statusFilter = ['Approved', 'Approved Final']; }
-        }
-        
-        $filters = [
-            'lokasi'      => $lokasiName,
-            'id_mesin'    => $this->request->getGet('id_mesin') === 'all' ? null : ($this->request->getGet('id_mesin') ?: null),
-            'line'        => $userLine ?: ($this->request->getGet('line') === 'all' ? null : ($this->request->getGet('line') ?: null)),
-            'jenis_check' => $this->request->getGet('jenis_check') === 'all' ? null : ($this->request->getGet('jenis_check') ?: null),
-            'kategori'    => $this->request->getGet('kategori') === 'all' ? null : ($this->request->getGet('kategori') ?: null),
-            'bulan'       => $this->request->getGet('bulan') === 'all' ? null : ($this->request->getGet('bulan') ?: null),
-            'status'      => $statusFilter,
-            'pic'         => $this->request->getGet('pic') === 'all' ? null : ($this->request->getGet('pic') ?: null),
-            'sort_by'     => $this->request->getGet('sort_by') ?: 'id_transaksi',
-            'order'       => $this->request->getGet('order') ?: 'desc',
-        ];
+        $filters = $this->buildSearchFilters($lokasiName, $userLine);
 
         $perPage = (int) ($this->request->getGet('per_page') ?: 15);
         $currentPage = (int) ($this->request->getGet('page_riwayat') ?: 1);
@@ -131,71 +95,13 @@ class RiwayatController extends BaseController
             ]);
         }
 
-        // Pisahkan kategori dropdown berdasarkan Lokasi & Jenis Check secara dinamis
-        $parameterModel = new \App\Models\ParameterCheckModel();
-        
-        // Jenis check pada transaksi_check bisa "Checklist Report", "Preventive", "Overhaul", "Inspection Report"
-        // Tapi di master_parameter_check cuma ada "Preventive" dan "Overhaul".
-        $jenisDb = (in_array(strtolower($filters['jenis_check']), ['preventive', 'checklist report'])) ? JenisCheck::Preventive->value : JenisCheck::Overhaul->value;
-        
-        $catQuery = $parameterModel->select('kategori');
-        if ($lokasiName !== null) {
-            $catQuery->where('lokasi', $lokasiName);
-        }
-        $dbCategories = $catQuery->where('jenis_check', $jenisDb)
-            ->distinct()
-            ->findAll();
-
-        $categoriesList = [];
-        foreach ($dbCategories as $cat) {
-            $slug = strtolower(str_replace(' ', '-', $cat['kategori']));
-            $categoriesList[$slug] = $cat['kategori'];
-        }
-
+        $categoriesList = $this->buildCategoriesList($lokasiName, $filters['jenis_check'] ?? null);
         $jenisLabel = $filters['jenis_check'] === JenisCheck::Preventive->value ? 'Checklist Report' : ($filters['jenis_check'] === JenisCheck::Overhaul->value ? 'Inspection Report' : 'Pengecekan');
-        $title = "Riwayat {$jenisLabel} — {$lokasiName}";
-
-        $availableLines = [];
-        if ($lokasiName === Lokasi::MFG1->value) {
-            $availableLines = ['Line 1', 'Line 2', 'Line 3'];
-        } elseif ($lokasiName === Lokasi::MFG2->value) {
-            $availableLines = ['CG', 'Second'];
-        } else {
-            $availableLines = ['Line 1', 'Line 2', 'Line 3', 'CG', 'Second'];
-        }
-
-        // Ambil daftar PIC dinamis berdasarkan transaksi yang ada
-        $transaksiModel = new \App\Models\TransaksiCheckModel();
-        $rawPics = $transaksiModel->getAvailablePics($lokasiName, $filters['jenis_check'] ?? null);
-        $availablePics = [];
-        foreach ($rawPics as $row) {
-            $raw = $row['nama_pic'] ?: $row['nama_staff'];
-            $parts = explode(' - ', $raw);
-            $name = end($parts);
-            if ($name) {
-                $availablePics[] = trim($name);
-            }
-        }
-        $availablePics = array_unique($availablePics);
-        sort($availablePics);
-
-        // List bulan dinamis dari database (berdasarkan waktu_mulai)
-        $rawBulan = $transaksiModel->getAvailableBulan($lokasiName, $filters['jenis_check'] ?? null);
-        $bulanList = [];
-        foreach ($rawBulan as $row) {
-            $val = $row['bulan'];
-            if ($val) {
-                $time = \CodeIgniter\I18n\Time::parse($val . '-01');
-                $label = $time->toLocalizedString('MMMM yyyy');
-                $bulanList[$val] = $label;
-            }
-        }
-        // Tetap tambahkan bulan ini jika belum ada (opsional)
-        $currentMonthVal = \CodeIgniter\I18n\Time::now()->format('Y-m');
-        if (!isset($bulanList[$currentMonthVal])) {
-            $bulanList[$currentMonthVal] = \CodeIgniter\I18n\Time::now()->toLocalizedString('MMMM yyyy');
-            krsort($bulanList); // sort keys descending
-        }
+        $title = "Riwayat {$jenisLabel} — " . ($lokasiName ?? 'Semua Lokasi');
+        
+        $availableLines = $this->buildAvailableLines($lokasiName);
+        $availablePics = $this->buildAvailablePics($transaksiModel, $lokasiName, $filters['jenis_check'] ?? null);
+        $bulanList = $this->buildAvailableBulan($transaksiModel, $lokasiName, $filters['jenis_check'] ?? null);
 
         return view('riwayat/index', [
             'title'           => $title,
@@ -345,5 +251,107 @@ class RiwayatController extends BaseController
             return redirect()->back()->with('error', $result['message']);
         }
         return redirect()->back()->with('success', $result['message']);
+    }
+
+    private function buildSearchFilters(?string $lokasiName, ?string $userLine): array
+    {
+        $rawStatus = $this->request->getGet('status');
+        if ($rawStatus === 'all') {
+            $statusFilter = null;
+        } elseif ($rawStatus && $rawStatus !== 'all') {
+            $statusFilter = $rawStatus;
+        } else {
+            $role = session()->get('role');
+            if ($role === Role::Leader->value) {
+                $statusFilter = ['Approved L1', 'Approved L2', 'Approved', 'Approved Final'];
+            } elseif ($role === Role::Sheadprd->value) {
+                $statusFilter = ['Approved L2', 'Approved', 'Approved Final'];
+            } elseif ($role === Role::Sheadmtc->value) { 
+                $statusFilter = ['Approved', 'Approved Final'];
+            } elseif ($role === Role::Magang->value) { 
+                $statusFilter = null; 
+            } else { 
+                $statusFilter = ['Approved', 'Approved Final']; 
+            }
+        }
+        
+        return [
+            'lokasi'      => $lokasiName,
+            'id_mesin'    => $this->request->getGet('id_mesin') === 'all' ? null : ($this->request->getGet('id_mesin') ?: null),
+            'line'        => $userLine ?: ($this->request->getGet('line') === 'all' ? null : ($this->request->getGet('line') ?: null)),
+            'jenis_check' => $this->request->getGet('jenis_check') === 'all' ? null : ($this->request->getGet('jenis_check') ?: null),
+            'kategori'    => $this->request->getGet('kategori') === 'all' ? null : ($this->request->getGet('kategori') ?: null),
+            'bulan'       => $this->request->getGet('bulan') === 'all' ? null : ($this->request->getGet('bulan') ?: null),
+            'status'      => $statusFilter,
+            'pic'         => $this->request->getGet('pic') === 'all' ? null : ($this->request->getGet('pic') ?: null),
+            'sort_by'     => $this->request->getGet('sort_by') ?: 'id_transaksi',
+            'order'       => $this->request->getGet('order') ?: 'desc',
+        ];
+    }
+
+    private function buildCategoriesList(?string $lokasiName, ?string $jenisCheckFilter): array
+    {
+        $parameterModel = new \App\Models\ParameterCheckModel();
+        $jenisDb = (in_array(strtolower($jenisCheckFilter ?? ''), ['preventive', 'checklist report'])) ? JenisCheck::Preventive->value : JenisCheck::Overhaul->value;
+        
+        $catQuery = $parameterModel->select('kategori');
+        if ($lokasiName !== null) {
+            $catQuery->where('lokasi', $lokasiName);
+        }
+        $dbCategories = $catQuery->where('jenis_check', $jenisDb)->distinct()->findAll();
+
+        $categoriesList = [];
+        foreach ($dbCategories as $cat) {
+            $slug = strtolower(str_replace(' ', '-', $cat['kategori']));
+            $categoriesList[$slug] = $cat['kategori'];
+        }
+        return $categoriesList;
+    }
+
+    private function buildAvailableLines(?string $lokasiName): array
+    {
+        if ($lokasiName === Lokasi::MFG1->value) {
+            return ['Line 1', 'Line 2', 'Line 3'];
+        } elseif ($lokasiName === Lokasi::MFG2->value) {
+            return ['CG', 'Second'];
+        }
+        return ['Line 1', 'Line 2', 'Line 3', 'CG', 'Second'];
+    }
+
+    private function buildAvailablePics(\App\Models\TransaksiCheckModel $transaksiModel, ?string $lokasiName, ?string $jenisCheckFilter): array
+    {
+        $rawPics = $transaksiModel->getAvailablePics($lokasiName, $jenisCheckFilter);
+        $availablePics = [];
+        foreach ($rawPics as $row) {
+            $raw = $row['nama_pic'] ?: $row['nama_staff'];
+            $parts = explode(' - ', $raw);
+            $name = end($parts);
+            if ($name) {
+                $availablePics[] = trim($name);
+            }
+        }
+        $availablePics = array_unique($availablePics);
+        sort($availablePics);
+        return $availablePics;
+    }
+
+    private function buildAvailableBulan(\App\Models\TransaksiCheckModel $transaksiModel, ?string $lokasiName, ?string $jenisCheckFilter): array
+    {
+        $rawBulan = $transaksiModel->getAvailableBulan($lokasiName, $jenisCheckFilter);
+        $bulanList = [];
+        foreach ($rawBulan as $row) {
+            $val = $row['bulan'];
+            if ($val) {
+                $time = \CodeIgniter\I18n\Time::parse($val . '-01');
+                $label = $time->toLocalizedString('MMMM yyyy');
+                $bulanList[$val] = $label;
+            }
+        }
+        $currentMonthVal = \CodeIgniter\I18n\Time::now()->format('Y-m');
+        if (!isset($bulanList[$currentMonthVal])) {
+            $bulanList[$currentMonthVal] = \CodeIgniter\I18n\Time::now()->toLocalizedString('MMMM yyyy');
+            krsort($bulanList);
+        }
+        return $bulanList;
     }
 }
