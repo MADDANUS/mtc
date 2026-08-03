@@ -13,7 +13,13 @@ $getCreateUrl = function(string $categorySlug) use ($lokasiSlug, $jenisSlug, $id
 
 <div class="page-header">
   <div>
-    <a href="<?= site_url("checklist") ?>" class="btn btn-sm btn-outline-secondary mb-2">
+    <?php
+    $backUrl = site_url('checklist'); // default
+    if (!empty($idMesin)) {
+        $backUrl = site_url("scan/mesin/{$idMesin}");
+    }
+    ?>
+    <a href="<?= $backUrl ?>" class="btn btn-sm btn-outline-secondary mb-2">
       <i class="bi bi-arrow-left"></i> Kembali
     </a>
     <h5 class="mb-0">

@@ -21,9 +21,17 @@
               $backUrl = site_url('riwayat/lokasi/' . $realLokSlug . $qs);
           }
       } else {
-          $backUrl = strtolower($jenisSlug) === 'overhaul' 
-              ? site_url("checklist") 
-              : site_url("checklist/{$lokasiSlug}/{$jenisSlug}");
+          if (!empty($idMesin)) {
+              if (strtolower($jenisSlug) === 'overhaul' && strtolower($lokasiSlug) === 'mfg-1') {
+                  $backUrl = site_url("scan/mesin/{$idMesin}");
+              } else {
+                  $backUrl = site_url("checklist/{$lokasiSlug}/{$jenisSlug}?id_mesin={$idMesin}");
+              }
+          } else {
+              $backUrl = strtolower($jenisSlug) === 'overhaul' 
+                  ? site_url("checklist") 
+                  : site_url("checklist/{$lokasiSlug}/{$jenisSlug}");
+          }
       }
     ?>
     <a href="<?= $backUrl ?>" class="btn btn-sm btn-outline-secondary">
