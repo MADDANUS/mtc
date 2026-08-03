@@ -22,7 +22,7 @@
           }
       } else {
           if (!empty($idMesin)) {
-              if (strtolower($jenisSlug) === 'overhaul' && strtolower($lokasiSlug) === 'mfg-1') {
+              if (strtolower($jenisSlug) === 'overhaul') {
                   $backUrl = site_url("scan/mesin/{$idMesin}");
               } else {
                   $backUrl = site_url("checklist/{$lokasiSlug}/{$jenisSlug}?id_mesin={$idMesin}");
