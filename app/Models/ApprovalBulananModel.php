@@ -15,10 +15,15 @@ class ApprovalBulananModel extends Model
         'lokasi',
         'line',
         'status',
-        'approved_by',
-        'approval_l1_by',
-        'approval_l2_by',
-        'approval_final_by'
+        'approved_l1_by',
+        'pic_line_nama',
+        'approved_l1_at',
+        'approved_l2_by',
+        'approved_l2_at',
+        'approved_final_by',
+        'approved_final_at',
+        'created_at',
+        'updated_at'
     ];
 
     public function getPendingKontrolByRole(string $role): array
