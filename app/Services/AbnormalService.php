@@ -315,9 +315,11 @@ class AbnormalService
 
         $db = \Config\Database::connect();
         $builder = $db->table('laporan_abnormal')
-                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
+                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori, master_parameter_check.bagian_check, master_parameter_check.sub_item_check')
                       ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
-                      ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left');
+                      ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
+                      ->join('transaksi_check_detail', 'transaksi_check_detail.id_detail = laporan_abnormal.id_detail', 'left')
+                      ->join('master_parameter_check', 'master_parameter_check.id_parameter = transaksi_check_detail.id_parameter', 'left');
                       
         $builder->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value);
 
@@ -421,9 +423,11 @@ class AbnormalService
 
         $db = \Config\Database::connect();
         $builder = $db->table('laporan_abnormal')
-                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
+                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori, master_parameter_check.bagian_check, master_parameter_check.sub_item_check')
                       ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
                       ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
+                      ->join('transaksi_check_detail', 'transaksi_check_detail.id_detail = laporan_abnormal.id_detail', 'left')
+                      ->join('master_parameter_check', 'master_parameter_check.id_parameter = transaksi_check_detail.id_parameter', 'left')
                       ->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value);
 
         if (!empty($lokasiFilter) && $lokasiFilter !== 'all') {

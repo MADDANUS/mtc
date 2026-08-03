@@ -44,9 +44,11 @@ class LaporanAbnormalModel extends Model
 
     public function getPdfLaporan(string $lokasi, string $kategori, string $bulan, string $search, ?int $perPage = null): array
     {
-        $builder = $this->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
+        $builder = $this->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori, master_parameter_check.bagian_check, master_parameter_check.sub_item_check')
                         ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
-                        ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left');
+                        ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
+                        ->join('transaksi_check_detail', 'transaksi_check_detail.id_detail = laporan_abnormal.id_detail', 'left')
+                        ->join('master_parameter_check', 'master_parameter_check.id_parameter = transaksi_check_detail.id_parameter', 'left');
         if (!empty($lokasi)) {
             $builder->where('master_mesin.lokasi', $lokasi);
         }
@@ -131,9 +133,11 @@ class LaporanAbnormalModel extends Model
 
     public function getOverhaulLaporan(string $lokasi, string $bulan, string $search, ?int $perPage = null): array
     {
-        $builder = $this->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori')
+        $builder = $this->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori, master_parameter_check.bagian_check, master_parameter_check.sub_item_check')
                         ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
                         ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
+                        ->join('transaksi_check_detail', 'transaksi_check_detail.id_detail = laporan_abnormal.id_detail', 'left')
+                        ->join('master_parameter_check', 'master_parameter_check.id_parameter = transaksi_check_detail.id_parameter', 'left')
                         ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value);
         if (!empty($lokasi) && $lokasi !== 'all') {
             $builder->where('master_mesin.lokasi', $lokasi);

@@ -26,7 +26,18 @@
         style="<?= $canEdit ? 'cursor: pointer;' : '' ?> transition: background-color 0.15s;"
         data-id-abnormal="<?= $r['id_abnormal'] ?>"
         data-mesin="<?= esc($r['no_mesin'] . ' - ' . $r['type_mesin'] . ' (' . $r['lokasi'] . ')') ?>"
-        data-point-check="<?= esc($r['point_check']) ?>"
+        <?php 
+          $pointCheckDisplay = esc($r['point_check']);
+          if (!empty($r['bagian_check'])) {
+              $parts = [esc($r['bagian_check'])];
+              if (!empty($r['sub_item_check'])) {
+                  $parts[] = esc($r['sub_item_check']);
+              }
+              $parts[] = esc($r['point_check']);
+              $pointCheckDisplay = implode(' - ', $parts);
+          }
+        ?>
+        data-point-check="<?= $pointCheckDisplay ?>"
         data-abnormal-condition="<?= esc($r['abnormal_condition']) ?>"
         data-type-sparepart="<?= esc($r['type_sparepart'] ?? '') ?>"
         data-progres-stock="<?= esc($r['progres_stock'] ?? '') ?>"
@@ -40,7 +51,7 @@
       
       <td class="fw-bold font-monospace text-secondary" style="background-color: #f8fafc;"><?= $no++ ?></td>
       <td class="text-start fw-bold text-dark ps-3"><?= esc($r['no_mesin']) ?> - <?= esc($r['type_mesin']) ?></td>
-      <td><?= esc($r['point_check']) ?></td>
+      <td><?= $pointCheckDisplay ?></td>
       <td class="text-danger fw-semibold">
         <?= esc($r['abnormal_condition']) ?>
         <div class="d-flex justify-content-center align-items-center gap-1 mt-1">
