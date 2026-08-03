@@ -23,7 +23,7 @@
       <td style="width:40%; font-weight:bold; text-align:center;">NO REVISI</td>
     </tr>
     <tr>
-      <td style="text-align:center;">FM-MTN-11</td>
+      <td style="text-align:center;">FM-MTN-10</td>
       <td style="text-align:center;">0</td>
     </tr>
     <tr>
