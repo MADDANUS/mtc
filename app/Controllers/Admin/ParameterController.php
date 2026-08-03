@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\ParameterCheckModel;
 use App\Traits\AdminCrudTrait;
+use App\Enums\Lokasi;
 
 class ParameterController extends BaseController
 {
