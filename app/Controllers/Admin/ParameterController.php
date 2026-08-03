@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\ParameterCheckModel;
 use App\Traits\AdminCrudTrait;
 use App\Enums\Lokasi;
+use App\Enums\JenisCheck;
 
 class ParameterController extends BaseController
 {
