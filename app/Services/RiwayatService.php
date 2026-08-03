@@ -213,7 +213,7 @@ class RiwayatService
         return true;
     }
 
-public function updateTransaksi(int $id, $request, $validation)
+    public function updateTransaksi(int $id, $request, $validation)
     {
         if (session()->get('role') !== Role::Admin->value) {
             return ["status" => false, "message" => 'Akses ditolak.'];
@@ -225,17 +225,11 @@ public function updateTransaksi(int $id, $request, $validation)
             return ["status" => false, "message" => 'Transaksi tidak ditemukan.'];
         }
 
-        $rules = [
-            'id_mesin'    => 'required|numeric',
-            'waktu_mulai' => 'required',
-            'kategori'    => 'required',
-        ];
-
         $idMesin      = (int) $request->getPost('id_mesin');
         $namaPic      = $request->getPost('nama_pic');
         $waktuMulai   = $request->getPost('waktu_mulai');
         $kategoriName = $request->getPost('kategori');
-        $waktuSelesai = $header['waktu_selesai']; // Tetap pakai waktu selesai asli
+        $waktuSelesai = $header['waktu_selesai'];
 
         $hasilCheck = $request->getPost('hasil_check') ?? [];
         $ulasan     = $request->getPost('ulasan') ?? [];
@@ -243,165 +237,24 @@ public function updateTransaksi(int $id, $request, $validation)
         $db = \Config\Database::connect();
         $db->transStart();
 
-        // 1. Update Header
         $transaksiModel->update($id, [
-            'id_mesin'      => $idMesin,
-            'nama_pic'      => $namaPic,
-            'kategori'      => $kategoriName,
-            'waktu_mulai'   => $waktuMulai,
-            'status'        => 'Pending', // Reset approval on edit?
-            'approved_by'   => null,
-            'approved_at'   => null,
+            'id_mesin'    => $idMesin,
+            'nama_pic'    => $namaPic,
+            'kategori'    => $kategoriName,
+            'waktu_mulai' => $waktuMulai,
+            'status'      => 'Pending',
+            'approved_by' => null,
+            'approved_at' => null,
         ]);
 
-        // 2. Delete existing detail & laporan_abnormal
-        $detailModel = new TransaksiCheckDetailModel();
-        
-        // Simpan foto lama sebelum dihapus agar tidak hilang jika tidak ada upload baru
-        $oldDetails = $detailModel->where('id_transaksi', $id)->findAll();
-        $oldPhotos = [];
-        foreach ($oldDetails as $od) {
-            $oldPhotos[$od['id_parameter']] = [
-                'f1' => $od['foto_abnormal'],
-                'f2' => $od['foto_abnormal_2']
-            ];
-        }
+        $this->reinsertDetails($id, $idMesin, $hasilCheck, $ulasan, $request, $waktuSelesai);
 
-        // Delete cascading will handle laporan_abnormal
-        $detailModel->where('id_transaksi', $id)->delete();
-
-        // 3. Re-insert Details
-        $parameterModel = new \App\Models\ParameterCheckModel();
-        $uploadPath = FCPATH . 'uploads/abnormal/';
-        foreach ($hasilCheck as $idParameter => $hasil) {
-            $fotoAbnormal = $oldPhotos[$idParameter]['f1'] ?? null;
-            $fotoAbnormal2 = $oldPhotos[$idParameter]['f2'] ?? null;
-
-            if ($hasil === 'Δ') {
-                $file = $request->getFile("foto_abnormal.{$idParameter}");
-                if ($file && $file->isValid() && !$file->hasMoved()) {
-                    $newName = time() . '_1_' . uniqid() . '.' . $file->getClientExtension();
-                    $file->move($uploadPath, $newName);
-                    $fotoAbnormal = $newName;
-                }
-
-                $file2 = $request->getFile("foto_abnormal_2.{$idParameter}");
-                if ($file2 && $file2->isValid() && !$file2->hasMoved()) {
-                    $newName2 = time() . '_2_' . uniqid() . '.' . $file2->getClientExtension();
-                    $file2->move($uploadPath, $newName2);
-                    $fotoAbnormal2 = $newName2;
-                }
-            }
-
-            $idDetail = $detailModel->insert([
-                'id_transaksi'   => $id,
-                'id_parameter'   => (int) $idParameter,
-                'hasil_check'    => $hasil !== '' ? $hasil : null,
-                'ulasan'         => $ulasan[$idParameter] ?? null,
-                'foto_abnormal'  => $fotoAbnormal,
-                'foto_abnormal_2'=> $fotoAbnormal2,
-            ]);
-
-            // Save to laporan_abnormal ONLY if status is Δ (segitiga)
-            if ($hasil === 'Δ') {
-                $paramInfo = $parameterModel->find((int)$idParameter);
-                $pointCheckName = $paramInfo ? $paramInfo['point_check'] : 'Parameter #' . $idParameter;
-                
-                $abnormalDesc = $ulasan[$idParameter] ?? '';
-                if (empty($abnormalDesc)) {
-                    $abnormalDesc = 'Ditemukan kondisi abnormal (' . $hasil . ')';
-                }
-
-                $abnormalModel = new \App\Models\LaporanAbnormalModel();
-                $abnormalModel->insert([
-                    'id_transaksi'       => $id,
-                    'id_detail'          => $idDetail,
-                    'id_mesin'           => $idMesin,
-                    'point_check'        => $pointCheckName,
-                    'abnormal_condition' => $abnormalDesc,
-                    'pengecekan_tanggal' => date('Y-m-d', strtotime($waktuSelesai)),
-                    'pengecekan_pic'     => session()->get('nama') ?: 'Admin', // who edited
-                    'foto_abnormal'      => $fotoAbnormal,
-                    'foto_abnormal_2'    => $fotoAbnormal2,
-                    'created_at'         => $waktuSelesai,
-                    'updated_at'         => $waktuSelesai,
-                ]);
-            }
-        }
-
-        // 4. Update Overhaul Table
         if (strtolower($header['jenis_check']) === 'overhaul') {
-            $barFeederType = $request->getPost('bar_feeder_type');
-            $rawSupport    = $request->getPost('support_pic');
-            
-            $supportStr = null;
-            if (is_array($rawSupport)) {
-                $filtered = array_filter(array_map('trim', $rawSupport));
-                if (!empty($filtered)) {
-                    $supportStr = implode(', ', $filtered);
-                }
-            }
-            
-            $overhaulModel = new \App\Models\TransaksiOverhaulModel();
-            $existing = $overhaulModel->find($id);
-            if ($existing) {
-                $overhaulModel->update($id, [
-                    'bar_feeder_type'     => $barFeederType ?: null,
-                    'support_pic'         => $supportStr,
-                    'note_recommendation' => $request->getPost('note_recommendation') ?: null,
-                ]);
-            } else {
-                $overhaulModel->insert([
-                    'id_transaksi'        => $id,
-                    'bar_feeder_type'     => $barFeederType ?: null,
-                    'support_pic'         => $supportStr,
-                    'note_recommendation' => $request->getPost('note_recommendation') ?: null,
-                ]);
-            }
+            $this->updateOverhaulExtra($id, $request);
         }
 
-        // 5. Update Checklist Control (jika preventive)
         if (strtolower($header['jenis_check']) === 'preventive' || strtolower($header['jenis_check']) === 'checklist report') {
-            // Re-calculate
-            $combinedUlasan = [];
-            foreach ($ulasan as $idParam => $text) {
-                $text = trim($text);
-                if ($text !== '') {
-                    $combinedUlasan[] = $text;
-                }
-            }
-            $ulasanKontrol = !empty($combinedUlasan) ? implode(', ', $combinedUlasan) : null;
-
-            $overallStatus = 'V';
-            $hasTriangle   = false;
-            $allAreX       = true;
-            foreach ($hasilCheck as $hasil) {
-                if ($hasil === 'Δ') {
-                    $hasTriangle = true;
-                    $allAreX = false;
-                } elseif ($hasil === 'V') {
-                    $allAreX = false;
-                } elseif ($hasil !== 'X') {
-                    $allAreX = false;
-                }
-            }
-            if ($allAreX && count($hasilCheck) > 0) {
-                $overallStatus = 'X';
-            } elseif ($hasTriangle) {
-                $overallStatus = 'Δ';
-            } else {
-                $overallStatus = 'V';
-            }
-
-            $tanggalCheckDate = date('Y-m-d', strtotime($waktuSelesai));
-            
-            // Try updating where id_mesin + kategori + tanggal_check matches
-            $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
-            $ceklisKontrolModel->updateChecklistKontrol($header['id_mesin'], $header['kategori'], $tanggalCheckDate, [
-                'id_mesin'     => $idMesin, // in case it changed
-                'status_check' => $overallStatus,
-                'ulasan'       => $ulasanKontrol,
-            ]);
+            $this->updateChecklistKontrolOnEdit($header, $idMesin, $hasilCheck, $ulasan, $waktuSelesai);
         }
 
         $db->transComplete();
@@ -418,7 +271,7 @@ public function updateTransaksi(int $id, $request, $validation)
      * Menghapus riwayat pengecekan (Khusus Admin).
      */
     
-public function approveTransaksi($idTransaksi, $request)
+    public function approveTransaksi($idTransaksi, $request)
     {
         $role = session()->get('role');
         if (!in_array($role, [Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, Role::Leader->value], true)) {
@@ -434,13 +287,11 @@ public function approveTransaksi($idTransaksi, $request)
 
         if ($role === Role::Leader->value) {
             $mesinModel = new \App\Models\MesinModel();
-            $mesinInfo = $mesinModel->find($transaksi['id_mesin']);
-            
+            $mesinInfo  = $mesinModel->find($transaksi['id_mesin']);
             if ($mesinInfo) {
                 if (session()->get('lokasi') && $mesinInfo['lokasi'] !== session()->get('lokasi')) {
                     return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di lokasi ' . session()->get('lokasi')];
                 }
-                
                 if (session()->get('line') && strtolower($mesinInfo['line']) !== strtolower(session()->get('line'))) {
                     return ["status" => false, "message" => 'Akses ditolak! Mesin ini tidak berada di ' . session()->get('line') . ' yang menjadi tanggung jawab Anda.'];
                 }
@@ -451,238 +302,26 @@ public function approveTransaksi($idTransaksi, $request)
             return ["status" => false, "message" => 'Laporan ini sudah disetujui sepenuhnya.'];
         }
 
-        $jenisSlug = strtolower(str_replace(' ', '-', $transaksi['jenis_check']));
-        $now = date('Y-m-d H:i:s');
-        $userId = session()->get('user_id');
+        $jenisSlug    = strtolower(str_replace(' ', '-', $transaksi['jenis_check']));
+        $now          = date('Y-m-d H:i:s');
+        $userId       = session()->get('user_id');
         $waktuSelesai = $transaksi['waktu_selesai'] ?? $now;
 
-        $updateData = [];
-        $newStatus = '';
-
-        if ($jenisSlug === 'overhaul') {
-            // MULTI-LEVEL APPROVAL UNTUK OVERHAUL
-            if ($role === Role::Admin->value) {
-                $newStatus = 'Approved';
-                $updateData = [
-                    'status' => 'Approved',
-                    'approved_by' => $userId,
-                    'approved_at' => $now,
-                ];
-            } elseif ($role === Role::Leader->value) {
-                if ($transaksi['status'] !== 'Pending') {
-                    return ["status" => false, "message" => 'Laporan sudah diperiksa (bukan status Pending).'];
-                }
-                
-                $leaderNama = $request->getPost('leader_nama');
-                if (empty(trim($leaderNama))) {
-                    return ["status" => false, "message" => 'Nama Leader wajib diisi.'];
-                }
-                
-                $newStatus = 'Approved L1';
-                $updateData = [
-                    'status' => 'Approved L1',
-                    'approval_l1_by' => $userId,
-                    'leader_nama' => trim($leaderNama),
-                    'approval_l1_at' => $now,
-                ];
-            } elseif ($role === Role::Sheadprd->value) {
-                if ($transaksi['status'] !== 'Approved L1') {
-                    return ["status" => false, "message" => 'Laporan belum diperiksa oleh Leader.'];
-                }
-                $newStatus = 'Approved L2';
-                $updateData = [
-                    'status' => 'Approved L2',
-                    'approval_l2_by' => $userId,
-                    'approval_l2_at' => $now,
-                ];
-            } elseif ($role === Role::Sheadmtc->value) {
-                if ($transaksi['status'] !== 'Approved L2') {
-                    return ["status" => false, "message" => 'Laporan belum disetujui oleh S. Head Produksi.'];
-                }
-                $newStatus = 'Approved';
-                $updateData = [
-                    'status' => 'Approved',
-                    'approved_by' => $userId,
-                    'approved_at' => $now,
-                ];
-            } else {
-                return ["status" => false, "message" => 'Role Anda tidak memiliki akses persetujuan untuk laporan Overhaul.'];
-            }
-        } else {
-            // PREVENTIVE (SINGLE-LEVEL)
-            if (!in_array($role, [Role::Admin->value, Role::Member->value], true)) {
-                return ["status" => false, "message" => 'Hanya Admin atau Member MTC yang dapat menyetujui laporan Preventive.'];
-            }
-            
-            $picLineNama = $request->getPost('pic_line_nama');
-            if (empty(trim($picLineNama))) {
-                return ["status" => false, "message" => 'Nama PIC Line wajib diisi.'];
-            }
-
-            $newStatus = 'Approved';
-            $updateData = [
-                'status' => 'Approved',
-                'approved_by' => $userId,
-                'pic_line_nama' => trim($picLineNama),
-                'approved_at' => $now,
-            ];
+        $result = $this->buildApprovalUpdateData($role, $jenisSlug, $transaksi, $request, $now, $userId);
+        if (isset($result['status'])) {
+            return $result;
         }
+        [$updateData, $newStatus] = $result;
 
         $db = \Config\Database::connect();
         $db->transStart();
 
-        // 1. Update status
         $transaksiModel->update($idTransaksi, $updateData);
 
-        // Jika sudah Final (Approved), barulah proses Laporan Abnormal & Checklist Control
         if ($newStatus === 'Approved') {
-
-        // 2. Fetch details for laporan_abnormal
-        $detailModel = new TransaksiCheckDetailModel();
-        $details = $detailModel->where('id_transaksi', $idTransaksi)->findAll();
-        
-        $parameterModel = new \App\Models\ParameterCheckModel();
-        
-        // Setup data for ceklis_kontrol
-        $hasilCheck = [];
-        $ulasan = [];
-        
-        foreach ($details as $d) {
-            $idParameter = $d['id_parameter'];
-            $hasil       = $d['hasil_check'];
-            $ulasanParam = $d['ulasan'];
-            
-            $hasilCheck[$idParameter] = $hasil;
-            $ulasan[$idParameter]     = $ulasanParam;
-
-            // Save to laporan_abnormal ONLY if status is Δ (segitiga)
-            if ($hasil === 'Δ') {
-                $paramInfo = $parameterModel->find((int)$idParameter);
-                $pointCheckName = $paramInfo ? $paramInfo['point_check'] : 'Parameter #' . $idParameter;
-                
-                $abnormalDesc = $ulasanParam ?? '';
-                if (empty($abnormalDesc)) {
-                    $abnormalDesc = 'Ditemukan kondisi abnormal (' . $hasil . ')';
-                }
-
-                $abnormalModel = new \App\Models\LaporanAbnormalModel();
-                $abnormalModel->insert([
-                    'id_transaksi'       => $idTransaksi,
-                    'id_detail'          => $d['id_detail'],
-                    'id_mesin'           => $transaksi['id_mesin'],
-                    'point_check'        => $pointCheckName,
-                    'abnormal_condition' => $abnormalDesc,
-                    'pengecekan_tanggal' => date('Y-m-d', strtotime($waktuSelesai)),
-                    'pengecekan_pic'     => $transaksi['nama_pic'],
-                    'foto_abnormal'      => $d['foto_abnormal'] ?? null,
-                    'foto_abnormal_2'    => $d['foto_abnormal_2'] ?? null,
-                    'created_at'         => date('Y-m-d H:i:s'),
-                    'updated_at'         => date('Y-m-d H:i:s'),
-                ]);
-            }
+            $this->insertLaporanAbnormalOnApprove($idTransaksi, $transaksi, $waktuSelesai);
+            $this->upsertCeklisKontrolOnApprove($idTransaksi, $transaksi, $waktuSelesai);
         }
-
-        // 3. Simpan atau update Checklist Control jika jenisnya adalah Preventive
-        $jenisSlug = strtolower(str_replace(' ', '-', $transaksi['jenis_check']));
-        if ($jenisSlug === 'preventive' || $jenisSlug === 'checklist-report') {
-            $kategoriName = $transaksi['kategori'];
-            $lokasiName   = $transaksi['lokasi_check'];
-            $idMesin      = $transaksi['id_mesin'];
-            $picNama      = $transaksi['nama_pic'];
-
-            // Gabungkan ulasan parameter yang tidak kosong
-            $combinedUlasan = [];
-            foreach ($ulasan as $text) {
-                $text = trim($text ?? '');
-                if ($text !== '') {
-                    $combinedUlasan[] = $text;
-                }
-            }
-            $ulasanKontrol = !empty($combinedUlasan) ? implode(', ', $combinedUlasan) : null;
-
-            // Hitung status keseluruhan (Δ > V) (X diabaikan kecuali semuanya X)
-            $overallStatus = 'V';
-            $hasTriangle   = false;
-            $allAreX       = true;
-            foreach ($hasilCheck as $hasil) {
-                if ($hasil === 'Δ') {
-                    $hasTriangle = true;
-                    $allAreX = false;
-                } elseif ($hasil === 'V') {
-                    $allAreX = false;
-                } elseif ($hasil !== 'X') {
-                    $allAreX = false;
-                }
-            }
-            if ($allAreX && count($hasilCheck) > 0) {
-                $overallStatus = 'X';
-            } elseif ($hasTriangle) {
-                $overallStatus = 'Δ';
-            } else {
-                $overallStatus = 'V';
-            }
-
-            $bulanTahun = date('Y-m', strtotime($waktuSelesai));
-            $tanggalCheckDate = date('Y-m-d', strtotime($waktuSelesai));
-
-            // Ambil jadwal rencana untuk bulan ini
-            $jadwalModel = new \App\Models\JadwalPreventiveModel();
-            $schedule = $jadwalModel->getJadwalForChecklist($lokasiName, $kategoriName, $bulanTahun);
-
-            $outOfPlanDate = null;
-            $periodeKe     = null;
-
-            if ($schedule) {
-                $tglRencana = strtotime($schedule['tanggal_rencana']);
-                $dayOfWeek  = (int) date('N', $tglRencana);
-                $mondayTs   = strtotime('-' . ($dayOfWeek - 1) . ' days', $tglRencana);
-
-                $weekDates = [];
-                for ($d = 0; $d < 5; $d++) {
-                    $weekDates[$d + 1] = date('Y-m-d', strtotime("+{$d} days", $mondayTs));
-                }
-
-                $matchedCol = array_search($tanggalCheckDate, $weekDates);
-                if ($matchedCol !== false) {
-                    $periodeKe = (int) $matchedCol;
-                } else {
-                    $outOfPlanDate = $tanggalCheckDate;
-                    $day = (int) date('d', strtotime($waktuSelesai));
-                    $periodeKe = intval(($day - 1) / 7) + 1;
-                    if ($periodeKe > 5) $periodeKe = 5;
-                }
-            } else {
-                $outOfPlanDate = $tanggalCheckDate;
-                $day = (int) date('d', strtotime($waktuSelesai));
-                $periodeKe = intval(($day - 1) / 7) + 1;
-                if ($periodeKe > 5) $periodeKe = 5;
-            }
-
-            $kontrolData = [
-                'id_mesin'      => $idMesin,
-                'kategori'      => $kategoriName,
-                'bulan_tahun'   => $bulanTahun,
-                'periode_ke'    => $periodeKe,
-                'status_check'  => $overallStatus,
-                'pic_nama'      => $picNama,
-                'out_of_plan'   => $outOfPlanDate,
-                'ulasan'        => $ulasanKontrol,
-                'tanggal_check' => $tanggalCheckDate,
-                'updated_at'    => date('Y-m-d H:i:s'),
-            ];
-
-            $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
-            $exist = $ceklisKontrolModel->findChecklistKontrol($idMesin, $kategoriName, $bulanTahun, $periodeKe);
-
-            if ($exist) {
-                $ceklisKontrolModel->update($exist['id_kontrol'], $kontrolData);
-            } else {
-                $kontrolData['created_at'] = date('Y-m-d H:i:s');
-                $ceklisKontrolModel->insert($kontrolData);
-            }
-        }
-
-        } // <-- End of if ($newStatus === 'Approved')
 
         $db->transComplete();
 
@@ -692,14 +331,334 @@ public function approveTransaksi($idTransaksi, $request)
 
         if ($newStatus === 'Approved') {
             return ["status" => true, "message" => 'Laporan berhasil disetujui sepenuhnya. Data kini masuk ke Checklist Control dan Laporan Abnormal jika ada.'];
-        } else {
-            return ["status" => true, "message" => 'Laporan berhasil disetujui (Tahap: ' . $newStatus . '). Menunggu persetujuan selanjutnya.'];
         }
+        return ["status" => true, "message" => 'Laporan berhasil disetujui (Tahap: ' . $newStatus . '). Menunggu persetujuan selanjutnya.'];
     }
 
     // =========================================================================
     // PRIVATE HELPERS
     // =========================================================================
+
+    /**
+     * Hitung overall status check: Δ > V > X (X hanya jika SEMUA X).
+     */
+    private function calculateOverallStatus(array $hasilCheck): string
+    {
+        $hasTriangle = false;
+        $allAreX     = count($hasilCheck) > 0;
+
+        foreach ($hasilCheck as $hasil) {
+            if ($hasil === 'Δ') {
+                $hasTriangle = true;
+                $allAreX     = false;
+            } elseif ($hasil === 'V') {
+                $allAreX = false;
+            } elseif ($hasil !== 'X') {
+                $allAreX = false;
+            }
+        }
+
+        if ($allAreX) {
+            return 'X';
+        }
+        return $hasTriangle ? 'Δ' : 'V';
+    }
+
+    /**
+     * Tentukan $updateData dan $newStatus berdasarkan role dan jenis transaksi.
+     * Return [[$updateData, $newStatus]] jika OK, atau ['status'=>false, 'message'=>...] jika error.
+     */
+    private function buildApprovalUpdateData(string $role, string $jenisSlug, array $transaksi, $request, string $now, $userId): array
+    {
+        if ($jenisSlug === 'overhaul') {
+            if ($role === Role::Admin->value) {
+                return [['status' => 'Approved', 'approved_by' => $userId, 'approved_at' => $now], 'Approved'];
+            }
+            if ($role === Role::Leader->value) {
+                if ($transaksi['status'] !== 'Pending') {
+                    return ["status" => false, "message" => 'Laporan sudah diperiksa (bukan status Pending).'];
+                }
+                $leaderNama = $request->getPost('leader_nama');
+                if (empty(trim($leaderNama ?? ''))) {
+                    return ["status" => false, "message" => 'Nama Leader wajib diisi.'];
+                }
+                return [[
+                    'status'         => 'Approved L1',
+                    'approval_l1_by' => $userId,
+                    'leader_nama'    => trim($leaderNama),
+                    'approval_l1_at' => $now,
+                ], 'Approved L1'];
+            }
+            if ($role === Role::Sheadprd->value) {
+                if ($transaksi['status'] !== 'Approved L1') {
+                    return ["status" => false, "message" => 'Laporan belum diperiksa oleh Leader.'];
+                }
+                return [[
+                    'status'         => 'Approved L2',
+                    'approval_l2_by' => $userId,
+                    'approval_l2_at' => $now,
+                ], 'Approved L2'];
+            }
+            if ($role === Role::Sheadmtc->value) {
+                if ($transaksi['status'] !== 'Approved L2') {
+                    return ["status" => false, "message" => 'Laporan belum disetujui oleh S. Head Produksi.'];
+                }
+                return [['status' => 'Approved', 'approved_by' => $userId, 'approved_at' => $now], 'Approved'];
+            }
+            return ["status" => false, "message" => 'Role Anda tidak memiliki akses persetujuan untuk laporan Overhaul.'];
+        }
+        // PREVENTIVE
+        if (!in_array($role, [Role::Admin->value, Role::Member->value], true)) {
+            return ["status" => false, "message" => 'Hanya Admin atau Member MTC yang dapat menyetujui laporan Preventive.'];
+        }
+        $picLineNama = $request->getPost('pic_line_nama');
+        if (empty(trim($picLineNama ?? ''))) {
+            return ["status" => false, "message" => 'Nama PIC Line wajib diisi.'];
+        }
+        return [[
+            'status'        => 'Approved',
+            'approved_by'   => $userId,
+            'pic_line_nama' => trim($picLineNama),
+            'approved_at'   => $now,
+        ], 'Approved'];
+    }
+
+    /**
+     * Insert laporan_abnormal untuk semua detail ber-status Δ saat approve final.
+     */
+    private function insertLaporanAbnormalOnApprove(int $idTransaksi, array $transaksi, string $waktuSelesai): void
+    {
+        $detailModel    = new TransaksiCheckDetailModel();
+        $parameterModel = new \App\Models\ParameterCheckModel();
+        $details        = $detailModel->where('id_transaksi', $idTransaksi)->findAll();
+
+        foreach ($details as $d) {
+            if ($d['hasil_check'] !== 'Δ') {
+                continue;
+            }
+            $paramInfo      = $parameterModel->find((int) $d['id_parameter']);
+            $pointCheckName = $paramInfo ? $paramInfo['point_check'] : 'Parameter #' . $d['id_parameter'];
+            $abnormalDesc   = trim($d['ulasan'] ?? '');
+            if (empty($abnormalDesc)) {
+                $abnormalDesc = 'Ditemukan kondisi abnormal (Δ)';
+            }
+            (new \App\Models\LaporanAbnormalModel())->insert([
+                'id_transaksi'       => $idTransaksi,
+                'id_detail'          => $d['id_detail'],
+                'id_mesin'           => $transaksi['id_mesin'],
+                'point_check'        => $pointCheckName,
+                'abnormal_condition' => $abnormalDesc,
+                'pengecekan_tanggal' => date('Y-m-d', strtotime($waktuSelesai)),
+                'pengecekan_pic'     => $transaksi['nama_pic'],
+                'foto_abnormal'      => $d['foto_abnormal'] ?? null,
+                'foto_abnormal_2'    => $d['foto_abnormal_2'] ?? null,
+                'created_at'         => date('Y-m-d H:i:s'),
+                'updated_at'         => date('Y-m-d H:i:s'),
+            ]);
+        }
+    }
+
+    /**
+     * Upsert baris ceklis_kontrol setelah approve final (hanya Preventive).
+     */
+    private function upsertCeklisKontrolOnApprove(int $idTransaksi, array $transaksi, string $waktuSelesai): void
+    {
+        $jenisSlug = strtolower(str_replace(' ', '-', $transaksi['jenis_check']));
+        if ($jenisSlug !== 'preventive' && $jenisSlug !== 'checklist-report') {
+            return;
+        }
+
+        $detailModel = new TransaksiCheckDetailModel();
+        $details     = $detailModel->where('id_transaksi', $idTransaksi)->findAll();
+
+        $hasilCheck = [];
+        $ulasan     = [];
+        foreach ($details as $d) {
+            $hasilCheck[$d['id_parameter']] = $d['hasil_check'];
+            $ulasan[$d['id_parameter']]     = $d['ulasan'];
+        }
+
+        $kombinedUlasan = array_filter(array_map('trim', $ulasan));
+        $ulasanKontrol  = !empty($kombinedUlasan) ? implode(', ', $kombinedUlasan) : null;
+        $overallStatus  = $this->calculateOverallStatus($hasilCheck);
+
+        $kategoriName     = $transaksi['kategori'];
+        $lokasiName       = $transaksi['lokasi_check'];
+        $idMesin          = $transaksi['id_mesin'];
+        $bulanTahun       = date('Y-m', strtotime($waktuSelesai));
+        $tanggalCheckDate = date('Y-m-d', strtotime($waktuSelesai));
+
+        $jadwalModel = new \App\Models\JadwalPreventiveModel();
+        $schedule    = $jadwalModel->getJadwalForChecklist($lokasiName, $kategoriName, $bulanTahun);
+        [$periodeKe, $outOfPlanDate] = $this->resolvePeriodeKe($schedule, $tanggalCheckDate, $waktuSelesai);
+
+        $kontrolData = [
+            'id_mesin'      => $idMesin,
+            'kategori'      => $kategoriName,
+            'bulan_tahun'   => $bulanTahun,
+            'periode_ke'    => $periodeKe,
+            'status_check'  => $overallStatus,
+            'pic_nama'      => $transaksi['nama_pic'],
+            'out_of_plan'   => $outOfPlanDate,
+            'ulasan'        => $ulasanKontrol,
+            'tanggal_check' => $tanggalCheckDate,
+            'updated_at'    => date('Y-m-d H:i:s'),
+        ];
+
+        $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
+        $exist = $ceklisKontrolModel->findChecklistKontrol($idMesin, $kategoriName, $bulanTahun, $periodeKe);
+        if ($exist) {
+            $ceklisKontrolModel->update($exist['id_kontrol'], $kontrolData);
+        } else {
+            $kontrolData['created_at'] = date('Y-m-d H:i:s');
+            $ceklisKontrolModel->insert($kontrolData);
+        }
+    }
+
+    /**
+     * Hitung periode_ke dan out_of_plan dari jadwal preventive.
+     * Return [$periodeKe, $outOfPlanDate].
+     */
+    private function resolvePeriodeKe(?array $schedule, string $tanggalCheckDate, string $waktuSelesai): array
+    {
+        if ($schedule) {
+            $tglRencana = strtotime($schedule['tanggal_rencana']);
+            $dayOfWeek  = (int) date('N', $tglRencana);
+            $mondayTs   = strtotime('-' . ($dayOfWeek - 1) . ' days', $tglRencana);
+            $weekDates  = [];
+            for ($d = 0; $d < 5; $d++) {
+                $weekDates[$d + 1] = date('Y-m-d', strtotime("+{$d} days", $mondayTs));
+            }
+            $matchedCol = array_search($tanggalCheckDate, $weekDates);
+            if ($matchedCol !== false) {
+                return [(int) $matchedCol, null];
+            }
+        }
+        $day       = (int) date('d', strtotime($waktuSelesai));
+        $periodeKe = min(intval(($day - 1) / 7) + 1, 5);
+        return [$periodeKe, $tanggalCheckDate];
+    }
+
+    /**
+     * Delete + re-insert detail transaksi, handle foto, insert laporan_abnormal.
+     */
+    private function reinsertDetails(int $id, int $idMesin, array $hasilCheck, array $ulasan, $request, string $waktuSelesai): void
+    {
+        $detailModel    = new TransaksiCheckDetailModel();
+        $parameterModel = new \App\Models\ParameterCheckModel();
+        $uploadPath     = FCPATH . 'uploads/abnormal/';
+
+        $oldDetails = $detailModel->where('id_transaksi', $id)->findAll();
+        $oldPhotos  = [];
+        foreach ($oldDetails as $od) {
+            $oldPhotos[$od['id_parameter']] = [
+                'f1' => $od['foto_abnormal'],
+                'f2' => $od['foto_abnormal_2'],
+            ];
+        }
+        $detailModel->where('id_transaksi', $id)->delete();
+
+        foreach ($hasilCheck as $idParameter => $hasil) {
+            $fotoAbnormal  = $oldPhotos[$idParameter]['f1'] ?? null;
+            $fotoAbnormal2 = $oldPhotos[$idParameter]['f2'] ?? null;
+
+            if ($hasil === 'Δ') {
+                $file = $request->getFile("foto_abnormal.{$idParameter}");
+                if ($file && $file->isValid() && !$file->hasMoved()) {
+                    $newName = time() . '_1_' . uniqid() . '.' . $file->getClientExtension();
+                    $file->move($uploadPath, $newName);
+                    $fotoAbnormal = $newName;
+                }
+                $file2 = $request->getFile("foto_abnormal_2.{$idParameter}");
+                if ($file2 && $file2->isValid() && !$file2->hasMoved()) {
+                    $newName2 = time() . '_2_' . uniqid() . '.' . $file2->getClientExtension();
+                    $file2->move($uploadPath, $newName2);
+                    $fotoAbnormal2 = $newName2;
+                }
+            }
+
+            $idDetail = $detailModel->insert([
+                'id_transaksi'    => $id,
+                'id_parameter'    => (int) $idParameter,
+                'hasil_check'     => $hasil !== '' ? $hasil : null,
+                'ulasan'          => $ulasan[$idParameter] ?? null,
+                'foto_abnormal'   => $fotoAbnormal,
+                'foto_abnormal_2' => $fotoAbnormal2,
+            ]);
+
+            if ($hasil === 'Δ') {
+                $paramInfo      = $parameterModel->find((int) $idParameter);
+                $pointCheckName = $paramInfo ? $paramInfo['point_check'] : 'Parameter #' . $idParameter;
+                $abnormalDesc   = trim($ulasan[$idParameter] ?? '');
+                if (empty($abnormalDesc)) {
+                    $abnormalDesc = 'Ditemukan kondisi abnormal (Δ)';
+                }
+                (new \App\Models\LaporanAbnormalModel())->insert([
+                    'id_transaksi'       => $id,
+                    'id_detail'          => $idDetail,
+                    'id_mesin'           => $idMesin,
+                    'point_check'        => $pointCheckName,
+                    'abnormal_condition' => $abnormalDesc,
+                    'pengecekan_tanggal' => date('Y-m-d', strtotime($waktuSelesai)),
+                    'pengecekan_pic'     => session()->get('nama') ?: 'Admin',
+                    'foto_abnormal'      => $fotoAbnormal,
+                    'foto_abnormal_2'    => $fotoAbnormal2,
+                    'created_at'         => $waktuSelesai,
+                    'updated_at'         => $waktuSelesai,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Update/insert baris tabel TransaksiOverhaul saat edit.
+     */
+    private function updateOverhaulExtra(int $id, $request): void
+    {
+        $barFeederType = $request->getPost('bar_feeder_type');
+        $rawSupport    = $request->getPost('support_pic');
+        $supportStr    = null;
+        if (is_array($rawSupport)) {
+            $filtered = array_filter(array_map('trim', $rawSupport));
+            if (!empty($filtered)) {
+                $supportStr = implode(', ', $filtered);
+            }
+        }
+        $overhaulModel = new \App\Models\TransaksiOverhaulModel();
+        $payload = [
+            'bar_feeder_type'     => $barFeederType ?: null,
+            'support_pic'         => $supportStr,
+            'note_recommendation' => $request->getPost('note_recommendation') ?: null,
+        ];
+        if ($overhaulModel->find($id)) {
+            $overhaulModel->update($id, $payload);
+        } else {
+            $payload['id_transaksi'] = $id;
+            $overhaulModel->insert($payload);
+        }
+    }
+
+    /**
+     * Re-hitung overall status dan update CeklisKontrol saat edit Preventive.
+     */
+    private function updateChecklistKontrolOnEdit(array $header, int $idMesin, array $hasilCheck, array $ulasan, string $waktuSelesai): void
+    {
+        $combinedUlasan   = array_filter(array_map('trim', $ulasan));
+        $ulasanKontrol    = !empty($combinedUlasan) ? implode(', ', $combinedUlasan) : null;
+        $overallStatus    = $this->calculateOverallStatus($hasilCheck);
+        $tanggalCheckDate = date('Y-m-d', strtotime($waktuSelesai));
+
+        (new \App\Models\CeklisKontrolModel())->updateChecklistKontrol(
+            $header['id_mesin'],
+            $header['kategori'],
+            $tanggalCheckDate,
+            [
+                'id_mesin'     => $idMesin,
+                'status_check' => $overallStatus,
+                'ulasan'       => $ulasanKontrol,
+            ]
+        );
+    }
 
     /**
      * Normalisasi GET params menjadi array $filters standar untuk PDF all.
@@ -748,7 +707,6 @@ public function approveTransaksi($idTransaksi, $request)
 
     /**
      * Fetch details + calculateRowspans untuk satu transaksi.
-     * Return [$details] sehingga bisa di-destructure: [$details] = $this->fetchHeaderAndDetails(...).
      */
     private function fetchHeaderAndDetails(int $id, array $header): array
     {
@@ -761,7 +719,6 @@ public function approveTransaksi($idTransaksi, $request)
 
     /**
      * Hitung durasi dalam detik dari waktu_mulai dan waktu_selesai header.
-     * Return null jika salah satu tidak ada.
      */
     private function calculateDurasiDetik(array $header): ?int
     {
