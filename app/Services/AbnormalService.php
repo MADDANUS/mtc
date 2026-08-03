@@ -204,7 +204,7 @@ class AbnormalService
         $sortBy = $request->getGet('sort_by') ?: 'lokasi';
         $order = strtolower($request->getGet('order') ?: 'asc');
 
-        
+        $bulanList = $this->buildBulanList();
 
         $summaryData = $this->calculateSummaryData([
             'bulan'          => $bulan,
@@ -396,6 +396,7 @@ class AbnormalService
             $availableLines = array_unique($availableLines);
         }
         sort($availableLines);
+        $bulanList = $this->buildBulanList();
 
         return view('abnormal/summary_overhaul', [
             'is_summary'       => true,
