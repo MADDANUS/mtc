@@ -50,18 +50,18 @@
                 <div class="qr-box">
                     <?php 
                         $scanUrl = site_url('scan/mesin/' . $m['id_mesin']);
-                        $qrApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=0&format=jpeg&data=" . urlencode($scanUrl);
                         
-                        // Fetch image using cURL to bypass DOMPDF remote image & SSL issues
-                        $ch = curl_init($qrApiUrl);
-                        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-                        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                        $imgData = curl_exec($ch);
-                        curl_close($ch);
+                        // Generate QR Code locally
+                        $options = new \chillerlan\QRCode\QROptions([
+                            'version'      => 5,
+                            'outputInterface' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
+                            'eccLevel'     => \chillerlan\QRCode\Common\EccLevel::L,
+                            'scale'        => 5,
+                            'outputBase64' => true,
+                        ]);
+                        $qrcode = new \chillerlan\QRCode\QRCode($options);
                         
-                        $base64Src = $imgData ? 'data:image/jpeg;base64,' . base64_encode($imgData) : '';
+                        $base64Src = $qrcode->render($scanUrl);
                     ?>
                     <img src="<?= $base64Src ?>" class="qr-image" alt="QR Code">
                     <div class="qr-text"><?= esc($m['no_mesin']) ?></div>

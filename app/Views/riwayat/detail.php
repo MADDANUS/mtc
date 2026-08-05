@@ -12,9 +12,12 @@
       if (!empty($_GET['qs_summary'])) {
           $backUrl .= '&qs_summary=' . urlencode($_GET['qs_summary']);
       }
+      if (!empty($_GET['from_origin'])) {
+          $backUrl .= '&from=' . urlencode($_GET['from_origin']);
+      }
     ?>
     <a href="<?= $backUrl ?>" class="btn btn-sm btn-outline-secondary">
-      <i class="bi bi-arrow-left"></i> Kembali ke Ceklis Kontrol
+      <i class="bi bi-arrow-left"></i> Kembali ke Checklist Control
     </a>
   <?php elseif (isset($from) && $from === 'durasi'): ?>
     <?php 

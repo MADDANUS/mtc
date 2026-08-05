@@ -34,6 +34,13 @@ class CeklisKontrolModel extends Model
         if ($line) {
             $builder->where('line', $line);
         }
+
+        $lastDayOfMonth = date('Y-m-t', strtotime($bulanTahun . '-01'));
+        $builder->groupStart()
+                ->where('tanggal_aktif IS NULL')
+                ->orWhere('tanggal_aktif <=', $lastDayOfMonth)
+                ->groupEnd();
+
         $daftarMesin = $builder->orderBy('no_mesin', 'ASC')->findAll();
 
         // 2. Ambil semua catatan Checklist Control untuk kategori & bulan ini
@@ -93,18 +100,24 @@ class CeklisKontrolModel extends Model
             $row['ulasan']      = $rowUlasan ?: '';
 
             // Fetch abnormal photos for this machine in this month
-            $db = \Config\Database::connect();
-            $photos = $db->table('laporan_abnormal')
-                         ->select('laporan_abnormal.foto_abnormal, laporan_abnormal.foto_abnormal_2')
-                         ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi')
-                         ->where('laporan_abnormal.id_mesin', $idMesin)
-                         ->where('transaksi_check.kategori', $kategori)
-                         ->like('laporan_abnormal.pengecekan_tanggal', $bulanTahun, 'after') // YYYY-MM
-                         ->get()->getResultArray();
+            // We must only fetch photos from the LATEST transaction for this month,
+            // because that is what is displayed when clicking "Detail Laporan".
+            $transaksiModel = new \App\Models\TransaksiCheckModel();
+            $latestTx = $transaksiModel->getLatestIdByMesinAndKategori($idMesin, $kategori, $bulanTahun);
+            
             $row['photos'] = [];
-            foreach ($photos as $ph) {
-                if (!empty($ph['foto_abnormal']) && !in_array($ph['foto_abnormal'], $row['photos'])) $row['photos'][] = $ph['foto_abnormal'];
-                if (!empty($ph['foto_abnormal_2']) && !in_array($ph['foto_abnormal_2'], $row['photos'])) $row['photos'][] = $ph['foto_abnormal_2'];
+            
+            if ($latestTx) {
+                $db = \Config\Database::connect();
+                $photos = $db->table('laporan_abnormal')
+                             ->select('foto_abnormal, foto_abnormal_2')
+                             ->where('id_transaksi', $latestTx['id_transaksi'])
+                             ->get()->getResultArray();
+                             
+                foreach ($photos as $ph) {
+                    if (!empty($ph['foto_abnormal']) && !in_array($ph['foto_abnormal'], $row['photos'])) $row['photos'][] = $ph['foto_abnormal'];
+                    if (!empty($ph['foto_abnormal_2']) && !in_array($ph['foto_abnormal_2'], $row['photos'])) $row['photos'][] = $ph['foto_abnormal_2'];
+                }
             }
 
             $grid[] = $row;
@@ -213,14 +226,18 @@ class CeklisKontrolModel extends Model
                     ->first();
     }
 
-    public function getCheckedMachinesCount(string $bulanTahun): array
+    public function getCheckedMachinesCount(?string $bulanTahun = null): array
     {
-        return $this->select('master_mesin.lokasi, master_mesin.line, ceklis_kontrol.kategori, COUNT(DISTINCT ceklis_kontrol.id_mesin) as checked_count')
+        $builder = $this->select('master_mesin.lokasi, master_mesin.line, ceklis_kontrol.kategori, ceklis_kontrol.bulan_tahun, COUNT(DISTINCT ceklis_kontrol.id_mesin) as checked_count')
                     ->join('master_mesin', 'master_mesin.id_mesin = ceklis_kontrol.id_mesin')
-                    ->where('ceklis_kontrol.bulan_tahun', $bulanTahun)
                     ->where("ceklis_kontrol.pic_nama != 'PIC'")
-                    ->where("ceklis_kontrol.pic_nama IS NOT NULL")
-                    ->groupBy('master_mesin.lokasi, master_mesin.line, ceklis_kontrol.kategori')
+                    ->where("ceklis_kontrol.pic_nama IS NOT NULL");
+                    
+        if ($bulanTahun) {
+            $builder->where('ceklis_kontrol.bulan_tahun', $bulanTahun);
+        }
+
+        return $builder->groupBy('ceklis_kontrol.bulan_tahun, master_mesin.lokasi, master_mesin.line, ceklis_kontrol.kategori')
                     ->findAll();
     }
 }

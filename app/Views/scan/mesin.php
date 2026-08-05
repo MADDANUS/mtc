@@ -68,6 +68,13 @@
           </div>
         </a>
       </div>
+
+      <!-- Tombol Kembali / Scan Ulang -->
+      <div class="col-12 mt-4 text-center">
+        <a href="<?= site_url('scan') ?>" class="btn btn-light border shadow-sm px-4 py-2 text-secondary fw-semibold">
+          <i class="bi bi-arrow-left me-2"></i>Kembali Scan Ulang
+        </a>
+      </div>
     </div>
   </div>
 </div>

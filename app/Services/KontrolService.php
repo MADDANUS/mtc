@@ -667,7 +667,7 @@ class KontrolService
     private function buildBulanList(): array
     {
         $bulanList = [];
-        for ($i = 0; $i < 12; $i++) {
+        for ($i = -1; $i < 12; $i++) {
             $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
             $bulanList[$time->format('Y-m')] = $time->toLocalizedString('MMMM yyyy');
         }

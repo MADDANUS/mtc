@@ -81,7 +81,8 @@ class LaporanController extends BaseController
 
         // List bulan untuk dropdown filter
         $bulanList = [];
-        for ($i = 0; $i < 12; $i++) {
+        // Mulai dari -1 untuk menambahkan 1 bulan ke depan (Curi Start)
+        for ($i = -1; $i < 12; $i++) {
             $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
             $val  = $time->format('Y-m');
             $label = $time->toLocalizedString('MMMM yyyy');

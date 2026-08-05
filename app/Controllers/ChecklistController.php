@@ -237,43 +237,102 @@ class ChecklistController extends BaseController
         // Cek nama kategori
         $kategori = '';
         if ($jenisCheckSlug === 'overhaul') {
-            // Overhaul
             if (isset($this->categoryMap[$kategoriSlug])) {
                 $kategori = $this->categoryMap[$kategoriSlug];
             } else {
                 $kategori = strtoupper(str_replace('-', ' ', $kategoriSlug));
             }
         } else {
-            // Preventive
             if (isset($this->categoryMap[$kategoriSlug])) {
                 $kategori = $this->categoryMap[$kategoriSlug];
             }
         }
 
-        $bulan = date('Y-m'); // "satu mesin hanya satu bulan"
+        // Get Lokasi for Jadwal
+        $mesinModel = new \App\Models\MesinModel();
+        $mesin = $mesinModel->find($idMesin);
+        $lokasiName = $mesin['lokasi'] ?? '';
 
         $transaksiModel = new \App\Models\TransaksiCheckModel();
-        $rows = $transaksiModel->checkDuplicate((int)$idMesin, $jenisCheck, $bulan, $kategori);
+        
+        // --- BYPASS GATEKEEPER UNTUK OVERHAUL ---
+        // Overhaul tidak memiliki jadwal di jadwal_preventive
+        if ($jenisCheckSlug === 'overhaul') {
+            $currentMonth = date('Y-m');
+            $checked = $transaksiModel->checkDuplicate((int)$idMesin, $jenisCheck, $currentMonth, $kategori);
+            
+            if (count($checked) > 0) {
+                return $this->response->setJSON([
+                    'duplicate' => true,
+                    'status' => 'blocked',
+                    'tanggal' => $checked[0]['waktu_mulai'],
+                    'pic' => $checked[0]['nama_pic']
+                ]);
+            }
+            
+            return $this->response->setJSON([
+                'status' => 'normal',
+                'target_periode' => $currentMonth,
+                'message' => 'Lanjutkan pengisian form Overhaul.'
+            ]);
+        }
+        
+        $jadwalModel = new \App\Models\JadwalPreventiveModel();
 
-        $duplicate = count($rows) > 0;
-        $tanggal   = '';
-        $pic       = '';
-        if ($duplicate) {
-            $row     = $rows[0];
-            $waktu   = $row['waktu_mulai'] ?: $row['created_at'];
-            // Format: Kamis, 24 Juli 2026, 08:38
-            $ts      = strtotime($waktu);
-            $bulanId = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-            $hariId  = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-            $tanggal = $hariId[date('w', $ts)] . ', ' . date('d', $ts) . ' ' . $bulanId[(int)date('n', $ts) - 1] . ' ' . date('Y', $ts) . ', ' . date('H:i', $ts);
-            $pic     = $row['nama_pic'] ?? '';
+        // 1. Cek Tunggakan (Bulan Lalu)
+        $lastMonth = date('Y-m', strtotime('-1 month'));
+        $scheduleLastMonth = $jadwalModel->getJadwalForChecklist($lokasiName, $kategori, $lastMonth);
+        
+        if ($scheduleLastMonth) {
+            $checkedLastMonth = $transaksiModel->checkDuplicate((int)$idMesin, $jenisCheck, $lastMonth, $kategori);
+            if (count($checkedLastMonth) === 0) {
+                // Ada jadwal bulan lalu tapi belum dikerjakan -> OVERDUE
+                return $this->response->setJSON([
+                    'status' => 'overdue',
+                    'target_periode' => $lastMonth,
+                    'message' => 'Mesin ini memiliki tunggakan pengecekan untuk periode ' . date('F Y', strtotime($lastMonth . '-01')) . '. Anda harus menyelesaikannya terlebih dahulu.'
+                ]);
+            }
         }
 
+        // 2. Cek Bulan Berjalan
+        $currentMonth = date('Y-m');
+        $scheduleCurrentMonth = $jadwalModel->getJadwalForChecklist($lokasiName, $kategori, $currentMonth);
+
+        if ($scheduleCurrentMonth) {
+            $checkedCurrentMonth = $transaksiModel->checkDuplicate((int)$idMesin, $jenisCheck, $currentMonth, $kategori);
+            if (count($checkedCurrentMonth) === 0) {
+                // Jadwal bulan ini belum dikerjakan -> NORMAL
+                return $this->response->setJSON([
+                    'status' => 'normal',
+                    'target_periode' => $currentMonth,
+                    'message' => ''
+                ]);
+            }
+        }
+
+        // 3. Cek Curi Start (Bulan Depan)
+        $nextMonth = date('Y-m', strtotime('+1 month'));
+        $scheduleNextMonth = $jadwalModel->getJadwalForChecklist($lokasiName, $kategori, $nextMonth);
+
+        if ($scheduleNextMonth) {
+            $checkedNextMonth = $transaksiModel->checkDuplicate((int)$idMesin, $jenisCheck, $nextMonth, $kategori);
+            if (count($checkedNextMonth) === 0) {
+                // Jadwal bulan depan sudah ada, dan belum dikerjakan -> ADVANCE (Curi Start)
+                return $this->response->setJSON([
+                    'status' => 'advance',
+                    'target_periode' => $nextMonth,
+                    'message' => 'Jatah bulan ini sudah tuntas. Apakah Anda ingin melakukan pengecekan Out of Plan untuk periode ' . date('F Y', strtotime($nextMonth . '-01')) . '?'
+                ]);
+            }
+        }
+
+        // Jika sampai sini, berarti semua jadwal sudah selesai atau tidak ada jadwal
+        // Kita berikan fallback (duplicate pada bulan ini untuk memblokir)
         return $this->response->setJSON([
-            'duplicate' => $duplicate,
-            'kategori'  => $kategori,
-            'tanggal'   => $tanggal,
-            'pic'       => $pic,
+            'status' => 'blocked',
+            'target_periode' => $currentMonth,
+            'message' => 'Pengecekan kategori ini sudah diselesaikan sesuai jadwal yang ada.'
         ]);
     }
 
@@ -291,6 +350,7 @@ class ChecklistController extends BaseController
         $idMesin      = (int) $this->request->getPost('id_mesin');
         $waktuMulai   = $this->request->getPost('waktu_mulai');
         $kategoriName = $this->request->getPost('kategori');
+        $targetPeriode= $this->request->getPost('target_periode') ?: date('Y-m');
         $waktuSelesai = Time::now()->toDateTimeString();
 
         $hasilCheck = $this->request->getPost('hasil_check') ?? [];
@@ -309,6 +369,7 @@ class ChecklistController extends BaseController
             'lokasi_check'  => $lokasiName,
             'jenis_check'   => $jenisName,
             'kategori'      => $kategoriName,
+            'target_periode'=> $targetPeriode,
             'waktu_mulai'   => $waktuMulai,
             'waktu_selesai' => $waktuSelesai,
             'status'        => 'Pending',

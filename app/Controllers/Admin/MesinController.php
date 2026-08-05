@@ -97,6 +97,7 @@ class MesinController extends BaseController
             'line'            => $this->request->getPost('line') ?: null,
             'bar_feeder_type' => $this->request->getPost('bar_feeder_type'),
             'jenis'           => $this->request->getPost('jenis') ?: null,
+            'tanggal_aktif'   => $this->request->getPost('tanggal_aktif') ?: null,
         ]);
 
         $redirectUrl = session()->get('last_mesin_url') ?? '/admin/mesin';
@@ -137,6 +138,7 @@ class MesinController extends BaseController
             'line'            => $this->request->getPost('line') ?: null,
             'bar_feeder_type' => $this->request->getPost('bar_feeder_type'),
             'jenis'           => $this->request->getPost('jenis') ?: null,
+            'tanggal_aktif'   => $this->request->getPost('tanggal_aktif') ?: null,
         ]);
 
         return $this->redirectSuccess($redirectUrl, 'Mesin berhasil diperbarui.');
@@ -365,6 +367,7 @@ class MesinController extends BaseController
             'line'            => 'permit_empty|string|max_length[50]',
             'bar_feeder_type' => 'permit_empty|string|max_length[100]',
             'jenis'           => 'permit_empty|string|max_length[100]',
+            'tanggal_aktif'   => 'permit_empty|valid_date',
         ];
     }
 
@@ -397,5 +400,27 @@ class MesinController extends BaseController
 
         $dompdf->stream('Semua_QRCode_Mesin.pdf', ["Attachment" => true]);
         exit();
+    }
+
+    public function generateQr()
+    {
+        $data = $this->request->getGet('data');
+        if (empty($data)) {
+            return $this->response->setStatusCode(400)->setBody('Missing data parameter');
+        }
+
+        $options = new \chillerlan\QRCode\QROptions([
+            'version'      => 5,
+            'outputInterface' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
+            'eccLevel'     => \chillerlan\QRCode\Common\EccLevel::L,
+            'scale'        => 5,
+            'outputBase64' => false,
+        ]);
+        
+        $qrcode = new \chillerlan\QRCode\QRCode($options);
+        
+        return $this->response
+            ->setContentType('image/png')
+            ->setBody($qrcode->render($data));
     }
 }

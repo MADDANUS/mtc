@@ -23,7 +23,7 @@ class KontrolController extends BaseController
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
-        $dompdf->stream('Checklist_Control_' . str_replace(' ', '_', $data['kategoriFilter']) . '_' . str_replace(' ', '_', $data['lokasiFilter']) . '.pdf', ['Attachment' => true]);
+        $dompdf->stream('Checklist_Control_' . str_replace(' ', '_', $data['kategori']) . '_' . str_replace(' ', '_', $data['lokasi']) . '.pdf', ['Attachment' => true]);
     }
 
     public function pdfAllCategories()
@@ -38,7 +38,7 @@ class KontrolController extends BaseController
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
-        $dompdf->stream('Checklist_Control_Semua_Kategori_' . str_replace(' ', '_', $data['lokasiFilter']) . '_' . $data['bulanFilter'] . '.pdf', ['Attachment' => true]);
+        $dompdf->stream('Checklist_Control_Semua_Kategori_' . str_replace(' ', '_', $data['lokasi']) . '_' . $data['bulan'] . '.pdf', ['Attachment' => true]);
     }
 
     public function pdfAllSummary()
@@ -53,7 +53,7 @@ class KontrolController extends BaseController
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
-        $dompdf->stream('Checklist_Control_Ringkasan_Semua_Area_' . $data['bulanFilter'] . '.pdf', ['Attachment' => true]);
+        $dompdf->stream('Checklist_Control_Ringkasan_Semua_Area_' . $data['bulan'] . '.pdf', ['Attachment' => true]);
     }
 
     public function index()

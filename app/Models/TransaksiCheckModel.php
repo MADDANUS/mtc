@@ -12,6 +12,7 @@ class TransaksiCheckModel extends Model
         'id_user', 'nama_pic', 'id_mesin', 'lokasi_check', 'jenis_check', 'kategori',
         'waktu_mulai', 'waktu_selesai', 'status', 'approved_by', 'pic_line_nama', 'approved_at',
         'approval_l1_by', 'leader_nama', 'approval_l1_at', 'approval_l2_by', 'approval_l2_at',
+        'target_periode'
     ];
     protected $useTimestamps = true;
     protected $returnType    = 'array';
@@ -311,10 +312,10 @@ class TransaksiCheckModel extends Model
 
     public function checkDuplicate(int $idMesin, string $jenisCheck, string $bulan, ?string $kategori = null): array
     {
-        $builder = $this->select('id_transaksi, waktu_mulai, created_at, nama_pic')
+        $builder = $this->select('id_transaksi, waktu_mulai, created_at, nama_pic, target_periode')
                         ->where('id_mesin', $idMesin)
                         ->where('jenis_check', $jenisCheck)
-                        ->where("DATE_FORMAT(created_at, '%Y-%m')", $bulan);
+                        ->where('target_periode', $bulan);
                         
         if (!empty($kategori)) {
             $builder->where('kategori', $kategori);
@@ -357,7 +358,16 @@ class TransaksiCheckModel extends Model
                         ->where('id_mesin', $idMesin)
                         ->where('kategori', $kategori);
         if ($bulan) {
-            $builder->like('waktu_mulai', $bulan, 'after');
+            $builder->groupStart()
+                        ->where('target_periode', $bulan)
+                        ->orGroupStart()
+                            ->groupStart()
+                                ->where('target_periode IS NULL')
+                                ->orWhere('target_periode', '')
+                            ->groupEnd()
+                            ->like('waktu_mulai', $bulan, 'after')
+                        ->groupEnd()
+                    ->groupEnd();
         }
         return $builder->orderBy('id_transaksi', 'DESC')->first();
     }

@@ -100,11 +100,15 @@ class ApprovalBulananModel extends Model
         return $builder->orderBy('approval_bulanan.bulan_tahun', 'DESC')->findAll();
     }
 
-    public function getExistingApprovals(string $bulan): array
+    public function getExistingApprovals(?string $bulan = null): array
     {
-        return $this->select('lokasi, line, kategori')
-                    ->where('type', 'kontrol')
-                    ->where('bulan_tahun', $bulan)
-                    ->findAll();
+        $builder = $this->select('bulan_tahun, lokasi, line, kategori')
+                    ->where('type', 'kontrol');
+        
+        if ($bulan) {
+            $builder->where('bulan_tahun', $bulan);
+        }
+        
+        return $builder->findAll();
     }
 }

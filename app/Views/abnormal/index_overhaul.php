@@ -3,9 +3,6 @@
 
 
 <div class="d-flex align-items-center mb-3">
-  <a href="<?= site_url('abnormal/overhaul?view=summary') ?>" class="btn btn-outline-secondary btn-sm me-3 shadow-sm rounded-pill px-3">
-    <i class="bi bi-arrow-left me-1"></i> Kembali
-  </a>
   <div class="ms-auto d-flex gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
     <a href="<?= site_url('abnormal/overhaul/pdf?lokasi=' . urlencode($lokasiFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Download PDF">
@@ -126,7 +123,7 @@
 
           <div class="row g-3 mb-3">
             <!-- Progres Stock -->
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label small fw-semibold">Progres Stock</label>
               <select name="progres_stock" id="modalProgresStock" class="form-select form-select-sm rounded-2">
                 <option value="">-- Pilih Status --</option>
@@ -135,7 +132,7 @@
               </select>
             </div>
             <!-- Progres Tanggal -->
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label small fw-semibold">Rencana Tanggal Perbaikan</label>
               <input type="date" name="progres_tanggal" id="modalProgresTanggal" class="form-control form-control-sm rounded-2">
             </div>

@@ -100,6 +100,9 @@ class RiwayatService
             if ($qsSummary) {
                 $qsArray['qs_summary'] = $qsSummary;
             }
+            if (!empty($getParams['from_origin'])) {
+                $qsArray['from_origin'] = $getParams['from_origin'];
+            }
             $qs = http_build_query($qsArray);
             return '/riwayat/' . $tx['id_transaksi'] . '?' . $qs;
         }
@@ -195,6 +198,33 @@ class RiwayatService
         if (!$header) {
             return false;
         }
+
+        // --- Hapus Ceklis Kontrol yang bersangkutan ---
+        $jenisSlug = strtolower(str_replace(' ', '-', $header['jenis_check']));
+        if ($jenisSlug === 'checklist-report' || $jenisSlug === 'preventive') {
+            $jadwal = null;
+            if (!empty($header['id_jadwal'])) {
+                $jadwal = (new \App\Models\JadwalPreventiveModel())->find($header['id_jadwal']);
+            }
+            $waktu = $header['waktu_selesai'] ?? $header['created_at'] ?? date('Y-m-d H:i:s');
+            $tanggalCheckDate = date('Y-m-d', strtotime($waktu));
+            [$periodeKe, ] = $this->resolvePeriodeKe($jadwal, $tanggalCheckDate, $waktu);
+            $bulanTahun = $jadwal ? $jadwal['bulan_tahun'] : date('Y-m', strtotime($tanggalCheckDate));
+
+            $kategoriName = $header['kategori'] ?? null;
+            if (!$kategoriName && $jadwal) {
+                $kategoriName = $jadwal['kategori'];
+            }
+
+            if ($kategoriName) {
+                $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
+                $exist = $ceklisKontrolModel->findChecklistKontrol($header['id_mesin'], $kategoriName, $bulanTahun, $periodeKe);
+                if ($exist) {
+                    $ceklisKontrolModel->delete($exist['id_kontrol']);
+                }
+            }
+        }
+        // ----------------------------------------------
 
         $detailModel = new \App\Models\TransaksiCheckDetailModel();
         $details = $detailModel->where('id_transaksi', $id)->findAll();
@@ -485,12 +515,18 @@ class RiwayatService
         $kategoriName     = $transaksi['kategori'];
         $lokasiName       = $transaksi['lokasi_check'];
         $idMesin          = $transaksi['id_mesin'];
-        $bulanTahun       = date('Y-m', strtotime($waktuSelesai));
+        $bulanTahun       = $transaksi['target_periode'] ?: date('Y-m', strtotime($waktuSelesai));
         $tanggalCheckDate = date('Y-m-d', strtotime($waktuSelesai));
 
         $jadwalModel = new \App\Models\JadwalPreventiveModel();
         $schedule    = $jadwalModel->getJadwalForChecklist($lokasiName, $kategoriName, $bulanTahun);
         [$periodeKe, $outOfPlanDate] = $this->resolvePeriodeKe($schedule, $tanggalCheckDate, $waktuSelesai);
+
+        // Jika bulan pengerjaan berbeda dengan bulan target, maka ini adalah tunggakan/curi start
+        // Paksa menjadi Out of Plan
+        if ($bulanTahun !== date('Y-m', strtotime($waktuSelesai))) {
+            $outOfPlanDate = $tanggalCheckDate;
+        }
 
         $kontrolData = [
             'id_mesin'      => $idMesin,
@@ -527,13 +563,16 @@ class RiwayatService
             $mondayTs   = strtotime('-' . ($dayOfWeek - 1) . ' days', $tglRencana);
             $weekDates  = [];
             for ($d = 0; $d < 5; $d++) {
-                $weekDates[$d + 1] = date('Y-m-d', strtotime("+{$d} days", $mondayTs));
+                $weekDates[] = date('Y-m-d', strtotime("+{$d} days", $mondayTs));
             }
-            $matchedCol = array_search($tanggalCheckDate, $weekDates);
-            if ($matchedCol !== false) {
-                return [(int) $matchedCol, null];
-            }
+            
+            $periodeKe = (int) $schedule['periode_ke'];
+            $isOutOfPlan = !in_array($tanggalCheckDate, $weekDates);
+            
+            return [$periodeKe, $isOutOfPlan ? $tanggalCheckDate : null];
         }
+        
+        // Fallback jika tidak ada jadwal (misal checklist-report murni)
         $day       = (int) date('d', strtotime($waktuSelesai));
         $periodeKe = min(intval(($day - 1) / 7) + 1, 5);
         return [$periodeKe, $tanggalCheckDate];

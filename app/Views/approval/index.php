@@ -146,7 +146,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
 
                 // Label tipe
                 if ($isKontrol) {
-                    $tipeBadge = '<span class="badge" style="background:#6366f1;">Ceklis Kontrol</span>';
+                    $tipeBadge = '<span class="badge" style="background:#6366f1;">Checklist Control</span>';
                 } elseif ($isOverhaul) {
                     $tipeBadge = '<span class="badge bg-secondary">Inspection Report</span>';
                 } else {
@@ -326,7 +326,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
         <div class="modal-body">
           <p class="mb-1">Anda akan menghapus persetujuan untuk:</p>
           <p class="fw-bold text-danger" id="namaHapusKontrol"></p>
-          <p class="text-muted small">Data ceklis tidak akan hilang, status akan kembali ke "Belum Selesai".</p>
+          <p class="text-muted small">Data checklist tidak akan hilang, status akan kembali ke "Belum Selesai".</p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
@@ -353,7 +353,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
   }
   
   function konfirmasiHapusKontrol(lokasi, line, kategori, bulan, nama) {
-    document.getElementById('namaHapusKontrol').textContent = 'Ceklis Kontrol: ' + nama;
+    document.getElementById('namaHapusKontrol').textContent = 'Checklist Control: ' + nama;
     document.getElementById('del_lokasi').value = lokasi;
     document.getElementById('del_line').value = line;
     document.getElementById('del_kategori').value = kategori;

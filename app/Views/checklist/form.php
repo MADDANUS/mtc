@@ -49,12 +49,16 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
 ?>
 
 <form id="checklistForm" action="<?= $editUrl ?>" method="post" enctype="multipart/form-data" novalidate>
+  <input type="hidden" name="target_periode" id="target_periode" value="">
   <?= csrf_field() ?>
 
   <!-- HEADER FORM: Mesin, Staff, Waktu Mulai -->
   <div class="form-header-box p-3 mb-3 shadow-sm border-0 bg-white">
     <div class="row g-3">
-      <div class="col-md-6">
+      <div class="col-md-12 mb-0 pb-0">
+         <span id="periode_badge" class="badge bg-secondary d-none px-3 py-2" style="font-size: 0.9rem;"></span>
+      </div>
+      <div class="col-md-6 mt-2">
         <label class="form-label fw-semibold">No Mesin (<?= esc($lokasiName) ?>)</label>
         <select name="id_mesin" id="id_mesin" class="form-select searchable-select" required <?= !empty($idMesin) ? 'disabled' : '' ?>>
           <option value="">-- Cari Mesin --</option>
@@ -166,12 +170,32 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
               return res.json();
           })
           .then(data => {
-              if (data.duplicate) {
+              // Simpan target periode ke form
+              if (data.target_periode) {
+                  document.getElementById('target_periode').value = data.target_periode;
+                  
+                  let badge = document.getElementById('periode_badge');
+                  badge.classList.remove('d-none', 'bg-warning', 'bg-info', 'bg-primary');
+                  
+                  // Format YYYY-MM ke text bulanan bisa menggunakan format manual atau sekedar menampilkan target_periode
+                  if (data.status === 'overdue') {
+                      badge.classList.add('bg-warning', 'text-dark');
+                      badge.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> Periode: ' + data.target_periode + ' (Tunggakan)';
+                  } else if (data.status === 'advance') {
+                      badge.classList.add('bg-info', 'text-dark');
+                      badge.innerHTML = '<i class="bi bi-info-circle-fill me-1"></i> Periode: ' + data.target_periode + ' (Curi Start / Out of Plan)';
+                  } else if (data.status === 'normal') {
+                      badge.classList.add('bg-primary');
+                      badge.innerHTML = '<i class="bi bi-calendar-check-fill me-1"></i> Periode: ' + data.target_periode + ' (Bulan Ini)';
+                  }
+              }
+
+              if (data.duplicate || data.status === 'duplicate') {
                   Swal.fire({
                       icon: 'warning',
                       title: 'Sudah Pernah Dicek!',
                       html: `
-                          <p>Mesin ini sudah pernah dilakukan pengecekan <strong>${data.kategori || jenisCheck}</strong> pada bulan ini.</p>
+                          <p>Mesin ini sudah pernah di-<strong>${data.kategori || jenisCheck}</strong> pada bulan ini.</p>
                           <table class="table table-sm table-bordered mt-2 text-start" style="font-size:0.9rem;">
                               <tr><td class="fw-semibold" style="width:40%">Tanggal & Waktu</td><td>${data.tanggal || '-'}</td></tr>
                               <tr><td class="fw-semibold">PIC</td><td>${data.pic || '-'}</td></tr>
@@ -186,18 +210,54 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                       allowOutsideClick: false
                   }).then(function(result) {
                       if (!result.isConfirmed) {
-                          if (!selectMesin.disabled) {
-                              if (selectMesin.tomselect) {
-                                  selectMesin.tomselect.clear(true);
-                              } else {
-                                  selectMesin.value = '';
-                              }
-                          } else {
-                              window.location.href = '<?= site_url("checklist") ?>';
-                          }
+                          window.location.href = '<?= $backUrl ?>';
+                      }
+                  });
+              } else if (data.status === 'blocked') {
+                  Swal.fire({
+                      icon: 'success',
+                      title: 'Selesai!',
+                      html: `<p>${data.message}</p>`,
+                      confirmButtonText: 'Kembali',
+                      confirmButtonColor: '#198754',
+                      allowOutsideClick: false
+                  }).then(function() {
+                      window.location.href = '<?= $backUrl ?>';
+                  });
+              } else if (data.status === 'overdue') {
+                  Swal.fire({
+                      icon: 'warning',
+                      title: 'Tunggakan Pengecekan',
+                      html: `<p>${data.message}</p>`,
+                      showCancelButton: true,
+                      confirmButtonText: 'Kerjakan Tunggakan',
+                      cancelButtonText: 'Batal',
+                      confirmButtonColor: '#ffc107',
+                      cancelButtonColor: '#6c757d',
+                      allowOutsideClick: false
+                  }).then(function(result) {
+                      if (!result.isConfirmed) {
+                          window.location.href = '<?= $backUrl ?>';
+                      }
+                  });
+              } else if (data.status === 'advance') {
+                  Swal.fire({
+                      icon: 'info',
+                      title: 'Curi Start / Out of Plan',
+                      html: `<p>${data.message}</p>`,
+                      showCancelButton: true,
+                      confirmButtonText: 'Ya, Curi Start',
+                      cancelButtonText: 'Batal',
+                      confirmButtonColor: '#0d6efd',
+                      cancelButtonColor: '#6c757d',
+                      allowOutsideClick: false
+                  }).then(function(result) {
+                      if (!result.isConfirmed) {
+                          window.location.href = '<?= $backUrl ?>';
                       }
                   });
               }
+              // Jika status === 'normal', form tidak diblokir dan target_periode diset
           })
           .catch(function(err) {
               console.error('Duplicate check error:', err);
@@ -635,7 +695,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
         <button type="button" id="btnPrev" class="btn btn-secondary px-4 py-2 fw-semibold shadow-sm" style="display:none;"><i class="bi bi-arrow-left me-2"></i> Kembali</button>
         <button type="submit" id="btnSubmit" class="btn btn-success px-5 py-2 fw-semibold shadow-sm" style="display:none;">Submit Pengecekan</button>
 
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script src="<?= base_url('assets/js/sweetalert2.all.min.js') ?>"></script>
         <script>
         document.addEventListener('DOMContentLoaded', function() {
             const rows = document.querySelectorAll('tr[data-kategori]');
@@ -1708,7 +1768,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const Toast = Swal.mixin({
                       toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
                     });
-                    Toast.fire({ icon: 'info', title: 'Data isian sebelumnya berhasil dipulihkan.' });
+                    // Notifikasi dimatikan agar tidak mengganggu (silent restore)
+                    // Toast.fire({ icon: 'info', title: 'Data isian sebelumnya berhasil dipulihkan.' });
                 }
             } catch(e) {
                 console.error("Autosave load error:", e);

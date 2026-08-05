@@ -69,6 +69,13 @@
     </div>
 
 
+    <div class="mb-3">
+      <label class="form-label">Tanggal Mulai Beroperasi</label>
+      <input type="date" name="tanggal_aktif" class="form-control" 
+             value="<?= esc(old('tanggal_aktif', $mesin['tanggal_aktif'] ?? date('Y-m-d'))) ?>">
+      <div class="form-text small">Jika tidak diisi, mesin dianggap aktif selamanya. Digunakan agar mesin baru tidak masuk laporan bulan sebelumnya.</div>
+    </div>
+
     <button type="submit" class="btn btn-primary">Simpan</button>
     <a href="<?= site_url('admin/mesin') ?>" class="btn btn-outline-secondary">Batal</a>
   </form>

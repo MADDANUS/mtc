@@ -184,8 +184,8 @@
         // URL scan mesin MTCE
         const scanUrl = "<?= site_url('scan/mesin/') ?>" + id;
 
-        // Load QR Code menggunakan API qrserver gratis
-        qrImage.src = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(scanUrl);
+        // Load QR Code menggunakan API lokal offline
+        qrImage.src = "<?= site_url('admin/mesin/generate-qr?data=') ?>" + encodeURIComponent(scanUrl);
 
         qrNoMesin.innerText = no;
         qrTypeMesin.innerText = type;
@@ -207,7 +207,6 @@
         <html>
         <head>
           <title>Cetak QR Code - \${no}</title>
-          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
           <style>
             body {
               font-family: 'Inter', sans-serif;

@@ -1,7 +1,7 @@
     </main>
   </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="<?= base_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
 <script>
   // Mobile sidebar toggle functionality
   document.getElementById('sidebarToggle')?.addEventListener('click', function() {
@@ -15,8 +15,8 @@
     this.classList.remove('show');
   });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+<script src="<?= base_url('assets/js/sweetalert2.all.min.js') ?>"></script>
+<script src="<?= base_url('assets/js/tom-select.complete.min.js') ?>"></script>
 <script>
   document.querySelectorAll('.searchable-select').forEach((el) => {
     let maxItems = el.getAttribute('data-max-items');

@@ -44,6 +44,7 @@ class AbnormalService
             'categories'     => $categories,
         ];
 
+        return $data;
     }
 
     public function pdfAllCategories($request)
@@ -75,9 +76,7 @@ class AbnormalService
             'bulanFilter'    => $bulanFilter
         ];
 
-        $options = new \Dompdf\Options();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isRemoteEnabled', true);
+        return $data;
 
     }
 
@@ -123,9 +122,7 @@ class AbnormalService
             'bulanFilter'    => $bulanFilter
         ];
 
-        $options = new \Dompdf\Options();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isRemoteEnabled', true);
+        return $data;
 
     }
 
@@ -246,11 +243,6 @@ class AbnormalService
      */
     public function overhaul($request)
     {
-        $viewType     = $request->getGet('view') ?: 'list';
-        if ($viewType === 'summary') {
-            return $this->summaryOverhaul($request);
-        }
-
         $lokasiFilter = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
         $searchFilter = $request->getGet('search') ?: '';
         $bulanFilter  = $request->getGet('bulan') ?: date('Y-m');
@@ -459,9 +451,10 @@ class AbnormalService
             'searchFilter'   => $searchFilter,
             'bulanFilter'    => $bulanFilter,
             'isOverhaul'     => true,
-            'kategoriFilter' => JenisCheck::Overhaul->value // Dummy untuk file PDF jika diperlukan
+            'kategoriFilter' => JenisCheck::Overhaul->value
         ];
 
+        return $data;
     }
 
     public function pdfAllSummaryOverhaul($request)
@@ -624,19 +617,11 @@ class AbnormalService
     private function buildBulanList(): array
     {
         $bulanList = [];
-        $bulanIndo = [
-            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
-            '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
-            '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
-        ];
-        
-        for ($i = 0; $i < 12; $i++) {
+        // Mulai dari -1 untuk menambahkan 1 bulan ke depan (Curi Start)
+        for ($i = -1; $i < 12; $i++) {
             $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
-            $val  = $time->format('Y-m');
-            $label = $bulanIndo[$time->format('m')] . ' ' . $time->format('Y');
-            $bulanList[$val] = $label;
+            $bulanList[$time->format('Y-m')] = $time->toLocalizedString('MMMM yyyy');
         }
-        
         return $bulanList;
     }
 

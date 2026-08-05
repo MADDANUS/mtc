@@ -4,10 +4,11 @@
 <meta charset="utf-8">
 <title>Login — MTCE System</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<!-- Industrial geometric fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="<?= base_url('assets/css/bootstrap.min.css') ?>" rel="stylesheet">
+<!-- Google Fonts (Inter) -->
+<link href="<?= base_url('assets/css/google-fonts.css') ?>" rel="stylesheet">
+<link rel="stylesheet" href="<?= base_url('assets/css/bootstrap-icons.min.css') ?>">
+<script src="<?= base_url('assets/js/sweetalert2.all.min.js') ?>"></script>
 <style>
     *, *::before, *::after { box-sizing: border-box; }
     html { font-size: 14px; }
@@ -288,7 +289,7 @@
             </div>
         </div>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="<?= base_url('assets/js/sweetalert2.all.min.js') ?>"></script>
 <script>
     const togglePassword = document.querySelector('#togglePassword');
     const password = document.querySelector('#password');

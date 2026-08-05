@@ -1,7 +1,7 @@
 <?= view('layout/header', ['title' => $title]) ?>
 
 <!-- Include FullCalendar JS -->
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script src="<?= base_url('assets/js/fullcalendar.min.js') ?>"></script>
 
 <?php $canEditJadwal = in_array(session()->get('role'), ['admin', 'member'], true); ?>
 <?php if ($canEditJadwal): ?>
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const month = dateObj.getMonth(); // 0-indexed
     const day = dateObj.getDate();
 
-    // Hitung periode_ke (1 s.d 5)
+    // Hitung periode_ke (1 s.d 5) berdasar tanggal asli bulan tersebut
     let periodeKe = Math.floor((day - 1) / 7) + 1;
     if (periodeKe > 5) periodeKe = 5;
 
@@ -282,29 +282,28 @@ document.addEventListener('DOMContentLoaded', function() {
     inputBulanTahun.value = `${year}-${monthStr}`;
     inputPeriodeKe.value = periodeKe;
 
-    // Hitung Senin s.d Jumat dari pekan yang bersangkutan
-    // Cari hari Senin terdekat dari tanggal awal pekan
-    const startDay = 1 + (periodeKe - 1) * 7;
-    const baseDate = new Date(year, month, startDay);
+    // Ambil hari dari tanggal yang dipilih (0=Minggu, 1=Senin, ..., 6=Sabtu)
+    let dayOfWeek = dateObj.getDay();
+    // Konversi agar Senin=1, Minggu=7
+    if (dayOfWeek === 0) dayOfWeek = 7;
     
-    // Cari Senin: jika baseDate sudah Senin pakai itu, jika bukan geser ke Senin
-    const dayOfWeek = baseDate.getDay(); // 0=Min, 1=Sen, ...
-    const diffToMonday = (dayOfWeek === 0) ? 1 : (dayOfWeek === 1 ? 0 : (8 - dayOfWeek));
-    const monday = new Date(baseDate);
-    monday.setDate(baseDate.getDate() + diffToMonday);
-
-    // Tetap dalam batas bulan: jika Senin keluar bulan, gunakan tanggal awal pekan itu sendiri
-    if (monday.getMonth() !== month) {
-      monday.setTime(baseDate.getTime());
-    }
+    // Mundur ke hari Senin di minggu yang sama
+    const diffToMonday = dayOfWeek - 1;
+    const monday = new Date(dateObj);
+    monday.setDate(dateObj.getDate() - diffToMonday);
 
     previewPeriode.innerText = periodeKe;
     previewDays.innerHTML = '';
+    
+    // Tampilkan Senin s.d Jumat
     for (let i = 0; i < 5; i++) {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
-      if (d.getMonth() !== month) break; // Jangan keluar bulan
-      const label = `${hariNama[d.getDay()]} ${String(d.getDate()).padStart(2,'0')}/${monthStr}`;
+      
+      // Tetap tampilkan meskipun melintasi batas bulan (seperti backend kalender)
+      const dMonth = String(d.getMonth() + 1).padStart(2, '0');
+      const dDate = String(d.getDate()).padStart(2, '0');
+      const label = `${hariNama[d.getDay()]} ${dDate}/${dMonth}`;
       previewDays.innerHTML += `<span class="day-badge">${label}</span> `;
     }
     weekPreview.style.display = 'block';
@@ -334,6 +333,22 @@ document.addEventListener('DOMContentLoaded', function() {
     locale: 'id',
     events: '<?= site_url("admin/jadwal/events") ?>',
     editable: false,
+
+    // Meredupkan event jika berbeda bulan dengan view yang sedang aktif
+    eventDidMount: function(info) {
+      const viewMonth = info.view.currentStart.getMonth();
+      
+      // Ambil bulan dari target jadwal yang sebenarnya di database (bulan_tahun: "2026-09")
+      const targetBulanTahun = info.event.extendedProps.bulanTahun;
+      if (targetBulanTahun) {
+          const parts = targetBulanTahun.split('-');
+          const targetMonth = parseInt(parts[1], 10) - 1; // 0-indexed sama seperti JS Date
+          
+          if (viewMonth !== targetMonth) {
+            info.el.style.opacity = '0.4';
+          }
+      }
+    },
     
     <?php if ($canEditJadwal): ?>
     // Klik event untuk hapus

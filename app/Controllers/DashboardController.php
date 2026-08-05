@@ -123,10 +123,13 @@ class DashboardController extends BaseController
         if ($totalTransaksi > 0) {
             $transaksiIds = array_column($terbaru, 'id_transaksi');
             
-            $detailModel = new \App\Models\TransaksiCheckDetailModel();
-            $findings = $detailModel->whereIn('id_transaksi', $transaksiIds)
-                                    ->whereIn('hasil_check', ['Δ', 'X'])
-                                    ->countAllResults();
+            $abnormalModel = new \App\Models\LaporanAbnormalModel();
+            $findings = $abnormalModel->whereIn('id_transaksi', $transaksiIds)
+                                      ->groupStart()
+                                          ->where('action IS NULL', null, false)
+                                          ->orWhere('action', '')
+                                      ->groupEnd()
+                                      ->countAllResults();
                                     
             foreach ($terbaru as $t) {
                 if ($t['durasi_detik'] !== null) {
@@ -179,8 +182,18 @@ class DashboardController extends BaseController
         $totalTransaksi = count($laporan);
         $totalDurasi    = 0;
 
-        $detailModel = new \App\Models\TransaksiCheckDetailModel();
-        $findings    = $detailModel->whereIn('hasil_check', ['Δ', 'X'])->countAllResults();
+        $abnormalModel = new \App\Models\LaporanAbnormalModel();
+        $findingsQuery = $abnormalModel->select('laporan_abnormal.id_abnormal')
+                                       ->groupStart()
+                                           ->where('laporan_abnormal.action IS NULL', null, false)
+                                           ->orWhere('laporan_abnormal.action', '')
+                                       ->groupEnd();
+                                       
+        if ($role === \App\Enums\Role::Sheadprd->value) {
+            $findingsQuery->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin', 'left')
+                          ->where('master_mesin.lokasi', \App\Enums\Lokasi::MFG1->value);
+        }
+        $findings = $findingsQuery->countAllResults();
 
         foreach ($laporan as $l) {
             if ($l['durasi_detik'] !== null) {

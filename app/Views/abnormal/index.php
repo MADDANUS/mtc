@@ -104,7 +104,7 @@
 
           <div class="row g-3 mb-3">
             <!-- Progres Stock -->
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label small fw-semibold">Progres Stock</label>
               <select name="progres_stock" id="modalProgresStock" class="form-select form-select-sm rounded-2">
                 <option value="">-- Pilih Status --</option>
@@ -113,7 +113,7 @@
               </select>
             </div>
             <!-- Progres Tanggal -->
-            <div class="col-6">
+            <div class="col-12 col-md-6">
               <label class="form-label small fw-semibold">Rencana Tanggal Perbaikan</label>
               <input type="date" name="progres_tanggal" id="modalProgresTanggal" class="form-control form-control-sm rounded-2">
             </div>

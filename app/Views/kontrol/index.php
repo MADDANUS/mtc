@@ -193,8 +193,9 @@
                   <?php if ($hasCheck): ?>
                     <?php 
                       $qsSummary = !empty($_GET['qs_summary']) ? '&qs_summary=' . urlencode($_GET['qs_summary']) : '';
+                      $qsFrom = !empty($_GET['from']) ? '&from_origin=' . urlencode($_GET['from']) : '';
                     ?>
-                    <a href="<?= site_url('riwayat/redirect-detail?id_mesin=' . rawurlencode($m['id_mesin']) . '&line=' . rawurlencode($line) . '&kategori=' . rawurlencode($kategori) . '&bulan=' . rawurlencode($bulan) . '&lokasi=' . rawurlencode($lokasi) . $qsSummary) ?>" class="btn btn-sm btn-outline-primary fw-bold" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;" title="Lihat Laporan Full">
+                    <a href="<?= site_url('riwayat/redirect-detail?id_mesin=' . rawurlencode($m['id_mesin']) . '&line=' . rawurlencode($line) . '&kategori=' . rawurlencode($kategori) . '&bulan=' . rawurlencode($bulan) . '&lokasi=' . rawurlencode($lokasi) . $qsSummary . $qsFrom) ?>" class="btn btn-sm btn-outline-primary fw-bold" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;" title="Lihat Laporan Full">
                       Detail
                     </a>
                   <?php else: ?>
@@ -347,7 +348,7 @@
   $role = session()->get('role');
   $canApproveKontrol = false;
   if ($role === 'admin' && $approvalStatus !== 'Approved Final') $canApproveKontrol = true;
-  elseif ($role === 'member' && $approvalStatus === 'Pending') $canApproveKontrol = true;
+  elseif ($role === 'member' && $approvalStatus === 'Pending' && $allChecked) $canApproveKontrol = true;
   elseif ($role === 'sheadprd' && $approvalStatus === 'Approved L1') $canApproveKontrol = true;
   elseif ($role === 'sheadmtc' && $approvalStatus === 'Approved L2') $canApproveKontrol = true;
 ?>
@@ -359,9 +360,15 @@
   </div>
 <?php endif; ?>
 <?php if (session()->getFlashdata('error')): ?>
-  <div class="alert alert-danger alert-dismissible fade show" role="alert">
-    <i class="bi bi-exclamation-triangle-fill me-2"></i><?= session()->getFlashdata('error') ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  <div class="alert alert-danger mb-3 mt-3 shadow-sm alert-dismissible fade show" role="alert">
+    <?= session()->getFlashdata('error') ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+<?php endif; ?>
+
+<?php if ($role === 'member' && $approvalStatus === 'Pending' && !$allChecked): ?>
+  <div class="alert alert-warning mt-3 mb-3 shadow-sm">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Perhatian:</strong> Anda belum bisa menyetujui Checklist Control ini karena belum semua mesin/item diperiksa (PIC belum terisi semua). Selesaikan pengisian tabel di atas terlebih dahulu.
   </div>
 <?php endif; ?>
 
@@ -403,7 +410,7 @@
   <div class="card-body d-flex justify-content-between align-items-center p-3">
     <div>
       <h6 class="mb-1 text-danger fw-bold"><i class="bi bi-trash"></i> Hapus Approval Control</h6>
-      <p class="text-muted small mb-0">Hapus approval ini agar statusnya kembali ke "Belum Selesai". Data ceklis tidak akan hilang.</p>
+      <p class="text-muted small mb-0">Hapus approval ini agar statusnya kembali ke "Belum Selesai". Data checklist tidak akan hilang.</p>
     </div>
     <form action="<?= site_url('kontrol/delete-approval') ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menghapus approval ini? Status akan kembali ke Belum Selesai.');">
       <?= csrf_field() ?>

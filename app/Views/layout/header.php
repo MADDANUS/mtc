@@ -4,20 +4,17 @@
 <meta charset="utf-8">
 <title><?= esc($title ?? 'MTCE') ?></title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="<?= base_url('assets/css/bootstrap.min.css') ?>" rel="stylesheet">
 <!-- Google Fonts (Inter) -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@500;600&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<link href="<?= base_url('assets/css/google-fonts.css') ?>" rel="stylesheet">
+<link href="<?= base_url('assets/css/tom-select.bootstrap5.min.css') ?>" rel="stylesheet">
 <!-- Bootstrap Icons -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="<?= base_url('assets/css/bootstrap-icons.min.css') ?>">
 <style>
     /* ============================================================
        GLOBAL DESIGN SYSTEM - MTCE (Modern Minimalist)
        Font: Inter | Palette: Slate + Indigo accent
     ============================================================ */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
     :root {
         --sidebar-w: 240px;
@@ -734,7 +731,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
           <?php endif; ?>
           <?php if (in_array($role, ['sheadprd', 'sheadmtc', 'admin', 'member'])): ?>
           <a href="<?= site_url('kontrol') ?>" class="menu-item <?= $seg1 === 'kontrol' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
-            <i class="bi bi-calendar2-check"></i>Ceklis Kontrol
+            <i class="bi bi-calendar2-check"></i>Checklist Control
           </a>
           <?php endif; ?>
           <?php if (!in_array($role, ['sheadprd', 'sheadmtc', 'leader'])): ?>

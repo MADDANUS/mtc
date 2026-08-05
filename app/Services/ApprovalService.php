@@ -117,45 +117,56 @@ class ApprovalService
         ];
 
         $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
-        $checkedData = $ceklisKontrolModel->getCheckedMachinesCount($bulanIni);
+        // Fetch ALL months (no bulan filter) to catch Tunggakan/Curi Start
+        $checkedData = $ceklisKontrolModel->getCheckedMachinesCount(); 
+        
         $checkedMap = [];
+        $activeMonths = [];
         foreach ($checkedData as $cd) {
-            $checkedMap[$cd['lokasi']][$cd['line']][$cd['kategori']] = (int) $cd['checked_count'];
+            $bt = $cd['bulan_tahun'];
+            $activeMonths[$bt] = true;
+            $checkedMap[$bt][$cd['lokasi']][$cd['line']][$cd['kategori']] = (int) $cd['checked_count'];
         }
 
-        $existingApprovals = $approvalModel->getExistingApprovals($bulanIni);
+        // Selalu sertakan bulan ini walau belum ada yg dicek (biar logic aslinya jalan jika perlu)
+        // Walau praktiknya 'checked == 0' akan ter-skip.
+        $activeMonths[$bulanIni] = true;
+
+        $existingApprovals = $approvalModel->getExistingApprovals();
         $approvedSet = [];
         foreach ($existingApprovals as $ea) {
-            $approvedSet[$ea['lokasi']][$ea['line']][$ea['kategori']] = true;
+            $approvedSet[$ea['bulan_tahun']][$ea['lokasi']][$ea['line']][$ea['kategori']] = true;
         }
 
-        foreach ($kategoriByLokasi as $lok => $kats) {
-            if (!isset($totalMesinMap[$lok])) continue;
-            foreach ($totalMesinMap[$lok] as $ln => $totalMesin) {
-                foreach ($kats as $kat) {
-                    if (isset($approvedSet[$lok][$ln][$kat])) continue;
+        foreach (array_keys($activeMonths) as $bt) {
+            foreach ($kategoriByLokasi as $lok => $kats) {
+                if (!isset($totalMesinMap[$lok])) continue;
+                foreach ($totalMesinMap[$lok] as $ln => $totalMesin) {
+                    foreach ($kats as $kat) {
+                        if (isset($approvedSet[$bt][$lok][$ln][$kat])) continue;
 
-                    $checked = $checkedMap[$lok][$ln][$kat] ?? 0;
-                    $persen = $totalMesin > 0 ? round(($checked / $totalMesin) * 100) : 0;
+                        $checked = $checkedMap[$bt][$lok][$ln][$kat] ?? 0;
+                        $persen = $totalMesin > 0 ? round(($checked / $totalMesin) * 100) : 0;
 
-                    if ($checked === 0) continue;
+                        if ($checked === 0) continue;
 
-                    $belumSelesaiRows[] = [
-                        'doc_id'      => null,
-                        'jenis_check' => 'kontrol',
-                        'kategori'    => $kat,
-                        'lokasi'      => $lok,
-                        'line'        => $ln,
-                        'doc_date'    => $bulanIni,
-                        'status'      => 'Belum Selesai',
-                        'doc_source'  => 'kontrol',
-                        'lokasi_check'=> null,
-                        'nama_pic'    => null,
-                        'nama_staff'  => null,
-                        'no_mesin'    => null,
-                        'type_mesin'  => null,
-                        'persen'      => $persen,
-                    ];
+                        $belumSelesaiRows[] = [
+                            'doc_id'      => null,
+                            'jenis_check' => 'kontrol',
+                            'kategori'    => $kat,
+                            'lokasi'      => $lok,
+                            'line'        => $ln,
+                            'doc_date'    => $bt,
+                            'status'      => 'Belum Selesai',
+                            'doc_source'  => 'kontrol',
+                            'lokasi_check'=> null,
+                            'nama_pic'    => null,
+                            'nama_staff'  => null,
+                            'no_mesin'    => null,
+                            'type_mesin'  => null,
+                            'persen'      => $persen,
+                        ];
+                    }
                 }
             }
         }
@@ -242,12 +253,11 @@ class ApprovalService
 
     private function buildBulanList(): array
     {
-        $bulanIndo = ['01'=>'Januari','02'=>'Februari','03'=>'Maret','04'=>'April','05'=>'Mei','06'=>'Juni',
-                      '07'=>'Juli','08'=>'Agustus','09'=>'September','10'=>'Oktober','11'=>'November','12'=>'Desember'];
         $bulanList = [];
-        for ($i = 0; $i < 12; $i++) {
-            $t = \CodeIgniter\I18n\Time::now()->subMonths($i);
-            $bulanList[$t->format('Y-m')] = $bulanIndo[$t->format('m')] . ' ' . $t->format('Y');
+        // Mulai dari -1 untuk menambahkan 1 bulan ke depan (Curi Start)
+        for ($i = -1; $i < 12; $i++) {
+            $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
+            $bulanList[$time->format('Y-m')] = $time->toLocalizedString('MMMM yyyy');
         }
         return $bulanList;
     }
