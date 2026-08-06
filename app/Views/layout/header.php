@@ -678,8 +678,24 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
                 $__cnt += $__db->table('approval_bulanan')->where('status', 'Approved L2')->countAllResults();
               } elseif ($role === 'member') {
                 $__cnt = $__db->table('transaksi_check')->where('jenis_check', 'Preventive')->where('status', 'Pending')->countAllResults();
+                $__approvalSvc = new \App\Services\ApprovalService();
+                $__approvalModel = new \App\Models\ApprovalBulananModel();
+                $__belumSelesaiRows = $__approvalSvc->getBelumSelesaiRows('member', date('Y-m'), $__approvalModel);
+                foreach ($__belumSelesaiRows as $__r) {
+                  if (isset($__r['persen']) && $__r['persen'] == 100) {
+                      $__cnt++;
+                  }
+                }
               } elseif ($role === 'admin') {
                 $__cnt = $__db->table('transaksi_check')->whereNotIn('status', ['Approved'])->countAllResults();
+                $__approvalSvc = new \App\Services\ApprovalService();
+                $__approvalModel = new \App\Models\ApprovalBulananModel();
+                $__belumSelesaiRows = $__approvalSvc->getBelumSelesaiRows('admin', date('Y-m'), $__approvalModel);
+                foreach ($__belumSelesaiRows as $__r) {
+                  if (isset($__r['persen']) && $__r['persen'] == 100) {
+                      $__cnt++;
+                  }
+                }
               }
               if ($__cnt > 0): ?>
                 <span class="badge bg-danger ms-auto" style="font-size:0.65rem;"><?= $__cnt ?></span>

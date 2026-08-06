@@ -1,4 +1,52 @@
 <?= view('layout/header', ['title' => $title]) ?>
+<style>
+  .custom-suggestion-wrapper { position: relative; }
+  .custom-suggestion-box {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    background-color: #1f2937; /* Dark slate */
+    border: 1px solid #374151;
+    border-radius: 6px;
+    z-index: 1050;
+    display: none;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+  .custom-suggestion-box::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 20px;
+    width: 8px;
+    height: 8px;
+    background-color: #1f2937;
+    transform: rotate(45deg);
+    border-top: 1px solid #374151;
+    border-left: 1px solid #374151;
+  }
+  .custom-suggestion-item {
+    padding: 6px 12px;
+    color: #e5e7eb;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    position: relative;
+    z-index: 2;
+  }
+  .custom-suggestion-item:hover, .custom-suggestion-item.active {
+    background-color: #374151;
+    color: #60a5fa; /* Light blue accent */
+    font-weight: 500;
+  }
+  /* Custom scrollbar for webkit */
+  .custom-suggestion-box::-webkit-scrollbar { width: 5px; }
+  .custom-suggestion-box::-webkit-scrollbar-track { background: #1f2937; border-radius: 6px; }
+  .custom-suggestion-box::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 6px; }
+  .custom-suggestion-box::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+</style>
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
   <h5 class="mb-0">Master Mesin</h5>
@@ -48,7 +96,15 @@
           </tr>
           <tr style="background: rgba(0,0,0,0.02);">
             <td colspan="3">
-              <input type="text" name="q" class="form-control form-control-sm" placeholder="Cari No / Type / Serial..." value="<?= esc($filters['q'] ?? '') ?>">
+              <div class="custom-suggestion-wrapper">
+                <input type="text" id="mesinSearchInput" name="q" autocomplete="off" class="form-control form-control-sm" placeholder="Cari No / Type / Serial..." value="<?= esc($filters['q'] ?? '') ?>">
+                <div id="mesinSuggestionBox" class="custom-suggestion-box"></div>
+              </div>
+              <?php if(isset($suggestions) && is_array($suggestions)): ?>
+                <script>
+                  window.mesinSuggestionsData = <?= json_encode($suggestions) ?>;
+                </script>
+              <?php endif; ?>
             </td>
             <td>
               <?php if (session()->get('role') === 'leader'): ?>
@@ -77,7 +133,8 @@
                 <?php 
                   $machineCategories = [
                       'THREAD', 'DOUBLE MILLING', 'MILLING', 'DOUBLE CENTER DRILL', 'OSL', 
-                      'KNURLING', 'BROTHER', 'BURNISHING', 'BUFFING', 'CENTERING GRINDING'
+                      'KNURLING', 'BROTHER', 'BURNISHING', 'BUFFING', 'CENTERING GRINDING',
+                      'CNC', '-'
                   ];
                   foreach ($machineCategories as $cat): 
                 ?>
@@ -168,6 +225,93 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
+    // Suggestion Logic
+    const searchInput = document.getElementById('mesinSearchInput');
+    const suggestionBox = document.getElementById('mesinSuggestionBox');
+    let currentFocus = -1;
+
+    if (searchInput && suggestionBox && window.mesinSuggestionsData) {
+      const data = window.mesinSuggestionsData;
+
+      function renderSuggestions(filterText = '') {
+        suggestionBox.innerHTML = '';
+        const lowerFilter = filterText.toLowerCase();
+        
+        let matches = data;
+        if (lowerFilter) {
+          matches = data.filter(item => item.toLowerCase().includes(lowerFilter));
+        }
+
+        if (matches.length === 0) {
+          suggestionBox.style.display = 'none';
+          return;
+        }
+
+        matches.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'custom-suggestion-item';
+          div.textContent = item;
+          div.addEventListener('mousedown', function(e) {
+            e.preventDefault(); // prevent input blur
+            searchInput.value = item;
+            suggestionBox.style.display = 'none';
+            searchInput.closest('form').submit(); // Auto submit on select
+          });
+          suggestionBox.appendChild(div);
+        });
+        
+        suggestionBox.style.display = 'block';
+        currentFocus = -1;
+      }
+
+      searchInput.addEventListener('input', function() {
+        renderSuggestions(this.value);
+      });
+
+      searchInput.addEventListener('focus', function() {
+        renderSuggestions(this.value);
+      });
+
+      searchInput.addEventListener('blur', function() {
+        // Add timeout to allow mousedown on item to fire first
+        setTimeout(() => { suggestionBox.style.display = 'none'; }, 150);
+      });
+
+      searchInput.addEventListener('keydown', function(e) {
+        let items = suggestionBox.getElementsByClassName('custom-suggestion-item');
+        if (items.length === 0 || suggestionBox.style.display === 'none') return;
+
+        if (e.key === 'ArrowDown') {
+          currentFocus++;
+          addActive(items);
+        } else if (e.key === 'ArrowUp') {
+          currentFocus--;
+          addActive(items);
+        } else if (e.key === 'Enter') {
+          if (currentFocus > -1 && items[currentFocus]) {
+            e.preventDefault();
+            items[currentFocus].click();
+          }
+        }
+      });
+
+      function addActive(items) {
+        if (!items) return false;
+        removeActive(items);
+        if (currentFocus >= items.length) currentFocus = 0;
+        if (currentFocus < 0) currentFocus = (items.length - 1);
+        items[currentFocus].classList.add('active');
+        // Auto scroll
+        items[currentFocus].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      function removeActive(items) {
+        for (let i = 0; i < items.length; i++) {
+          items[i].classList.remove('active');
+        }
+      }
+    }
+
     const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
     const qrImage = document.getElementById('qrImage');
     const qrNoMesin = document.getElementById('qrNoMesin');

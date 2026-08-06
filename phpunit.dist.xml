@@ -35,7 +35,7 @@
     <php>
         <server name="app.baseURL" value="http://localhost/"/>
         <env name="database.tests.hostname" value="localhost"/>
-        <env name="database.tests.database" value="mtce_db"/>
+        <env name="database.tests.database" value="mtce_db_test"/>
         <env name="database.tests.username" value="root"/>
         <env name="database.tests.password" value=""/>
         <env name="database.tests.DBDriver" value="MySQLi"/>

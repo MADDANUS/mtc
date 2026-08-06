@@ -131,7 +131,7 @@
       <!-- BARIS STATUS CHECK -->
       <tr style="page-break-after: avoid;">
         <td style="border:1.5pt solid #000; border-bottom:none; text-align:center; vertical-align:middle; font-weight:bold;"><?= $no++ ?></td>
-        <td style="border:1.5pt solid #000; text-align:left; font-weight:bold; padding-left:6px; padding-top:2px; padding-bottom:2px;"><?= esc($m['jenis']) ?> <?= esc($m['no_mesin']) ?></td>
+        <td style="border:1.5pt solid #000; text-align:left; font-weight:bold; padding-left:6px; padding-top:2px; padding-bottom:2px;"><?= !empty($m['jenis']) ? esc($m['jenis']) . ' ' . esc($m['no_mesin']) : esc($m['no_mesin']) ?></td>
         <?php for ($p = 1; $p <= 5; $p++): ?>
           <?php
             $cell = $row['periodes'][$p];

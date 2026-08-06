@@ -33,8 +33,22 @@
             $bulanNama = isset($bulanIndo[$bulanVal]) ? $bulanIndo[$bulanVal] : '';
         }
       ?>
-      <table class="table align-middle text-center abnormal-table" style="font-size: 0.8rem; border-collapse: collapse;">
+      <table class="table align-middle text-center abnormal-table" style="font-size: 0.8rem; border-collapse: collapse; table-layout: fixed; width: 100%; word-wrap: break-word;">
         <thead>
+          <tr style="line-height: 0; height: 0;">
+            <td style="width: 40px; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 14%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 11%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 18%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 10%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 6%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 6%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 6%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 6%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 6%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 7%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 8%; border: none; padding: 0; margin: 0; height: 0;"></td>
+          </tr>
           <tr style="background-color: #f7e600;">
             <th colspan="12" style="text-align: center; border: 1.5pt solid #000; padding: 10px;">
               <div style="font-size: 16px; font-style: italic; font-weight: bold;">FORMULIR LAPORAN ABNORMAL CONDITION</div>
@@ -53,10 +67,10 @@
             </th>
           </tr>
           <tr class="table-light" style="background-color: #f2f2f2;">
-            <th rowspan="3" style="width: 3%; font-weight:800; border: 1.5pt solid #000;">NO</th>
-            <th rowspan="3" style="width: 15%; font-weight:800; text-align: left; border: 1.5pt solid #000;" class="ps-3">MESIN</th>
-            <th rowspan="3" style="width: 12%; font-weight:800; border: 1.5pt solid #000;">POINT CHECK</th>
-            <th rowspan="3" style="width: 15%; font-weight:800; border: 1.5pt solid #000;">ABNORMAL CONDITION</th>
+            <th rowspan="3" style="width: 40px; white-space: nowrap; font-weight:800; border: 1.5pt solid #000;">NO</th>
+            <th rowspan="3" style="width: 14%; font-weight:800; text-align: left; border: 1.5pt solid #000;" class="ps-3">MESIN</th>
+            <th rowspan="3" style="width: 11%; font-weight:800; border: 1.5pt solid #000;">POINT CHECK</th>
+            <th rowspan="3" style="width: 18%; font-weight:800; border: 1.5pt solid #000;">ABNORMAL CONDITION</th>
             <th rowspan="3" style="width: 10%; font-weight:800; border: 1.5pt solid #000;">TYPE SPAREPART</th>
             <th colspan="2" style="width: 12%; font-weight:800; border: 1.5pt solid #000;">PENGECEKAN</th>
             <th colspan="4" style="width: 25%; font-weight:800; border: 1.5pt solid #000;">RENCANA PERBAIKAN</th>
@@ -112,7 +126,7 @@
                   data-repair-pic="<?= esc($r['repair_pic'] ?? '') ?>"
                   data-keterangan="<?= esc($r['keterangan'] ?? '') ?>">
                 
-                <td class="fw-bold font-monospace text-secondary" style="background-color: #f8fafc;"><?= $no++ ?></td>
+                <td class="fw-bold font-monospace text-secondary text-center" style="width: 40px; max-width: 40px; white-space: nowrap; background-color: #f8fafc;"><?= $no++ ?></td>
                 <td class="text-start fw-bold text-dark ps-3"><?= esc($r['no_mesin']) ?></td>
                 <td><?= $pointCheckDisplay ?></td>
                 <td class="text-danger fw-semibold">
@@ -125,7 +139,7 @@
                         $base64 = base64_encode(file_get_contents($imgPath));
                         $src = 'data:image/' . $type . ';base64,' . $base64;
                   ?>
-                    <br><img src="<?= $src ?>" style="max-height: 50px; margin-top: 2px; border: 1px solid #ccc;">
+                    <br><img src="<?= $src ?>" style="width: 150px; max-height: 80px; object-fit: contain; margin-top: 2px; border: 1px solid #ccc;">
                   <?php endif; endif; ?>
                   
                   <?php 
@@ -136,7 +150,7 @@
                         $base64 = base64_encode(file_get_contents($imgPath));
                         $src = 'data:image/' . $type . ';base64,' . $base64;
                   ?>
-                    <br><img src="<?= $src ?>" style="max-height: 50px; margin-top: 2px; border: 1px solid #ccc;">
+                    <br><img src="<?= $src ?>" style="width: 150px; max-height: 80px; object-fit: contain; margin-top: 2px; border: 1px solid #ccc;">
                   <?php endif; endif; ?>
                 </td>
                 <td><?= esc($r['type_sparepart']) ?: '<span class="text-muted small">-</span>' ?></td>

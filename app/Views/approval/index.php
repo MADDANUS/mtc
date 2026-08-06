@@ -198,7 +198,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                 } elseif ($status === 'Belum Selesai') {
                     $persen = $doc['persen'] ?? 0;
                     if ($persen == 100) {
-                        $statusBadge = '<span class="badge bg-warning text-dark">Siap Disubmit (100%)</span>';
+                        $statusBadge = '<span class="badge bg-warning text-dark">Menunggu Member (100%)</span>';
                     } else {
                         $statusBadge = '<span class="badge bg-secondary">Belum Selesai (' . $persen . '%)</span>';
                     }

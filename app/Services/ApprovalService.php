@@ -97,19 +97,14 @@ class ApprovalService
         ];
     }
 
-    private function getBelumSelesaiRows(string $role, string $bulanIni, \App\Models\ApprovalBulananModel $approvalModel): array
+    public function getBelumSelesaiRows(string $role, string $bulanIni, \App\Models\ApprovalBulananModel $approvalModel): array
     {
         $belumSelesaiRows = [];
         if (!in_array($role, [Role::Member->value, Role::Admin->value], true)) {
             return $belumSelesaiRows;
         }
 
-        $mesinModel = new \App\Models\MesinModel();
-        $totalMesinData = $mesinModel->getTotalMesinPerLine();
-        $totalMesinMap = [];
-        foreach ($totalMesinData as $tm) {
-            $totalMesinMap[$tm['lokasi']][$tm['line']] = (int) $tm['total'];
-        }
+        $riwayatMesinModel = new \App\Models\RiwayatMesinModel();
 
         $kategoriByLokasi = [
             Lokasi::MFG1->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
@@ -139,6 +134,13 @@ class ApprovalService
         }
 
         foreach (array_keys($activeMonths) as $bt) {
+            // Ambil total mesin per line secara historis untuk bulan tersebut
+            $totalMesinData = $riwayatMesinModel->getTotalMesinPerLineHistorical($bt);
+            $totalMesinMap = [];
+            foreach ($totalMesinData as $tm) {
+                $totalMesinMap[$tm['lokasi']][$tm['line']] = (int) $tm['total'];
+            }
+
             foreach ($kategoriByLokasi as $lok => $kats) {
                 if (!isset($totalMesinMap[$lok])) continue;
                 foreach ($totalMesinMap[$lok] as $ln => $totalMesin) {

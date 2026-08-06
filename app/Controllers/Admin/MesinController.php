@@ -57,8 +57,23 @@ class MesinController extends BaseController
         }
 
         if (!empty($jenis) && $jenis !== 'all') {
-            $builder->where('jenis', $jenis);
+            if ($jenis === '-') {
+                $builder->groupStart()
+                        ->where('jenis', null)
+                        ->orWhere('jenis', '')
+                        ->groupEnd();
+            } else {
+                $builder->where('jenis', $jenis);
+            }
         }
+
+        // Fetch suggestions for no_mesin
+        $mesinSuggestions = $this->model->select('no_mesin');
+        if ($role === \App\Enums\Role::Leader->value && $lokasiUser) {
+            $mesinSuggestions->where('lokasi', $lokasiUser);
+        }
+        $suggestions = $mesinSuggestions->groupBy('no_mesin')->orderBy('no_mesin', 'ASC')->findAll();
+        $suggestionList = array_column($suggestions, 'no_mesin');
 
         // Save current url with query params to session so we can return to it after edit/delete
         session()->set('last_mesin_url', (string) current_url(true));
@@ -66,6 +81,7 @@ class MesinController extends BaseController
         return view('admin/mesin/index', [
             'title'  => 'Master Mesin',
             'daftar' => $builder->findAll(),
+            'suggestions' => $suggestionList,
             'filters' => [
                 'q' => $q,
                 'lokasi' => $lokasi,
@@ -97,8 +113,33 @@ class MesinController extends BaseController
             'line'            => $this->request->getPost('line') ?: null,
             'bar_feeder_type' => $this->request->getPost('bar_feeder_type'),
             'jenis'           => $this->request->getPost('jenis') ?: null,
-            'tanggal_aktif'   => $this->request->getPost('tanggal_aktif') ?: null,
         ]);
+
+        // --- TAHAP 3: RIWAYAT MESIN OTOMATIS ---
+        $lokasiTujuan = $this->request->getPost('lokasi');
+        $lineTujuan = $this->request->getPost('line');
+        $bulanIni = date('Y-m');
+        $approvalModel = new \App\Models\ApprovalBulananModel();
+        
+        $approvalTujuan = $approvalModel->where('lokasi', $lokasiTujuan)
+                                        ->where('line', $lineTujuan)
+                                        ->where('bulan_tahun', $bulanIni)
+                                        ->first();
+                                        
+        $tanggalMulai = date('Y-m-d'); // Hari ini
+        if ($approvalTujuan && $approvalTujuan['status_approval'] === 'Approved Final') {
+            $tanggalMulai = date('Y-m-01', strtotime('+1 month')); // Lempar ke bulan depan
+        }
+
+        $riwayatModel = new \App\Models\RiwayatMesinModel();
+        $riwayatModel->insert([
+            'id_mesin' => $idMesin,
+            'lokasi' => $lokasiTujuan,
+            'line' => $lineTujuan,
+            'tanggal_mulai' => $tanggalMulai,
+            'tanggal_selesai' => null
+        ]);
+        // ---------------------------------------
 
         $redirectUrl = session()->get('last_mesin_url') ?? '/admin/mesin';
         return $this->redirectSuccess($redirectUrl, 'Mesin berhasil ditambahkan.');
@@ -126,6 +167,8 @@ class MesinController extends BaseController
             return $this->redirectNotFound($redirectUrl, 'Mesin');
         }
 
+        $oldMesin = $this->model->find($id);
+
         if (! $this->validate($this->rules())) {
             return $this->redirectValidationError();
         }
@@ -138,8 +181,61 @@ class MesinController extends BaseController
             'line'            => $this->request->getPost('line') ?: null,
             'bar_feeder_type' => $this->request->getPost('bar_feeder_type'),
             'jenis'           => $this->request->getPost('jenis') ?: null,
-            'tanggal_aktif'   => $this->request->getPost('tanggal_aktif') ?: null,
         ]);
+
+        // --- TAHAP 3: PENCATATAN RIWAYAT PINDAH ---
+        $lokasiBaru = $this->request->getPost('lokasi');
+        $lineBaru = $this->request->getPost('line') ?: null;
+
+        if ($oldMesin['lokasi'] !== $lokasiBaru || $oldMesin['line'] !== $lineBaru) {
+            $bulanIni = date('Y-m');
+            $approvalModel = new \App\Models\ApprovalBulananModel();
+            
+            $approvalLama = $approvalModel->where('lokasi', $oldMesin['lokasi'])
+                                          ->where('line', $oldMesin['line'])
+                                          ->where('bulan_tahun', $bulanIni)
+                                          ->first();
+                                          
+            $approvalBaru = $approvalModel->where('lokasi', $lokasiBaru)
+                                          ->where('line', $lineBaru)
+                                          ->where('bulan_tahun', $bulanIni)
+                                          ->first();
+                                          
+            $isLamaFinal = ($approvalLama && $approvalLama['status_approval'] === 'Approved Final');
+            $isBaruFinal = ($approvalBaru && $approvalBaru['status_approval'] === 'Approved Final');
+            
+            if ($isLamaFinal || $isBaruFinal) {
+                // Tahan di line lama sampai akhir bulan ini
+                $tanggalSelesaiLama = date('Y-m-t'); // Akhir bulan ini
+                $tanggalMulaiBaru = date('Y-m-01', strtotime('+1 month')); // Bulan depan
+            } else {
+                // Pindah langsung untuk laporan bulan ini
+                $tanggalSelesaiLama = date('Y-m-t', strtotime('-1 month')); // Akhir bulan lalu
+                $tanggalMulaiBaru = date('Y-m-01'); // Awal bulan ini
+            }
+            
+            $riwayatModel = new \App\Models\RiwayatMesinModel();
+            
+            // Tutup riwayat lama
+            $riwayatLama = $riwayatModel->where('id_mesin', $id)
+                                        ->where('tanggal_selesai', null)
+                                        ->first();
+            if ($riwayatLama) {
+                $riwayatModel->update($riwayatLama['id_riwayat'], [
+                    'tanggal_selesai' => $tanggalSelesaiLama
+                ]);
+            }
+            
+            // Buka riwayat baru
+            $riwayatModel->insert([
+                'id_mesin' => $id,
+                'lokasi' => $lokasiBaru,
+                'line' => $lineBaru,
+                'tanggal_mulai' => $tanggalMulaiBaru,
+                'tanggal_selesai' => null
+            ]);
+        }
+        // -----------------------------------------
 
         return $this->redirectSuccess($redirectUrl, 'Mesin berhasil diperbarui.');
     }
@@ -367,7 +463,6 @@ class MesinController extends BaseController
             'line'            => 'permit_empty|string|max_length[50]',
             'bar_feeder_type' => 'permit_empty|string|max_length[100]',
             'jenis'           => 'permit_empty|string|max_length[100]',
-            'tanggal_aktif'   => 'permit_empty|valid_date',
         ];
     }
 

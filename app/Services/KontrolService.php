@@ -367,8 +367,8 @@ class KontrolService
         $db = \Config\Database::connect();
 
         // 1. Total mesin per Line
-        $mesinModel = new \App\Models\MesinModel();
-        $totalMesinQuery = $mesinModel->getTotalMesinPerLine();
+        $riwayatMesinModel = new \App\Models\RiwayatMesinModel();
+        $totalMesinQuery = $riwayatMesinModel->getTotalMesinPerLineHistorical($bulan);
         
         $totalMesin = [];
         $linesByLokasi = [];

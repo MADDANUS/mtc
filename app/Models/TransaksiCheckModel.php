@@ -37,10 +37,11 @@ class TransaksiCheckModel extends Model
      */
     public function getRiwayat(?int $userId = null, ?int $limit = null, ?string $kategori = null): array
     {
-        $builder = $this->select('transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, master_mesin.type_mesin')
+        $builder = $this->select('transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, master_mesin.type_mesin, COALESCE(riwayat_mesin.line, master_mesin.line) as line')
                          ->join('users', 'users.id = transaksi_check.id_user')
                          ->join('users as approver', 'approver.id = transaksi_check.approved_by', 'left')
                          ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
+                         ->join('riwayat_mesin', 'riwayat_mesin.id_mesin = transaksi_check.id_mesin AND riwayat_mesin.tanggal_mulai <= LAST_DAY(STR_TO_DATE(CONCAT(transaksi_check.target_periode, "-01"), "%Y-%m-%d")) AND (riwayat_mesin.tanggal_selesai IS NULL OR riwayat_mesin.tanggal_selesai >= LAST_DAY(STR_TO_DATE(CONCAT(transaksi_check.target_periode, "-01"), "%Y-%m-%d")))', 'left')
                          ->orderBy('transaksi_check.id_transaksi', 'DESC');
 
         if ($userId !== null) {
@@ -61,10 +62,11 @@ class TransaksiCheckModel extends Model
      */
     public function getRiwayatFiltered(array $filters = [], ?int $userId = null, ?int $limit = null, ?int $perPage = null): array
     {
-        $builder = $this->select('transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.line as line')
+        $builder = $this->select('transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, master_mesin.type_mesin, COALESCE(riwayat_mesin.line, master_mesin.line) as line')
                          ->join('users', 'users.id = transaksi_check.id_user')
                          ->join('users as approver', 'approver.id = transaksi_check.approved_by', 'left')
-                         ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin');
+                         ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
+                         ->join('riwayat_mesin', 'riwayat_mesin.id_mesin = transaksi_check.id_mesin AND riwayat_mesin.tanggal_mulai <= LAST_DAY(STR_TO_DATE(CONCAT(transaksi_check.target_periode, "-01"), "%Y-%m-%d")) AND (riwayat_mesin.tanggal_selesai IS NULL OR riwayat_mesin.tanggal_selesai >= LAST_DAY(STR_TO_DATE(CONCAT(transaksi_check.target_periode, "-01"), "%Y-%m-%d")))', 'left');
 
         if ($userId !== null) {
             $builder->where('transaksi_check.id_user', $userId);
@@ -83,7 +85,7 @@ class TransaksiCheckModel extends Model
         }
 
         if (!empty($filters['line'])) {
-            $builder->where('master_mesin.line', $filters['line']);
+            $builder->where('COALESCE(riwayat_mesin.line, master_mesin.line)', $filters['line']);
         }
 
         if (!empty($filters['kategori'])) {

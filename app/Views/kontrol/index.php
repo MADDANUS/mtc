@@ -120,7 +120,7 @@
               <tr>
                 <td rowspan="2" class="fw-bold font-monospace text-secondary" style="background-color: #faf9f6; border-bottom: 2px solid #d6d3d1 !important; vertical-align: middle !important;"><?= $no++ ?></td>
                 <td class="text-start fw-bold text-dark ps-4 py-2" style="border-bottom: 1px solid #e7e5e4 !important; background-color: #fff;">
-                  <?= esc($m['jenis']) ?> <?= esc($m['no_mesin']) ?>
+                  <?= !empty($m['jenis']) ? esc($m['jenis']) . ' ' . esc($m['no_mesin']) : esc($m['no_mesin']) ?>
                 </td>
                 
                 <!-- Periode 1 s.d 5 Cells (Status Check) -->

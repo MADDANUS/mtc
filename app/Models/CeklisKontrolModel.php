@@ -28,20 +28,35 @@ class CeklisKontrolModel extends Model
      */
     public function getGridData(string $lokasi, string $kategori, string $bulanTahun, ?string $line = null): array
     {
-        // 1. Ambil semua mesin untuk lokasi ini
+        // 1. Ambil semua mesin untuk lokasi dan bulan ini dari tabel riwayat_mesin
         $mesinModel = new MesinModel();
-        $builder = $mesinModel->where('lokasi', $lokasi);
+        $builder = $mesinModel->select('master_mesin.*, riwayat_mesin.lokasi as r_lokasi, riwayat_mesin.line as r_line')
+                              ->join('riwayat_mesin', 'master_mesin.id_mesin = riwayat_mesin.id_mesin')
+                              ->where('riwayat_mesin.lokasi', $lokasi);
+        
         if ($line) {
-            $builder->where('line', $line);
+            $builder->where('riwayat_mesin.line', $line);
         }
 
-        $lastDayOfMonth = date('Y-m-t', strtotime($bulanTahun . '-01'));
+        $firstDayOfMonth = $bulanTahun . '-01';
+        $lastDayOfMonth = date('Y-m-t', strtotime($firstDayOfMonth));
+
         $builder->groupStart()
-                ->where('tanggal_aktif IS NULL')
-                ->orWhere('tanggal_aktif <=', $lastDayOfMonth)
+                ->where('riwayat_mesin.tanggal_mulai <=', $lastDayOfMonth)
+                ->groupStart()
+                    ->where('riwayat_mesin.tanggal_selesai IS NULL')
+                    ->orWhere('riwayat_mesin.tanggal_selesai >=', $firstDayOfMonth)
+                ->groupEnd()
                 ->groupEnd();
 
-        $daftarMesin = $builder->orderBy('no_mesin', 'ASC')->findAll();
+        $daftarMesin = $builder->orderBy('master_mesin.no_mesin', 'ASC')->findAll();
+
+        // Timpa field lokasi dan line dengan lokasi historisnya agar display grid akurat
+        foreach ($daftarMesin as &$m) {
+            $m['lokasi'] = $m['r_lokasi'];
+            $m['line'] = $m['r_line'];
+        }
+        unset($m); // Mencegah bug pass-by-reference pada foreach berikutnya
 
         // 2. Ambil semua catatan Checklist Control untuk kategori & bulan ini
         $records = $this->where('kategori', $kategori)
@@ -228,16 +243,28 @@ class CeklisKontrolModel extends Model
 
     public function getCheckedMachinesCount(?string $bulanTahun = null): array
     {
-        $builder = $this->select('master_mesin.lokasi, master_mesin.line, ceklis_kontrol.kategori, ceklis_kontrol.bulan_tahun, COUNT(DISTINCT ceklis_kontrol.id_mesin) as checked_count')
-                    ->join('master_mesin', 'master_mesin.id_mesin = ceklis_kontrol.id_mesin')
-                    ->where("ceklis_kontrol.pic_nama != 'PIC'")
-                    ->where("ceklis_kontrol.pic_nama IS NOT NULL");
-                    
+        $sql = "
+            SELECT 
+                r.lokasi, 
+                r.line, 
+                c.kategori, 
+                c.bulan_tahun, 
+                COUNT(DISTINCT c.id_mesin) as checked_count
+            FROM ceklis_kontrol c
+            JOIN riwayat_mesin r ON r.id_mesin = c.id_mesin
+                AND r.tanggal_mulai <= LAST_DAY(STR_TO_DATE(CONCAT(c.bulan_tahun, '-01'), '%Y-%m-%d'))
+                AND (r.tanggal_selesai IS NULL OR r.tanggal_selesai >= LAST_DAY(STR_TO_DATE(CONCAT(c.bulan_tahun, '-01'), '%Y-%m-%d')))
+            WHERE c.pic_nama != 'PIC' AND c.pic_nama IS NOT NULL
+        ";
+        
+        $params = [];
         if ($bulanTahun) {
-            $builder->where('ceklis_kontrol.bulan_tahun', $bulanTahun);
+            $sql .= " AND c.bulan_tahun = ?";
+            $params[] = $bulanTahun;
         }
-
-        return $builder->groupBy('ceklis_kontrol.bulan_tahun, master_mesin.lokasi, master_mesin.line, ceklis_kontrol.kategori')
-                    ->findAll();
+        
+        $sql .= " GROUP BY c.bulan_tahun, r.lokasi, r.line, c.kategori";
+        
+        return $this->db->query($sql, $params)->getResultArray();
     }
 }

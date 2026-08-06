@@ -134,6 +134,7 @@ class AbnormalService
         }
 
         $lokasiFilter   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
+        $lineFilter     = $request->getGet('line') ?: '';
         $searchFilter   = $request->getGet('search') ?: '';
         $kategoriFilter = $request->getGet('kategori') ?: 'Penerangan';
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
@@ -145,7 +146,7 @@ class AbnormalService
         $perPage = (int) ($request->getGet('per_page') ?: 15);
         $currentPage = (int) ($request->getGet('page_abnormal') ?: 1);
         
-        $reports = $abnormalModel->getIndexLaporan($lokasiFilter, $kategoriFilter, $bulanFilter, $searchFilter, $perPage);
+        $reports = $abnormalModel->getIndexLaporan($lokasiFilter, $kategoriFilter, $bulanFilter, $searchFilter, $perPage, $lineFilter);
         
         $pager = $abnormalModel->pager;
         $totalItems = $pager ? $pager->getTotal('abnormal') : 0;
@@ -168,6 +169,7 @@ class AbnormalService
             'title'          => 'Laporan Abnormal Condition',
             'reports'        => $reports,
             'lokasiFilter'   => $lokasiFilter,
+            'lineFilter'     => $lineFilter,
             'searchFilter'   => $searchFilter,
             'kategoriFilter' => $kategoriFilter,
             'bulanFilter'    => $bulanFilter,

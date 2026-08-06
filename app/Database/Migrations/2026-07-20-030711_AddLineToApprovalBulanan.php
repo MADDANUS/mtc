@@ -20,6 +20,8 @@ class AddLineToApprovalBulanan extends Migration
 
     public function down()
     {
-        $this->forge->dropColumn('approval_bulanan', 'line');
+        if ($this->forge->getConnection()->fieldExists('line', 'approval_bulanan')) {
+            $this->forge->dropColumn('approval_bulanan', 'line');
+        }
     }
 }

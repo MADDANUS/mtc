@@ -33,9 +33,12 @@
 
     <!-- Pilihan Aksi (Preventive / Overhaul) -->
     <div class="row g-3">
+      <?php $hasJenis = !empty($mesin['jenis']); ?>
+      
       <!-- Opsi 1: Checklist Report -->
       <div class="col-12">
-        <a href="<?= site_url("checklist/{$lokasiSlug}/checklist-report?id_mesin=" . (int)$mesin['id_mesin']) ?>" class="card card-hover text-decoration-none border-0 shadow-sm bg-white">
+        <a href="<?= site_url("checklist/{$lokasiSlug}/checklist-report?id_mesin=" . (int)$mesin['id_mesin']) ?>" 
+           class="card card-hover text-decoration-none border-0 shadow-sm bg-white">
           <div class="card-body p-4 d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-3">
               <div class="bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center rounded-3" style="width: 44px; height: 44px;">
@@ -53,7 +56,9 @@
 
       <!-- Opsi 2: Overhaul -->
       <div class="col-12">
-        <a href="<?= site_url("checklist/{$lokasiSlug}/overhaul?id_mesin=" . (int)$mesin['id_mesin']) ?>" class="card card-hover text-decoration-none border-0 shadow-sm bg-white">
+        <a href="<?= $hasJenis ? site_url("checklist/{$lokasiSlug}/overhaul?id_mesin=" . (int)$mesin['id_mesin']) : '#' ?>" 
+           <?= !$hasJenis ? 'onclick="return blockEmptyJenis()"' : '' ?>
+           class="card card-hover text-decoration-none border-0 shadow-sm bg-white">
           <div class="card-body p-4 d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-3">
               <div class="bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center rounded-3" style="width: 44px; height: 44px;">
@@ -85,5 +90,18 @@
     box-shadow: var(--shadow) !important;
   }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  function blockEmptyJenis() {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Perhatian!',
+      text: 'Mesin ini tidak memiliki pengecekan overhaul, silahkan konfirmasi ke atasan.',
+      confirmButtonText: 'Tutup'
+    });
+    return false;
+  }
+</script>
 
 <?= view('layout/footer') ?>
