@@ -67,8 +67,8 @@ class MesinController extends BaseController
             }
         }
 
-        // Fetch suggestions for no_mesin
-        $mesinSuggestions = $this->model->select('no_mesin');
+        // Fetch suggestions for no_mesin using a fresh model instance to avoid consuming the builder
+        $mesinSuggestions = (new \App\Models\MesinModel())->select('no_mesin');
         if ($role === \App\Enums\Role::Leader->value && $lokasiUser) {
             $mesinSuggestions->where('lokasi', $lokasiUser);
         }
@@ -201,8 +201,8 @@ class MesinController extends BaseController
                                           ->where('bulan_tahun', $bulanIni)
                                           ->first();
                                           
-            $isLamaFinal = ($approvalLama && $approvalLama['status_approval'] === 'Approved Final');
-            $isBaruFinal = ($approvalBaru && $approvalBaru['status_approval'] === 'Approved Final');
+            $isLamaFinal = ($approvalLama && $approvalLama['status'] === 'Approved Final');
+            $isBaruFinal = ($approvalBaru && $approvalBaru['status'] === 'Approved Final');
             
             if ($isLamaFinal || $isBaruFinal) {
                 // Tahan di line lama sampai akhir bulan ini
