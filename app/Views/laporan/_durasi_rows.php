@@ -47,8 +47,8 @@ if (!function_exists('formatDurasiText')) {
         <span class="badge bg-info text-dark">Checklist Report</span>
       <?php endif; ?>
     </td>
-    <td><?= esc($l['waktu_mulai']) ?></td>
-    <td><?= esc($l['waktu_selesai'] ?? '-') ?></td>
+    <td><?= esc(format_tanggal_indo($l['waktu_mulai'], false, true)) ?></td>
+    <td><?= $l['waktu_selesai'] ? esc(format_tanggal_indo($l['waktu_selesai'], false, true)) : '-' ?></td>
     <td>
       <?php if ($l['durasi_detik'] !== null): ?>
         <?= formatDurasi((int) $l['durasi_detik']) ?>

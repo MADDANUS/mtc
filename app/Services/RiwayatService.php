@@ -183,12 +183,79 @@ class RiwayatService
             'namaPic'           => $header['nama_pic'],
             'namaStaff'         => $header['nama_staff'],
             'waktuMulai'        => $header['waktu_mulai'],
-            'waktuMulaiDisplay' => $waktuMulai->toLocalizedString('dd MMMM yyyy, HH:mm:ss'),
+            'waktuMulaiDisplay' => $waktuMulai->format("Y-m-d H:i:s"),
             'idMesin'           => $header['id_mesin'],
             'isEdit'            => true,
             'idTransaksi'       => $id,
             'detailsMap'        => $detailsMap,
         ];
+    }
+
+    public function deleteApproval(int $id): array
+    {
+        if (session()->get('role') !== Role::Admin->value) {
+            return ["status" => false, "message" => 'Akses ditolak.'];
+        }
+
+        $transaksiModel = new TransaksiCheckModel();
+        $header = $transaksiModel->find($id);
+        if (!$header) {
+            return ["status" => false, "message" => 'Transaksi tidak ditemukan.'];
+        }
+
+        if ($header['status'] === 'Pending') {
+            return ["status" => false, "message" => 'Transaksi ini sudah berstatus Pending.'];
+        }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        $transaksiModel->update($id, [
+            'status'         => 'Pending',
+            'approved_by'    => null,
+            'approved_at'    => null,
+            'approval_l1_by' => null,
+            'approval_l1_at' => null,
+            'approval_l2_by' => null,
+            'approval_l2_at' => null,
+            'leader_nama'    => null,
+            'pic_line_nama'  => null,
+        ]);
+
+        (new \App\Models\LaporanAbnormalModel())->where('id_transaksi', $id)->delete();
+
+        $jenisSlug = strtolower(str_replace(' ', '-', $header['jenis_check']));
+        if ($jenisSlug === 'checklist-report' || $jenisSlug === 'preventive') {
+            $jadwal = null;
+            if (!empty($header['id_jadwal'])) {
+                $jadwal = (new \App\Models\JadwalPreventiveModel())->find($header['id_jadwal']);
+            }
+            $waktu = $header['waktu_selesai'] ?? $header['created_at'] ?? date('Y-m-d H:i:s');
+            $tanggalCheckDate = date('Y-m-d', strtotime($waktu));
+            [$periodeKe, ] = $this->resolvePeriodeKe($jadwal, $tanggalCheckDate, $waktu);
+            $bulanTahun = $jadwal ? $jadwal['bulan_tahun'] : date('Y-m', strtotime($tanggalCheckDate));
+
+            $kategoriName = $header['kategori'] ?? null;
+            if (!$kategoriName && $jadwal) {
+                $kategoriName = $jadwal['kategori'];
+            }
+
+            if ($kategoriName) {
+                $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
+                $exist = $ceklisKontrolModel->findChecklistKontrol($header['id_mesin'], $kategoriName, $bulanTahun, $periodeKe);
+                if ($exist) {
+                    $ceklisKontrolModel->delete($exist['id_kontrol']);
+                }
+            }
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return ["status" => false, "message" => 'Terjadi kesalahan saat menghapus approval.'];
+        }
+
+        return ["status" => true, "message" => 'Approval berhasil dihapus dan status kembali ke Pending.'];
     }
 
     public function deleteTransaksi(int $id): bool

@@ -21,7 +21,7 @@ class AbnormalController extends BaseController
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
-        $dompdf->stream('Laporan_Abnormal_' . str_replace(' ', '_', $data['kategoriFilter']) . '_' . str_replace(' ', '_', $data['lokasiFilter']) . '.pdf', ['Attachment' => true]);
+        $dompdf->stream('Laporan_Abnormal_' . str_replace(' ', '_', $data['kategoriFilter']) . '_' . str_replace(' ', '_', $data['lokasiFilter']) . '.pdf', ['Attachment' => 0]);
     }
 
     public function pdfAllCategories()
@@ -118,7 +118,7 @@ class AbnormalController extends BaseController
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
-        $dompdf->stream('Laporan_Abnormal_Overhaul_' . str_replace(' ', '_', $data['lokasiFilter']) . '.pdf', ['Attachment' => true]);
+        $dompdf->stream('Laporan_Abnormal_Overhaul_' . str_replace(' ', '_', $data['lokasiFilter']) . '.pdf', ['Attachment' => 0]);
     }
 
     public function pdfAllSummaryOverhaul()

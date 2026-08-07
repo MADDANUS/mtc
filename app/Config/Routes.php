@@ -58,6 +58,7 @@ $routes->group('riwayat', ['filter' => 'auth'], static function ($routes) {
     $routes->get('edit/(:num)', 'RiwayatController::edit/$1', ['filter' => 'role:admin']);
     $routes->post('update/(:num)', 'RiwayatController::update/$1', ['filter' => 'role:admin']);
     $routes->post('delete/(:num)', 'RiwayatController::delete/$1', ['filter' => 'role:admin']);
+    $routes->post('delete-approval/(:num)', 'RiwayatController::deleteApproval/$1', ['filter' => 'role:admin']);
 });
 
 // Scan QR Code (magang, member, admin)

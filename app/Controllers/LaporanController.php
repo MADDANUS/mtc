@@ -85,7 +85,7 @@ class LaporanController extends BaseController
         for ($i = -1; $i < 12; $i++) {
             $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
             $val  = $time->format('Y-m');
-            $label = $time->toLocalizedString('MMMM yyyy');
+            $label = format_bulan_indo($val);
             $bulanList[$val] = $label;
         }
 
@@ -151,7 +151,7 @@ class LaporanController extends BaseController
         $dompdf->render();
 
         $filename = 'Laporan_Durasi_Pengecekan.pdf';
-        $dompdf->stream($filename, ['Attachment' => true]);
+        $dompdf->stream($filename, ['Attachment' => 0]);
         return;
     }
 }

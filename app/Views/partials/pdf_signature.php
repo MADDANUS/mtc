@@ -27,7 +27,7 @@
           <div style="height:20px; margin-bottom:20px;"></div>
         <?php endif; ?>
         <div style="font-weight:bold; text-decoration:underline; font-size:0.9rem;"><?= esc($namaOvOnly) ?></div>
-        <div style="font-size:0.8rem; color:#555;">Tgl: <?= !empty($header['waktu_selesai']) ? date('d-m-Y H:i', strtotime($header['waktu_selesai'])) : '-' ?></div>
+        <div style="font-size:0.8rem; color:#555;">Tgl: <?= !empty($header['waktu_selesai']) ? format_tanggal_indo($header['waktu_selesai'], false, true) : '-' ?></div>
       </td>
       <td style="border:none; width:25%; vertical-align:top;">
         <div style="margin-bottom:5px; font-size:0.85rem;">Checked</div>
@@ -44,7 +44,7 @@
             <span style="color:#999;">( .................................. )</span>
           <?php endif; ?>
         </div>
-        <div style="font-size:0.8rem; color:#555;">Tgl: <?= !empty($header['approval_l1_at']) ? date('d-m-Y H:i', strtotime($header['approval_l1_at'])) : '( ..................... )' ?></div>
+        <div style="font-size:0.8rem; color:#555;">Tgl: <?= !empty($header['approval_l1_at']) ? format_tanggal_indo($header['approval_l1_at'], false, true) : '( ..................... )' ?></div>
       </td>
       <td style="border:none; width:25%; vertical-align:top;">
         <div style="margin-bottom:5px; font-size:0.85rem;">Approved</div>
@@ -61,7 +61,7 @@
             <span style="color:#999;">( Mr. Rohmad )</span>
           <?php endif; ?>
         </div>
-        <div style="font-size:0.8rem; color:#555;">Tgl: <?= !empty($header['approval_l2_at']) ? date('d-m-Y H:i', strtotime($header['approval_l2_at'])) : '( ..................... )' ?></div>
+        <div style="font-size:0.8rem; color:#555;">Tgl: <?= !empty($header['approval_l2_at']) ? format_tanggal_indo($header['approval_l2_at'], false, true) : '( ..................... )' ?></div>
       </td>
       <td style="border:none; width:25%; vertical-align:top;">
         <div style="margin-bottom:5px; font-size:0.85rem;">Approved</div>
@@ -78,7 +78,7 @@
             <span style="color:#999;">( Mr. Royadi )</span>
           <?php endif; ?>
         </div>
-        <div style="font-size:0.8rem; color:#555;">Tgl: <?= ($header['status'] === 'Approved') ? date('d-m-Y H:i', strtotime($header['approved_at'])) : '( ..................... )' ?></div>
+        <div style="font-size:0.8rem; color:#555;">Tgl: <?= ($header['status'] === 'Approved') ? format_tanggal_indo($header['approved_at'], false, true) : '( ..................... )' ?></div>
       </td>
     </tr>
   </table>
@@ -96,7 +96,7 @@
           <div style="height:20px; margin-bottom:20px;"></div>
         <?php endif; ?>
         <div style="font-weight:bold; text-decoration:underline; font-size:0.9rem;"><?= esc($namaP) ?></div>
-        <div style="font-size:0.8rem; color:#555;">Tgl: <?= !empty($header['waktu_selesai']) ? date('d-m-Y H:i', strtotime($header['waktu_selesai'])) : '-' ?></div>
+        <div style="font-size:0.8rem; color:#555;">Tgl: <?= !empty($header['waktu_selesai']) ? format_tanggal_indo($header['waktu_selesai'], false, true) : '-' ?></div>
       </td>
       <td style="border:none; width:50%; vertical-align:top;">
         <div style="margin-bottom:5px; font-size:0.85rem;">Disetujui Oleh</div>
@@ -113,7 +113,7 @@
             <span style="color:#999;">( ........................................ )</span>
           <?php endif; ?>
         </div>
-        <div style="font-size:0.8rem; color:#555;">Tgl: <?= ($header['status'] === 'Approved') ? date('d-m-Y H:i', strtotime($header['approved_at'])) : '( ..................... )' ?></div>
+        <div style="font-size:0.8rem; color:#555;">Tgl: <?= ($header['status'] === 'Approved') ? format_tanggal_indo($header['approved_at'], false, true) : '( ..................... )' ?></div>
       </td>
     </tr>
   </table>

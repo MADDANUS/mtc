@@ -134,7 +134,7 @@
                   $machineCategories = [
                       'THREAD', 'DOUBLE MILLING', 'MILLING', 'DOUBLE CENTER DRILL', 'OSL', 
                       'KNURLING', 'BROTHER', 'BURNISHING', 'BUFFING', 'CENTERING GRINDING',
-                      'CNC', '-'
+                      'CNC', 'CAM', '-'
                   ];
                   foreach ($machineCategories as $cat): 
                 ?>

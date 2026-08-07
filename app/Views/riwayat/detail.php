@@ -50,7 +50,7 @@
   <div class="ms-auto d-flex align-items-center gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
 <a href="<?= site_url('riwayat/download-pdf/' . $header['id_transaksi']) ?>" class="btn btn-sm btn-outline-danger shadow-sm" target="_blank">
-      <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
+      <i class="bi bi-eye-fill me-1"></i> Preview PDF
     </a>
 <?php endif; ?>
   </div>
@@ -77,7 +77,7 @@
       <td class="kop-label text-start" style="width:15%;">NO MACHINE</td>
       <td class="kop-val text-start" style="width:15%;"><?= esc($header['no_mesin']) ?></td>
       <td class="kop-label text-start" style="width:15%;">DATE</td>
-      <td class="kop-val text-start" style="width:15%;"><?= date('Y-m-d', $waktuMulai) ?></td>
+      <td class="kop-val text-start" style="width:15%;"><?= format_tanggal_indo(date('Y-m-d', $waktuMulai)) ?></td>
     </tr>
     <tr>
       <td class="kop-label text-start" rowspan="2">SUPPORT PIC</td>
@@ -124,7 +124,7 @@
       <td class="kop-label text-start" style="width:12%;">NO MACHINE</td>
       <td class="kop-val text-start" colspan="2" style="width:28%;"><?= esc($header['no_mesin']) ?></td>
       <td class="kop-label text-start" style="width:15%;">DATE</td>
-      <td class="kop-val text-start" style="width:15%;"><?= date('Y-m-d', $waktuMulai) ?></td>
+      <td class="kop-val text-start" style="width:15%;"><?= format_tanggal_indo(date('Y-m-d', $waktuMulai)) ?></td>
       <td class="kop-label text-start" style="width:15%;">LOKASI</td>
       <td class="kop-val text-start" style="width:15%;"><?= esc($header['lokasi_check']) ?></td>
     </tr>
@@ -372,7 +372,7 @@
           <span class="text-decoration-underline" style="font-size:0.9rem;"><?= esc($namaOvOnly) ?></span>
         </h6>
         <span class="small text-muted" style="font-size:0.75rem;">
-          Tgl: <?= !empty($header['waktu_selesai']) ? date('d-m-Y H:i', strtotime($header['waktu_selesai'])) : '-' ?>
+          Tgl: <?= !empty($header['waktu_selesai']) ? format_tanggal_indo($header['waktu_selesai'], false, true) : '-' ?>
         </span>
       </div>
 
@@ -396,7 +396,7 @@
         </h6>
         <span class="small text-muted" style="font-size:0.75rem;">
           <?php if (!empty($header['approval_l1_at'])): ?>
-            Tgl: <?= date('d-m-Y H:i', strtotime($header['approval_l1_at'])) ?>
+            Tgl: <?= format_tanggal_indo($header['approval_l1_at'], false, true) ?>
           <?php else: ?>
             Tgl: ( ......................... )
           <?php endif; ?>
@@ -423,7 +423,7 @@
         </h6>
         <span class="small text-muted" style="font-size:0.75rem;">
           <?php if (!empty($header['approval_l2_at'])): ?>
-            Tgl: <?= date('d-m-Y H:i', strtotime($header['approval_l2_at'])) ?>
+            Tgl: <?= format_tanggal_indo($header['approval_l2_at'], false, true) ?>
           <?php else: ?>
             Tgl: ( ......................... )
           <?php endif; ?>
@@ -450,7 +450,7 @@
         </h6>
         <span class="small text-muted" style="font-size:0.75rem;">
           <?php if ($header['status'] === 'Approved'): ?>
-            Tgl: <?= date('d-m-Y H:i', strtotime($header['approved_at'])) ?>
+            Tgl: <?= format_tanggal_indo($header['approved_at'], false, true) ?>
           <?php else: ?>
             Tgl: ( ......................... )
           <?php endif; ?>
@@ -480,7 +480,7 @@
           $namaPicOnly = end($namaPicParts);
         ?>
         <h6 class="mb-0 fw-bold text-dark text-decoration-underline"><?= esc($namaPicOnly) ?></h6>
-        <span class="small text-muted">Tanggal: <?= !empty($header['waktu_selesai']) ? date('d-m-Y H:i', strtotime($header['waktu_selesai'])) : '-' ?></span>
+        <span class="small text-muted">Tanggal: <?= !empty($header['waktu_selesai']) ? format_tanggal_indo($header['waktu_selesai'], false, true) : '-' ?></span>
       </div>
 
       <!-- Disetujui Oleh (Approver) -->
@@ -505,7 +505,7 @@
         </h6>
         <span class="small text-muted">
           <?php if ($header['status'] === 'Approved'): ?>
-            Tanggal: <?= date('d-m-Y H:i', strtotime($header['approved_at'])) ?>
+            Tanggal: <?= format_tanggal_indo($header['approved_at'], false, true) ?>
           <?php else: ?>
             Tanggal: ( ......................... )
           <?php endif; ?>
@@ -565,6 +565,23 @@
           <i class="bi bi-check-circle-fill me-2"></i> Approve (<?= esc($role) ?>)
         </button>
       </div>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
+
+<?php if (session()->get('role') === 'admin' && $statusLaporan !== 'Pending'): ?>
+<div class="card border-danger mt-3 mb-3 shadow-sm">
+  <div class="card-body d-flex justify-content-between align-items-center p-3">
+    <div>
+      <h6 class="mb-1 text-danger fw-bold"><i class="bi bi-trash"></i> Hapus Approval Laporan</h6>
+      <p class="text-muted small mb-0">Hapus approval ini agar statusnya kembali ke "Pending". Data checklist tidak akan hilang, namun data laporan abnormal dan sinkronisasi ke ceklis kontrol akan dibatalkan.</p>
+    </div>
+    <form action="<?= site_url('riwayat/delete-approval/' . (int) $header['id_transaksi']) ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menghapus approval ini? Status akan kembali ke Pending.');">
+      <?= csrf_field() ?>
+      <button type="submit" class="btn btn-danger px-4 py-2 fw-semibold shadow-sm">
+        <i class="bi bi-trash me-2"></i> Hapus Approval
+      </button>
     </form>
   </div>
 </div>

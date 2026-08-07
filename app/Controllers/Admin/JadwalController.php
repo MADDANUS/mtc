@@ -23,6 +23,28 @@ class JadwalController extends BaseController
     }
 
     /**
+     * Hitung Bulan dan Pekan berdasarkan Aturan Pekan Transisi
+     * (Menjadikan Hari Rabu sebagai patokan bulan)
+     */
+    private function hitungBulanDanPekan(string $tanggalRencana): array
+    {
+        $timestamp = strtotime($tanggalRencana);
+        $dayOfWeek = (int) date('N', $timestamp);
+        
+        // Cari hari Senin pada minggu tersebut
+        $mondayTs = strtotime('-' . ($dayOfWeek - 1) . ' days', $timestamp);
+        
+        // Cari hari Rabu pada minggu tersebut
+        $wednesdayTs = strtotime('+2 days', $mondayTs);
+
+        $bulanTahun = date('Y-m', $wednesdayTs);
+        $hariRabu   = (int) date('d', $wednesdayTs);
+        $periodeKe  = (int) ceil($hariRabu / 7);
+
+        return [$bulanTahun, $periodeKe];
+    }
+
+    /**
      * GET /admin/jadwal
      */
     public function index()
@@ -41,7 +63,7 @@ class JadwalController extends BaseController
         for ($i = -2; $i < 10; $i++) {
             $time = \CodeIgniter\I18n\Time::now()->addMonths($i);
             $val  = $time->format('Y-m');
-            $label = $time->toLocalizedString('MMMM yyyy');
+            $label = format_bulan_indo($time->format("Y-m"));
             $months[$val] = $label;
         }
 
@@ -124,13 +146,8 @@ class JadwalController extends BaseController
         $kategori       = $this->request->getPost('kategori');
         $tanggalRencana = $this->request->getPost('tanggal_rencana');
 
-        // Hitung bulan_tahun dan periode_ke otomatis dari tanggal_rencana
-        $bulanTahun = date('Y-m', strtotime($tanggalRencana));
-        $day        = (int) date('d', strtotime($tanggalRencana));
-        $periodeKe  = intval(($day - 1) / 7) + 1;
-        if ($periodeKe > 5) {
-            $periodeKe = 5;
-        }
+        // Hitung bulan_tahun dan periode_ke menggunakan fungsi tersentralisasi
+        list($bulanTahun, $periodeKe) = $this->hitungBulanDanPekan($tanggalRencana);
 
         // Cek duplikasi bulanan: Kategori per lokasi hanya boleh dijadwalkan SATU kali per bulan
         $exist = $this->jadwalModel->where('lokasi', $lokasi)
@@ -292,9 +309,11 @@ class JadwalController extends BaseController
 
         $successCount = 0;
         $skipCount = 0;
+        $errors = []; // Menyimpan list pesan error spesifik
 
         // Skip row 1 (header)
         for ($i = 1; $i < count($sheetData); $i++) {
+            $rowNumber = $i + 1; // Untuk referensi user
             $row = $sheetData[$i];
             
             $lokasi = trim($row[0] ?? '');
@@ -302,7 +321,11 @@ class JadwalController extends BaseController
             $rentangTanggal = trim($row[2] ?? '');
 
             if (empty($lokasi) || empty($kategori) || empty($rentangTanggal)) {
-                $skipCount++;
+                // Jika baris benar-benar kosong semua, kita abaikan saja diam-diam (bukan error).
+                if (!empty($lokasi) || !empty($kategori) || !empty($rentangTanggal)) {
+                    $errors[] = "Baris {$rowNumber}: Data tidak lengkap (Lokasi/Kategori/Tanggal ada yang kosong).";
+                    $skipCount++;
+                }
                 continue;
             }
 
@@ -316,6 +339,7 @@ class JadwalController extends BaseController
                 // Coba parse format bebas jika gagal
                 $dateObj = strtotime($startDateRaw);
                 if (!$dateObj) {
+                    $errors[] = "Baris {$rowNumber}: Format tanggal tidak dikenali ({$startDateRaw}).";
                     $skipCount++;
                     continue;
                 }
@@ -324,10 +348,8 @@ class JadwalController extends BaseController
                 $tanggalRencana = $dateObj->format('Y-m-d');
             }
 
-            $bulanTahun = date('Y-m', strtotime($tanggalRencana));
-            $day        = (int) date('d', strtotime($tanggalRencana));
-            $periodeKe  = intval(($day - 1) / 7) + 1;
-            if ($periodeKe > 5) $periodeKe = 5;
+            // Hitung bulan dan pekan menggunakan fungsi tersentralisasi
+            list($bulanTahun, $periodeKe) = $this->hitungBulanDanPekan($tanggalRencana);
 
             // Cek duplikasi bulanan
             $exist = $this->jadwalModel->where('lokasi', $lokasi)
@@ -336,6 +358,8 @@ class JadwalController extends BaseController
                                        ->first();
 
             if ($exist) {
+                $bulanStr = format_bulan_indo($bulanTahun);
+                $errors[] = "Baris {$rowNumber}: Jadwal <b>{$lokasi} - {$kategori}</b> sudah ada di bulan {$bulanStr} (Pekan ke-{$exist['periode_ke']}).";
                 $skipCount++;
                 continue;
             }
@@ -350,11 +374,16 @@ class JadwalController extends BaseController
             $successCount++;
         }
 
-        $msg = "Impor selesai. {$successCount} jadwal berhasil ditambahkan.";
         if ($skipCount > 0) {
-            $msg .= " {$skipCount} baris dilewati (kosong, format salah, atau sudah ada di bulan yang sama).";
+            $msg = "<b>{$successCount} jadwal berhasil ditambahkan.</b><br><br>";
+            $msg .= "<div class='text-start text-danger'><b>{$skipCount} jadwal dilewati karena error:</b><ul class='mb-0'>";
+            foreach ($errors as $err) {
+                $msg .= "<li>{$err}</li>";
+            }
+            $msg .= "</ul></div>";
+            return redirect()->to('/admin/jadwal')->with('warning', $msg);
         }
 
-        return redirect()->to('/admin/jadwal')->with('success', $msg);
+        return redirect()->to('/admin/jadwal')->with('success', "Impor selesai. {$successCount} jadwal berhasil ditambahkan.");
     }
 }

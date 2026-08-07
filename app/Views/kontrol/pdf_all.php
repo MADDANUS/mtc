@@ -166,7 +166,7 @@
         <td style="border:1.5pt solid #000; text-align:center; font-size:0.75rem; padding:2px;">
           <?php if (!empty($row['out_of_plan'])): ?>
             <span style="color:red; font-weight:bold; display:block;">Out of Plan</span>
-            <span style="font-size:0.65rem;"><?= date('d-m-Y', strtotime($row['out_of_plan'])) ?></span>
+            <span style="font-size:0.65rem;"><?= format_tanggal_indo($row['out_of_plan']) ?></span>
           <?php else: ?>-<?php endif; ?>
         </td>
         <!-- Ulasan -->
@@ -223,7 +223,7 @@
         <?= isset($approvalData['approved_l1_by']) ? esc($approvalData['pic_line_nama'] ?? $approvalData['l1_name']) : '( ........................................ )' ?>
       </div>
       <div style="font-size: 0.8rem; color: #555;">
-        Tanggal: <?= isset($approvalData['approved_l1_at']) ? date('d-m-Y H:i', strtotime($approvalData['approved_l1_at'])) : '( ......................... )' ?>
+        Tanggal: <?= isset($approvalData['approved_l1_at']) ? format_tanggal_indo($approvalData['approved_l1_at'], false, true) : '( ......................... )' ?>
       </div>
     </td>
     <td style="border: none; width: 33.33%; vertical-align: top;">
@@ -238,7 +238,7 @@
         <?= isset($approvalData['approved_l2_by']) ? 'Mr. Rohmad' : '( Mr. Rohmad )' ?>
       </div>
       <div style="font-size: 0.8rem; color: #555;">
-        Tanggal: <?= isset($approvalData['approved_l2_at']) ? date('d-m-Y H:i', strtotime($approvalData['approved_l2_at'])) : '( ......................... )' ?>
+        Tanggal: <?= isset($approvalData['approved_l2_at']) ? format_tanggal_indo($approvalData['approved_l2_at'], false, true) : '( ......................... )' ?>
       </div>
     </td>
     <td style="border: none; width: 33.33%; vertical-align: top;">
@@ -253,7 +253,7 @@
         <?= isset($approvalData['approved_final_by']) ? 'Mr. Royadi' : '( Mr. Royadi )' ?>
       </div>
       <div style="font-size: 0.8rem; color: #555;">
-        Tanggal: <?= isset($approvalData['approved_final_at']) ? date('d-m-Y H:i', strtotime($approvalData['approved_final_at'])) : '( ......................... )' ?>
+        Tanggal: <?= isset($approvalData['approved_final_at']) ? format_tanggal_indo($approvalData['approved_final_at'], false, true) : '( ......................... )' ?>
       </div>
     </td>
   </tr>

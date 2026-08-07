@@ -9,7 +9,7 @@ class TransaksiCheckModel extends Model
     protected $table         = 'transaksi_check';
     protected $primaryKey    = 'id_transaksi';
     protected $allowedFields = [
-        'id_user', 'nama_pic', 'id_mesin', 'lokasi_check', 'jenis_check', 'kategori',
+        'id_user', 'nama_pic', 'id_mesin', 'lokasi_check', 'line_check', 'jenis_check', 'kategori',
         'waktu_mulai', 'waktu_selesai', 'status', 'approved_by', 'pic_line_nama', 'approved_at',
         'approval_l1_by', 'leader_nama', 'approval_l1_at', 'approval_l2_by', 'approval_l2_at',
         'target_periode'
@@ -37,7 +37,7 @@ class TransaksiCheckModel extends Model
      */
     public function getRiwayat(?int $userId = null, ?int $limit = null, ?string $kategori = null): array
     {
-        $builder = $this->select('transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, master_mesin.type_mesin, COALESCE(riwayat_mesin.line, master_mesin.line) as line')
+        $builder = $this->select('transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, master_mesin.type_mesin, IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) as line')
                          ->join('users', 'users.id = transaksi_check.id_user')
                          ->join('users as approver', 'approver.id = transaksi_check.approved_by', 'left')
                          ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
@@ -62,7 +62,7 @@ class TransaksiCheckModel extends Model
      */
     public function getRiwayatFiltered(array $filters = [], ?int $userId = null, ?int $limit = null, ?int $perPage = null): array
     {
-        $builder = $this->select('transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, master_mesin.type_mesin, COALESCE(riwayat_mesin.line, master_mesin.line) as line')
+        $builder = $this->select('transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, master_mesin.type_mesin, IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) as line')
                          ->join('users', 'users.id = transaksi_check.id_user')
                          ->join('users as approver', 'approver.id = transaksi_check.approved_by', 'left')
                          ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
@@ -84,8 +84,8 @@ class TransaksiCheckModel extends Model
             $builder->where('transaksi_check.id_mesin', (int)$filters['id_mesin']);
         }
 
-        if (!empty($filters['line'])) {
-            $builder->where('COALESCE(riwayat_mesin.line, master_mesin.line)', $filters['line']);
+        if (!empty($filters['line']) && $filters['line'] !== 'all') {
+            $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line))', $filters['line']);
         }
 
         if (!empty($filters['kategori'])) {
@@ -376,15 +376,19 @@ class TransaksiCheckModel extends Model
 
     public function getInboxApprovalTransaksi(string $role, ?string $line): array
     {
-        $builder = $this->select('transaksi_check.id_transaksi AS doc_id, transaksi_check.jenis_check, transaksi_check.kategori, transaksi_check.lokasi_check, master_mesin.line, transaksi_check.nama_pic, users.nama AS nama_staff, transaksi_check.waktu_mulai AS doc_date, transaksi_check.status, master_mesin.no_mesin, master_mesin.type_mesin, "transaksi" AS doc_source, NULL AS lokasi, NULL AS persen', false)
+        $joinDate = 'COALESCE(NULLIF(transaksi_check.target_periode, ""), DATE_FORMAT(transaksi_check.waktu_mulai, "%Y-%m"))';
+        $joinCondition = 'riwayat_mesin.id_mesin = transaksi_check.id_mesin AND riwayat_mesin.tanggal_mulai <= LAST_DAY(STR_TO_DATE(CONCAT(' . $joinDate . ', "-01"), "%Y-%m-%d")) AND (riwayat_mesin.tanggal_selesai IS NULL OR riwayat_mesin.tanggal_selesai >= LAST_DAY(STR_TO_DATE(CONCAT(' . $joinDate . ', "-01"), "%Y-%m-%d")))';
+
+        $builder = $this->select('transaksi_check.id_transaksi AS doc_id, transaksi_check.jenis_check, transaksi_check.kategori, transaksi_check.lokasi_check, IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) AS line, transaksi_check.nama_pic, users.nama AS nama_staff, transaksi_check.waktu_mulai AS doc_date, transaksi_check.status, master_mesin.no_mesin, master_mesin.type_mesin, "transaksi" AS doc_source, NULL AS lokasi, NULL AS persen', false)
                         ->join('users', 'users.id = transaksi_check.id_user', 'left')
-                        ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin', 'left');
+                        ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin', 'left')
+                        ->join('riwayat_mesin', $joinCondition, 'left');
 
         if ($role === \App\Enums\Role::Leader->value) {
             $builder->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value)
                     ->where('transaksi_check.status', 'Pending');
             if ($line) {
-                $builder->where('master_mesin.line', $line);
+                $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line))', $line);
             }
         } elseif ($role === \App\Enums\Role::Sheadprd->value) {
             $builder->whereIn('transaksi_check.jenis_check', [\App\Enums\JenisCheck::Overhaul->value, \App\Enums\JenisCheck::Preventive->value])

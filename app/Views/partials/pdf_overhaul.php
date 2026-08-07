@@ -38,7 +38,7 @@
       <td style="width:19%; font-weight:bold; border-top:none;">NO MACHINE</td>
       <td style="border-top:none;"><?= esc($header['no_mesin']) ?></td>
       <td style="width:19%; font-weight:bold; border-top:none;">DATE</td>
-      <td style="border-top:none;"><?= date('Y-m-d', $waktuMulai) ?></td>
+      <td style="border-top:none;"><?= format_tanggal_indo(date('Y-m-d', $waktuMulai)) ?></td>
     </tr>
     <tr>
       <td style="font-weight:bold;" rowspan="2">SUPPORT PIC</td>

@@ -119,7 +119,7 @@ function formatDurasiTextPdf($detik) {
                         </td>
                         <td class="text-center">
                             <?php if ($l['waktu_mulai']): ?>
-                                <?= date('d M Y', strtotime($l['waktu_mulai'])) ?><br>
+                                <?= format_tanggal_indo($l['waktu_mulai'], true) ?><br>
                                 <strong style="color: #198754; font-size: 11px;"><?= date('H:i:s', strtotime($l['waktu_mulai'])) ?></strong>
                             <?php else: ?>
                                 -
@@ -127,7 +127,7 @@ function formatDurasiTextPdf($detik) {
                         </td>
                         <td class="text-center">
                             <?php if ($l['waktu_selesai']): ?>
-                                <?= date('d M Y', strtotime($l['waktu_selesai'])) ?><br>
+                                <?= format_tanggal_indo($l['waktu_selesai'], true) ?><br>
                                 <strong style="color: #dc3545; font-size: 11px;"><?= date('H:i:s', strtotime($l['waktu_selesai'])) ?></strong>
                             <?php else: ?>
                                 <span style="font-style: italic; color: #999;">Belum selesai</span>

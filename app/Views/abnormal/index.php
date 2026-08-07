@@ -8,8 +8,8 @@
   </a>
   <div class="ms-auto d-flex gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
-<a href="<?= site_url('abnormal/pdf?lokasi=' . urlencode($lokasiFilter) . '&kategori=' . urlencode($kategoriFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Download PDF">
-      <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
+<a href="<?= site_url('abnormal/pdf?lokasi=' . urlencode($lokasiFilter) . '&kategori=' . urlencode($kategoriFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
+      <i class="bi bi-eye-fill me-1"></i> Preview PDF
     </a>
 <?php endif; ?>
   </div>
@@ -25,7 +25,7 @@
     <td class="kop-label text-start">KATEGORI</td>
     <td class="kop-val text-start"><?= esc($kategoriFilter) ?></td>
     <td class="kop-label text-start">BULAN</td>
-    <td class="kop-val text-start"><?= esc($bulanFilter) ?></td>
+    <td class="kop-val text-start"><?= $bulanFilter === 'all' ? 'Semua Bulan' : esc(date('m-Y', strtotime($bulanFilter . '-01'))) ?></td>
   </tr>
 </table>
 

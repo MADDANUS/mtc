@@ -28,7 +28,7 @@
       <span class="badge bg-secondary text-capitalize"><?= esc($r['jenis_check'] === 'Preventive' ? 'Checklist Report' : $r['jenis_check']) ?></span>
     </td>
     <td style="font-size: 0.8rem; color: var(--text-secondary);">
-      <?= esc(date('d M Y, H:i', strtotime($r['waktu_mulai']))) ?>
+      <?= esc(format_tanggal_indo($r['waktu_mulai'], true, true)) ?>
     </td>
     <td>
       <?php $status = $r['status'] ?? 'Pending'; ?>

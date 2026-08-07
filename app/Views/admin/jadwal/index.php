@@ -270,27 +270,29 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!val) { weekPreview.style.display = 'none'; return; }
 
     const dateObj = new Date(val);
-    const year = dateObj.getFullYear();
-    const month = dateObj.getMonth(); // 0-indexed
-    const day = dateObj.getDate();
-
-    // Hitung periode_ke (1 s.d 5) berdasar tanggal asli bulan tersebut
-    let periodeKe = Math.floor((day - 1) / 7) + 1;
-    if (periodeKe > 5) periodeKe = 5;
-
-    const monthStr = String(month + 1).padStart(2, '0');
-    inputBulanTahun.value = `${year}-${monthStr}`;
-    inputPeriodeKe.value = periodeKe;
-
-    // Ambil hari dari tanggal yang dipilih (0=Minggu, 1=Senin, ..., 6=Sabtu)
+    
+    // Aturan Pekan Transisi (Patokan Hari Rabu)
     let dayOfWeek = dateObj.getDay();
-    // Konversi agar Senin=1, Minggu=7
-    if (dayOfWeek === 0) dayOfWeek = 7;
+    if (dayOfWeek === 0) dayOfWeek = 7; // Ubah Minggu(0) menjadi 7
     
     // Mundur ke hari Senin di minggu yang sama
     const diffToMonday = dayOfWeek - 1;
     const monday = new Date(dateObj);
     monday.setDate(dateObj.getDate() - diffToMonday);
+
+    // Cari hari Rabu di minggu yang sama
+    const wednesday = new Date(monday);
+    wednesday.setDate(monday.getDate() + 2);
+
+    // Hitung bulan_tahun dan periode_ke berdasarkan hari Rabu
+    const tYear = wednesday.getFullYear();
+    const tMonth = String(wednesday.getMonth() + 1).padStart(2, '0');
+    
+    let periodeKe = Math.ceil(wednesday.getDate() / 7);
+    if (periodeKe > 5) periodeKe = 5;
+
+    inputBulanTahun.value = `${tYear}-${tMonth}`;
+    inputPeriodeKe.value = periodeKe;
 
     previewPeriode.innerText = periodeKe;
     previewDays.innerHTML = '';

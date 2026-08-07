@@ -48,7 +48,7 @@
       <td style="font-weight:bold; width:16%; border-top:none;">NO MACHINE</td>
       <td style="width:17%; border-top:none;"><?= esc($header['no_mesin']) ?></td>
       <td style="font-weight:bold; width:16%; border-top:none;">DATE</td>
-      <td style="width:17%; border-top:none;"><?= date('Y-m-d', $waktuMulai) ?></td>
+      <td style="width:17%; border-top:none;"><?= format_tanggal_indo(date('Y-m-d', $waktuMulai)) ?></td>
       <td style="font-weight:bold; width:16%; border-top:none;">LOKASI</td>
       <td style="border-top:none;"><?= esc($header['lokasi_check'] ?? '-') ?></td>
     </tr>

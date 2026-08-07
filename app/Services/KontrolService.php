@@ -258,7 +258,7 @@ class KontrolService
         $bulanList = [];
         for ($i = 0; $i < 12; $i++) {
             $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
-            $bulanList[$time->format('Y-m')] = $time->toLocalizedString('MMMM yyyy');
+            $bulanList[$time->format('Y-m')] = format_bulan_indo($time->format("Y-m"));
         }
 
         $data = [
@@ -669,7 +669,7 @@ class KontrolService
         $bulanList = [];
         for ($i = -1; $i < 12; $i++) {
             $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
-            $bulanList[$time->format('Y-m')] = $time->toLocalizedString('MMMM yyyy');
+            $bulanList[$time->format('Y-m')] = format_bulan_indo($time->format("Y-m"));
         }
         return $bulanList;
     }

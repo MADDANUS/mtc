@@ -42,15 +42,15 @@
         <thead>
           <tr style="line-height: 0; height: 0;">
             <td style="width: 40px; border: none; padding: 0; margin: 0; height: 0;"></td>
-            <td style="width: 14%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 13%; border: none; padding: 0; margin: 0; height: 0;"></td>
             <td style="width: 11%; border: none; padding: 0; margin: 0; height: 0;"></td>
-            <td style="width: 18%; border: none; padding: 0; margin: 0; height: 0;"></td>
-            <td style="width: 10%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 17%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 8%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 8%; border: none; padding: 0; margin: 0; height: 0;"></td>
             <td style="width: 6%; border: none; padding: 0; margin: 0; height: 0;"></td>
-            <td style="width: 6%; border: none; padding: 0; margin: 0; height: 0;"></td>
-            <td style="width: 6%; border: none; padding: 0; margin: 0; height: 0;"></td>
-            <td style="width: 6%; border: none; padding: 0; margin: 0; height: 0;"></td>
-            <td style="width: 6%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 5%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 8%; border: none; padding: 0; margin: 0; height: 0;"></td>
+            <td style="width: 7%; border: none; padding: 0; margin: 0; height: 0;"></td>
             <td style="width: 7%; border: none; padding: 0; margin: 0; height: 0;"></td>
             <td style="width: 8%; border: none; padding: 0; margin: 0; height: 0;"></td>
           </tr>
@@ -73,12 +73,12 @@
           </tr>
           <tr class="table-light" style="background-color: #f2f2f2;">
             <th rowspan="3" style="width: 40px; white-space: nowrap; font-weight:800; border: 1.5pt solid #000;">NO</th>
-            <th rowspan="3" style="width: 14%; font-weight:800; text-align: left; border: 1.5pt solid #000;" class="ps-3">MESIN</th>
+            <th rowspan="3" style="width: 13%; font-weight:800; text-align: left; border: 1.5pt solid #000;" class="ps-3">MESIN</th>
             <th rowspan="3" style="width: 11%; font-weight:800; border: 1.5pt solid #000;">POINT CHECK</th>
-            <th rowspan="3" style="width: 18%; font-weight:800; border: 1.5pt solid #000;">ABNORMAL CONDITION</th>
-            <th rowspan="3" style="width: 10%; font-weight:800; border: 1.5pt solid #000;">TYPE SPAREPART</th>
-            <th colspan="2" style="width: 12%; font-weight:800; border: 1.5pt solid #000;">PENGECEKAN</th>
-            <th colspan="4" style="width: 25%; font-weight:800; border: 1.5pt solid #000;">RENCANA PERBAIKAN</th>
+            <th rowspan="3" style="width: 17%; font-weight:800; border: 1.5pt solid #000;">ABNORMAL CONDITION</th>
+            <th rowspan="3" style="width: 8%; font-weight:800; border: 1.5pt solid #000;">TYPE SPAREPART</th>
+            <th colspan="2" style="width: 14%; font-weight:800; border: 1.5pt solid #000;">PENGECEKAN</th>
+            <th colspan="4" style="width: 27%; font-weight:800; border: 1.5pt solid #000;">RENCANA PERBAIKAN</th>
             <th rowspan="3" style="width: 8%; font-weight:800; border: 1.5pt solid #000; white-space: nowrap;">KETERANGAN</th>
           </tr>
           <tr class="table-light" style="background-color: #f2f2f2;">
@@ -161,7 +161,7 @@
                 <td><?= esc($r['type_sparepart']) ?: '<span class="text-muted small">-</span>' ?></td>
                 
                 <!-- Pengecekan -->
-                <td class="font-monospace"><?= date('d-m-Y', strtotime($r['pengecekan_tanggal'])) ?></td>
+                <td class="font-monospace"><?= format_tanggal_indo($r['pengecekan_tanggal']) ?></td>
                 <td><span class="fw-semibold text-dark"><?= esc($r['pengecekan_pic']) ?></span></td>
                 
                 <!-- Rencana Perbaikan -->
@@ -176,7 +176,7 @@
                     <span class="text-muted">-</span>
                   <?php endif; ?>
                 </td>
-                <td class="font-monospace"><?= $r['progres_tanggal'] ? date('d-m-Y', strtotime($r['progres_tanggal'])) : '<span class="text-muted">-</span>' ?></td>
+                <td class="font-monospace"><?= $r['progres_tanggal'] ? format_tanggal_indo($r['progres_tanggal']) : '<span class="text-muted">-</span>' ?></td>
                 <td class="text-start">
                   <?= esc($r['action']) ?: '<span class="text-muted">-</span>' ?>
                   <?php 

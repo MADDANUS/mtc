@@ -183,7 +183,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                     $rawPic = $doc['nama_pic'] ?: $doc['nama_staff'];
                     $parts = explode(' - ', $rawPic ?? '');
                     $dibuatOleh = esc(end($parts));
-                    $tanggal = !empty($doc['doc_date']) ? esc(date('d M Y, H:i', strtotime($doc['doc_date']))) : '-';
+                    $tanggal = !empty($doc['doc_date']) ? esc(format_tanggal_indo($doc['doc_date'], true, true)) : '-';
                     $linkDetail = site_url('riwayat/' . $doc['doc_id']) . '?from=approval';
                 }
 

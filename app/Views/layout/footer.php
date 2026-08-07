@@ -84,6 +84,16 @@
       showConfirmButton: false
     });
   <?php endif; ?>
+
+  <?php if (session()->getFlashdata('warning')): ?>
+    Swal.fire({
+      icon: 'warning',
+      title: 'Peringatan',
+      html: <?= json_encode(session()->getFlashdata('warning')) ?>,
+      showConfirmButton: true,
+      confirmButtonColor: '#f59e0b'
+    });
+  <?php endif; ?>
 </script>
 </body>
 </html>

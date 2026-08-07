@@ -216,15 +216,19 @@ class MesinController extends BaseController
             
             $riwayatModel = new \App\Models\RiwayatMesinModel();
             
-            // Tutup riwayat lama
-            $riwayatLama = $riwayatModel->where('id_mesin', $id)
-                                        ->where('tanggal_selesai', null)
-                                        ->first();
-            if ($riwayatLama) {
-                $riwayatModel->update($riwayatLama['id_riwayat'], [
-                    'tanggal_selesai' => $tanggalSelesaiLama
-                ]);
-            }
+            // Bersihkan riwayat yang bentrok di masa depan
+            $riwayatModel->where('id_mesin', $id)
+                         ->where('tanggal_mulai >=', $tanggalMulaiBaru)
+                         ->delete();
+
+            // Tutup semua riwayat yang sedang berjalan (atau melewati tanggal mulai baru)
+            $riwayatModel->where('id_mesin', $id)
+                         ->groupStart()
+                             ->where('tanggal_selesai', null)
+                             ->orWhere('tanggal_selesai >=', $tanggalMulaiBaru)
+                         ->groupEnd()
+                         ->set(['tanggal_selesai' => $tanggalSelesaiLama])
+                         ->update();
             
             // Buka riwayat baru
             $riwayatModel->insert([

@@ -31,14 +31,14 @@
     </div>
     <div class="mb-3">
       <label class="form-label">Line (Opsional)</label>
-      <?php $lineVal = old('line', $mesin['line'] ?? ''); ?>
+      <?php $lineVal = strtoupper(old('line', $mesin['line'] ?? '')); ?>
       <select name="line" class="form-select">
         <option value="">-- Pilih Line --</option>
-        <option value="Line 1" <?= $lineVal === 'Line 1' ? 'selected' : '' ?>>Line 1</option>
-        <option value="Line 2" <?= $lineVal === 'Line 2' ? 'selected' : '' ?>>Line 2</option>
-        <option value="Line 3" <?= $lineVal === 'Line 3' ? 'selected' : '' ?>>Line 3</option>
+        <option value="Line 1" <?= $lineVal === 'LINE 1' ? 'selected' : '' ?>>Line 1</option>
+        <option value="Line 2" <?= $lineVal === 'LINE 2' ? 'selected' : '' ?>>Line 2</option>
+        <option value="Line 3" <?= $lineVal === 'LINE 3' ? 'selected' : '' ?>>Line 3</option>
         <option value="CG" <?= $lineVal === 'CG' ? 'selected' : '' ?>>CG</option>
-        <option value="Second" <?= $lineVal === 'Second' ? 'selected' : '' ?>>Second</option>
+        <option value="Second" <?= $lineVal === 'SECOND' ? 'selected' : '' ?>>Second</option>
       </select>
       <div class="form-text small">Pilih line tempat mesin ini berada (untuk akses approval Leader).</div>
     </div>
@@ -55,6 +55,8 @@
         <?php 
           $jenisVal = old('jenis', $mesin['jenis'] ?? '');
           $categories = [
+              'CNC',
+              'CAM',
               'THREAD', 
               'DOUBLE MILLING', 'MILLING', 'DOUBLE CENTER DRILL', 'OSL', 
               'KNURLING', 'BROTHER', 'BURNISHING', 'BUFFING', 'CENTERING GRINDING'
@@ -65,7 +67,7 @@
           }
         ?>
       </select>
-      <div class="form-text small">Pilih jenis form agar saat scan QR otomatis diarahkan ke form yang tepat. (MFG 2)</div>
+      <div class="form-text small">Pilih jenis form agar saat scan QR otomatis diarahkan ke form yang tepat. (CNC untuk MFG 1, lainnya untuk MFG 2)</div>
     </div>
 
 

@@ -20,8 +20,8 @@
   </a>
   <div class="ms-auto d-flex gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
-<a href="<?= site_url('kontrol/pdf?lokasi=' . urlencode($lokasi) . '&kategori=' . urlencode($kategori) . '&bulan=' . urlencode($bulan) . '&line=' . urlencode($line)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Download PDF">
-      <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
+<a href="<?= site_url('kontrol/pdf?lokasi=' . urlencode($lokasi) . '&kategori=' . urlencode($kategori) . '&bulan=' . urlencode($bulan) . '&line=' . urlencode($line)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
+      <i class="bi bi-eye-fill me-1"></i> Preview PDF
     </a>
 <?php endif; ?>
   </div>
@@ -157,7 +157,7 @@
                 <td class="font-monospace text-center py-2" style="font-size: 0.75rem; border-bottom: 1px solid #e7e5e4 !important; background-color: #fff;">
                   <?php if (!empty($row['out_of_plan'])): ?>
                     <span class="text-danger fw-bold d-block" style="font-size: 0.7rem;">Out of Plan</span>
-                    <span class="text-secondary fw-semibold" style="font-size: 0.65rem;"><?= date('d-m-Y', strtotime($row['out_of_plan'])) ?></span>
+                    <span class="text-secondary fw-semibold" style="font-size: 0.65rem;"><?= format_tanggal_indo($row['out_of_plan']) ?></span>
                   <?php else: ?>
                     <span class="text-muted">-</span>
                   <?php endif; ?>
@@ -275,7 +275,7 @@
         </h6>
         <span class="small text-muted">
           <?php if (isset($approvalData['approved_l1_at'])): ?>
-            Tanggal: <?= date('d-m-Y H:i', strtotime($approvalData['approved_l1_at'])) ?>
+            Tanggal: <?= format_tanggal_indo($approvalData['approved_l1_at'], false, true) ?>
           <?php else: ?>
             Tanggal: ( ......................... )
           <?php endif; ?>
@@ -304,7 +304,7 @@
         </h6>
         <span class="small text-muted">
           <?php if (isset($approvalData['approved_l2_at'])): ?>
-            Tanggal: <?= date('d-m-Y H:i', strtotime($approvalData['approved_l2_at'])) ?>
+            Tanggal: <?= format_tanggal_indo($approvalData['approved_l2_at'], false, true) ?>
           <?php else: ?>
             Tanggal: ( ......................... )
           <?php endif; ?>
@@ -333,7 +333,7 @@
         </h6>
         <span class="small text-muted">
           <?php if (isset($approvalData['approved_final_at'])): ?>
-            Tanggal: <?= date('d-m-Y H:i', strtotime($approvalData['approved_final_at'])) ?>
+            Tanggal: <?= format_tanggal_indo($approvalData['approved_final_at'], false, true) ?>
           <?php else: ?>
             Tanggal: ( ......................... )
           <?php endif; ?>

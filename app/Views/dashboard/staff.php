@@ -72,8 +72,8 @@
                   <div class="fw-bold text-dark"><?= esc($r['no_mesin']) ?></div>
                   <div class="text-muted small"><?= esc($r['type_mesin']) ?></div>
                 </td>
-                <td class="text-muted small"><?= date('d M Y, H:i', strtotime($r['waktu_mulai'])) ?></td>
-                <td class="text-muted small"><?= $r['waktu_selesai'] ? date('d M Y, H:i', strtotime($r['waktu_selesai'])) : '-' ?></td>
+                <td class="text-muted small"><?= format_tanggal_indo($r['waktu_mulai'], true, true) ?></td>
+                <td class="text-muted small"><?= $r['waktu_selesai'] ? format_tanggal_indo($r['waktu_selesai'], true, true) : '-' ?></td>
                 <td>
                   <?php if (($r['status'] ?? 'Pending') === 'Approved'): ?>
                     <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-2">Approved</span>

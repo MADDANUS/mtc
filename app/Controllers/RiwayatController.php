@@ -198,7 +198,7 @@ class RiwayatController extends BaseController
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
         $filename = 'Laporan_' . ($data['header']['jenis_check'] === JenisCheck::Preventive->value ? 'Checklist' : 'Inspection') . '_' . $data['header']['no_mesin'] . '_' . date('Ymd', strtotime($data['header']['waktu_mulai'])) . '.pdf';
-        $dompdf->stream($filename, ["Attachment" => true]);
+        $dompdf->stream($filename, ["Attachment" => 0]);
         exit();
     }
 
@@ -247,6 +247,19 @@ class RiwayatController extends BaseController
     {
         $riwayatService = new \App\Services\RiwayatService();
         $result = $riwayatService->approveTransaksi($idTransaksi, $this->request);
+        if (!$result['status']) {
+            return redirect()->back()->with('error', $result['message']);
+        }
+        return redirect()->back()->with('success', $result['message']);
+    }
+
+    public function deleteApproval(int $id)
+    {
+        if (session()->get('role') !== \App\Enums\Role::Admin->value) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+        $riwayatService = new \App\Services\RiwayatService();
+        $result = $riwayatService->deleteApproval($id);
         if (!$result['status']) {
             return redirect()->back()->with('error', $result['message']);
         }
@@ -343,13 +356,13 @@ class RiwayatController extends BaseController
             $val = $row['bulan'];
             if ($val) {
                 $time = \CodeIgniter\I18n\Time::parse($val . '-01');
-                $label = $time->toLocalizedString('MMMM yyyy');
+                $label = format_bulan_indo($time->format("Y-m"));
                 $bulanList[$val] = $label;
             }
         }
         $currentMonthVal = \CodeIgniter\I18n\Time::now()->format('Y-m');
         if (!isset($bulanList[$currentMonthVal])) {
-            $bulanList[$currentMonthVal] = \CodeIgniter\I18n\Time::now()->toLocalizedString('MMMM yyyy');
+            $bulanList[$currentMonthVal] = format_bulan_indo(date('Y-m'));
             krsort($bulanList);
         }
         return $bulanList;

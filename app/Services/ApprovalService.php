@@ -259,7 +259,7 @@ class ApprovalService
         // Mulai dari -1 untuk menambahkan 1 bulan ke depan (Curi Start)
         for ($i = -1; $i < 12; $i++) {
             $time = \CodeIgniter\I18n\Time::now()->subMonths($i);
-            $bulanList[$time->format('Y-m')] = $time->toLocalizedString('MMMM yyyy');
+            $bulanList[$time->format('Y-m')] = format_bulan_indo($time->format("Y-m"));
         }
         return $bulanList;
     }

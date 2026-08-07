@@ -5,8 +5,8 @@
 <div class="d-flex align-items-center mb-3">
   <div class="ms-auto d-flex gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
-    <a href="<?= site_url('abnormal/overhaul/pdf?lokasi=' . urlencode($lokasiFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Download PDF">
-      <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
+    <a href="<?= site_url('abnormal/overhaul/pdf?lokasi=' . urlencode($lokasiFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
+      <i class="bi bi-eye-fill me-1"></i> Preview PDF
     </a>
     <?php endif; ?>
   </div>

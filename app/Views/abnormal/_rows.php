@@ -70,7 +70,7 @@
       <td><?= esc($r['type_sparepart']) ?: '<span class="text-muted small">-</span>' ?></td>
       
       <!-- Pengecekan -->
-      <td class="font-monospace"><?= date('d-m-Y', strtotime($r['pengecekan_tanggal'])) ?></td>
+      <td class="font-monospace"><?= format_tanggal_indo($r['pengecekan_tanggal']) ?></td>
       <td><span class="fw-semibold text-dark"><?= esc($r['pengecekan_pic']) ?></span></td>
       
       <!-- Rencana Perbaikan -->
@@ -85,7 +85,7 @@
           <span class="text-muted">-</span>
         <?php endif; ?>
       </td>
-      <td class="font-monospace"><?= $r['progres_tanggal'] ? date('d-m-Y', strtotime($r['progres_tanggal'])) : '<span class="text-muted">-</span>' ?></td>
+      <td class="font-monospace"><?= $r['progres_tanggal'] ? format_tanggal_indo($r['progres_tanggal']) : '<span class="text-muted">-</span>' ?></td>
       <td class="text-start" onclick="event.stopPropagation()">
         <?= esc($r['action']) ?: '<span class="text-muted">-</span>' ?>
         <div class="d-flex justify-content-start align-items-center gap-1 mt-1">

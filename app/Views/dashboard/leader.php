@@ -103,7 +103,7 @@
           <tr>
             <td class="ps-3 fw-semibold"><?= esc($po['no_mesin'] ?? $po['nama_mesin'] ?? '-') ?></td>
             <td><?= esc($po['kategori'] ?? '-') ?></td>
-            <td class="text-muted small"><?= !empty($po['waktu_mulai']) ? date('d M Y', strtotime($po['waktu_mulai'])) : '-' ?></td>
+            <td class="text-muted small"><?= !empty($po['waktu_mulai']) ? format_tanggal_indo($po['waktu_mulai'], true) : '-' ?></td>
             <td><?= esc($po['nama_pic'] ?? '-') ?></td>
             <td>
               <?php 
@@ -286,7 +286,7 @@
                     <span class="badge bg-info text-dark">Checklist Report</span>
                   <?php endif; ?>
                 </td>
-                <td class="text-muted small"><?= date('d M Y, H:i', strtotime($t['waktu_mulai'])) ?></td>
+                <td class="text-muted small"><?= format_tanggal_indo($t['waktu_mulai'], true, true) ?></td>
                 <td class="fw-medium"><?= $t['durasi_detik'] !== null ? gmdate('i:s', (int) $t['durasi_detik']) . ' m' : '-' ?></td>
                 <td>
                   <?php if (($t['status'] ?? 'Pending') === 'Approved'): ?>

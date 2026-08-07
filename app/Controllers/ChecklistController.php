@@ -215,7 +215,7 @@ class ChecklistController extends BaseController
             }),
             'namaStaff'         => session()->get('nama'),
             'waktuMulai'        => $waktuMulai->toDateTimeString(),
-            'waktuMulaiDisplay' => $waktuMulai->toLocalizedString('dd MMMM yyyy, HH:mm:ss'),
+            'waktuMulaiDisplay' => $waktuMulai->format("Y-m-d H:i:s"),
             'idMesin'           => $idMesin,
         ];
 
@@ -290,7 +290,7 @@ class ChecklistController extends BaseController
                 return $this->response->setJSON([
                     'status' => 'overdue',
                     'target_periode' => $lastMonth,
-                    'message' => 'Mesin ini memiliki tunggakan pengecekan untuk periode ' . date('F Y', strtotime($lastMonth . '-01')) . '. Anda harus menyelesaikannya terlebih dahulu.'
+                    'message' => 'Mesin ini memiliki tunggakan pengecekan untuk periode ' . format_bulan_indo($lastMonth) . '. Anda harus menyelesaikannya terlebih dahulu.'
                 ]);
             }
         }
@@ -322,7 +322,7 @@ class ChecklistController extends BaseController
                 return $this->response->setJSON([
                     'status' => 'advance',
                     'target_periode' => $nextMonth,
-                    'message' => 'Jatah bulan ini sudah tuntas. Apakah Anda ingin melakukan pengecekan Out of Plan untuk periode ' . date('F Y', strtotime($nextMonth . '-01')) . '?'
+                    'message' => 'Jatah bulan ini sudah tuntas. Apakah Anda ingin melakukan pengecekan Out of Plan untuk periode ' . format_bulan_indo($nextMonth) . '?'
                 ]);
             }
         }
@@ -362,11 +362,15 @@ class ChecklistController extends BaseController
         $db = \Config\Database::connect();
         $db->transStart();
 
+        $mesinInfo = $this->mesinModel->find($idMesin);
+        $lineCheck = $mesinInfo['line'] ?? null;
+
         $idTransaksi = $this->transaksiModel->insert([
             'id_user'       => session()->get('user_id'),
             'nama_pic'      => $inputPic,
             'id_mesin'      => $idMesin,
             'lokasi_check'  => $lokasiName,
+            'line_check'    => $lineCheck,
             'jenis_check'   => $jenisName,
             'kategori'      => $kategoriName,
             'target_periode'=> $targetPeriode,

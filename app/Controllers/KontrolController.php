@@ -23,7 +23,7 @@ class KontrolController extends BaseController
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
-        $dompdf->stream('Checklist_Control_' . str_replace(' ', '_', $data['kategori']) . '_' . str_replace(' ', '_', $data['lokasi']) . '.pdf', ['Attachment' => true]);
+        $dompdf->stream('Checklist_Control_' . str_replace(' ', '_', $data['kategori']) . '_' . str_replace(' ', '_', $data['lokasi']) . '.pdf', ['Attachment' => 0]);
     }
 
     public function pdfAllCategories()
