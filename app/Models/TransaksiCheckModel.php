@@ -12,7 +12,7 @@ class TransaksiCheckModel extends Model
         'id_user', 'nama_pic', 'id_mesin', 'lokasi_check', 'line_check', 'jenis_check', 'kategori',
         'waktu_mulai', 'waktu_selesai', 'status', 'approved_by', 'pic_line_nama', 'approved_at',
         'approval_l1_by', 'leader_nama', 'approval_l1_at', 'approval_l2_by', 'approval_l2_at',
-        'target_periode'
+        'target_periode', 'ss_type_mesin', 'ss_serial_nomor', 'ss_bar_feeder'
     ];
     protected $useTimestamps = true;
     protected $returnType    = 'array';
@@ -62,7 +62,7 @@ class TransaksiCheckModel extends Model
      */
     public function getRiwayatFiltered(array $filters = [], ?int $userId = null, ?int $limit = null, ?int $perPage = null): array
     {
-        $builder = $this->select('transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, master_mesin.type_mesin, IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) as line')
+        $builder = $this->select('transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, COALESCE(transaksi_check.ss_type_mesin, master_mesin.type_mesin) as type_mesin, IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) as line, (SELECT CASE WHEN SUM(CASE WHEN hasil_check = \'Δ\' THEN 1 ELSE 0 END) > 0 THEN \'Δ\' WHEN COUNT(id_detail) > 0 AND SUM(CASE WHEN hasil_check = \'X\' THEN 1 ELSE 0 END) = COUNT(id_detail) THEN \'X\' ELSE \'V\' END FROM transaksi_check_detail WHERE id_transaksi = transaksi_check.id_transaksi) as kondisi_mesin')
                          ->join('users', 'users.id = transaksi_check.id_user')
                          ->join('users as approver', 'approver.id = transaksi_check.approved_by', 'left')
                          ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
@@ -85,7 +85,8 @@ class TransaksiCheckModel extends Model
         }
 
         if (!empty($filters['line']) && $filters['line'] !== 'all') {
-            $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line))', $filters['line']);
+            $escapedLine = $this->db->escape($filters['line']);
+            $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) = ' . $escapedLine, null, false);
         }
 
         if (!empty($filters['kategori'])) {
@@ -101,7 +102,13 @@ class TransaksiCheckModel extends Model
         }
 
         if (!empty($filters['bulan'])) {
-            $builder->like('transaksi_check.waktu_mulai', $filters['bulan'], 'after');
+            $builder->groupStart()
+                        ->where('transaksi_check.target_periode', $filters['bulan'])
+                        ->orGroupStart()
+                            ->where('(transaksi_check.target_periode IS NULL OR transaksi_check.target_periode = "")', null, false)
+                            ->like('transaksi_check.waktu_mulai', $filters['bulan'], 'after')
+                        ->groupEnd()
+                    ->groupEnd();
         }
 
         if (!empty($filters['pic'])) {
@@ -147,7 +154,7 @@ class TransaksiCheckModel extends Model
      */
     public function getDetailTransaksi(int $idTransaksi): ?array
     {
-        return $this->select('transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, approver_l1.nama as approver_l1_nama, approver_l2.nama as approver_l2_nama, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.serial_nomor, transaksi_overhaul.bar_feeder_type, transaksi_overhaul.support_pic, transaksi_overhaul.note_recommendation')
+        return $this->select('transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, approver_l1.nama as approver_l1_nama, approver_l2.nama as approver_l2_nama, master_mesin.no_mesin, COALESCE(transaksi_check.ss_type_mesin, master_mesin.type_mesin) as type_mesin, COALESCE(transaksi_check.ss_serial_nomor, master_mesin.serial_nomor) as serial_nomor, COALESCE(transaksi_check.ss_bar_feeder, transaksi_overhaul.bar_feeder_type) as bar_feeder_type, transaksi_overhaul.support_pic, transaksi_overhaul.note_recommendation')
                     ->join('users', 'users.id = transaksi_check.id_user')
                     ->join('users as approver', 'approver.id = transaksi_check.approved_by', 'left')
                     ->join('users as approver_l1', 'approver_l1.id = transaksi_check.approval_l1_by', 'left')
@@ -163,7 +170,7 @@ class TransaksiCheckModel extends Model
      */
     public function getLaporanDurasi(array $filters = [], ?int $perPage = null): array
     {
-        $builder = $this->select("transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.line, master_mesin.lokasi as lokasi_mesin, TIMESTAMPDIFF(SECOND, transaksi_check.waktu_mulai, transaksi_check.waktu_selesai) as durasi_detik, transaksi_overhaul.bar_feeder_type, transaksi_overhaul.support_pic, transaksi_overhaul.note_recommendation")
+        $builder = $this->select("transaksi_check.*, users.nama as nama_staff, approver.nama as approver_nama, master_mesin.no_mesin, COALESCE(transaksi_check.ss_type_mesin, master_mesin.type_mesin) as type_mesin, master_mesin.line, master_mesin.lokasi as lokasi_mesin, TIMESTAMPDIFF(SECOND, transaksi_check.waktu_mulai, transaksi_check.waktu_selesai) as durasi_detik, COALESCE(transaksi_check.ss_bar_feeder, transaksi_overhaul.bar_feeder_type) as bar_feeder_type, transaksi_overhaul.support_pic, transaksi_overhaul.note_recommendation")
                     ->join('users', 'users.id = transaksi_check.id_user')
                     ->join('users as approver', 'approver.id = transaksi_check.approved_by', 'left')
                     ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
@@ -182,7 +189,13 @@ class TransaksiCheckModel extends Model
             $builder->where('transaksi_check.jenis_check', $filters['jenis_check']);
         }
         if (!empty($filters['bulan'])) {
-            $builder->like('transaksi_check.waktu_mulai', $filters['bulan'], 'after');
+            $builder->groupStart()
+                        ->where('transaksi_check.target_periode', $filters['bulan'])
+                        ->orGroupStart()
+                            ->where('(transaksi_check.target_periode IS NULL OR transaksi_check.target_periode = "")', null, false)
+                            ->like('transaksi_check.waktu_mulai', $filters['bulan'], 'after')
+                        ->groupEnd()
+                    ->groupEnd();
         }
         if (!empty($filters['pic'])) {
             $builder->groupStart()
@@ -246,7 +259,13 @@ class TransaksiCheckModel extends Model
             $builder->where('transaksi_check.jenis_check', $filters['jenis_check']);
         }
         if (!empty($filters['bulan'])) {
-            $builder->like('transaksi_check.waktu_mulai', $filters['bulan'], 'after');
+            $builder->groupStart()
+                        ->where('transaksi_check.target_periode', $filters['bulan'])
+                        ->orGroupStart()
+                            ->where('(transaksi_check.target_periode IS NULL OR transaksi_check.target_periode = "")', null, false)
+                            ->like('transaksi_check.waktu_mulai', $filters['bulan'], 'after')
+                        ->groupEnd()
+                    ->groupEnd();
         }
         if (!empty($filters['pic'])) {
             $builder->groupStart()
@@ -342,7 +361,7 @@ class TransaksiCheckModel extends Model
 
     public function getAvailableBulan(?string $lokasiName = null, ?string $jenisCheck = null): array
     {
-        $builder = $this->select("DATE_FORMAT(waktu_mulai, '%Y-%m') as bulan", false);
+        $builder = $this->select("COALESCE(NULLIF(target_periode, ''), DATE_FORMAT(waktu_mulai, '%Y-%m')) as bulan", false);
         
         if ($lokasiName !== null) {
             $builder->where('lokasi_check', $lokasiName);
@@ -388,7 +407,8 @@ class TransaksiCheckModel extends Model
             $builder->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value)
                     ->where('transaksi_check.status', 'Pending');
             if ($line) {
-                $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line))', $line);
+                $escapedLine = $this->db->escape($line);
+                $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) = ' . $escapedLine, null, false);
             }
         } elseif ($role === \App\Enums\Role::Sheadprd->value) {
             $builder->whereIn('transaksi_check.jenis_check', [\App\Enums\JenisCheck::Overhaul->value, \App\Enums\JenisCheck::Preventive->value])
@@ -412,5 +432,131 @@ class TransaksiCheckModel extends Model
         }
         
         return $builder->orderBy('transaksi_check.waktu_mulai', 'DESC')->findAll();
+    }
+
+    public function getPercentageSummary(?array $filters = null): array
+    {
+        $db = \Config\Database::connect();
+        
+        // 1. Tentukan Basis Total Mesin (Difilter jika ada)
+        $mesinBuilder = $db->table('master_mesin m');
+        
+        if (!empty($filters['line'])) {
+            $mesinBuilder->where('m.line', $filters['line']);
+        }
+        if (!empty($filters['lokasi'])) {
+            $mesinBuilder->where('m.lokasi', $filters['lokasi']);
+        }
+        if (!empty($filters['id_mesin'])) {
+            $mesinBuilder->where('m.id_mesin', $filters['id_mesin']);
+        }
+        
+        $totalMesin = (int) $mesinBuilder->countAllResults();
+        
+        if ($totalMesin === 0) {
+            return [
+                'total_mesin' => 0,
+                'preventive' => ['checked' => 0, 'coverage' => 0, 'normal' => 0, 'abnormal' => 0, 'normal_count' => 0, 'abnormal_count' => 0],
+                'overhaul'   => ['checked' => 0, 'coverage' => 0, 'normal' => 0, 'abnormal' => 0, 'normal_count' => 0, 'abnormal_count' => 0]
+            ];
+        }
+
+        // Tentukan Periode Waktu
+        // Jika ada filter bulan, gunakan itu sebagai bulan sekarang
+        $bulanSekarang = !empty($filters['bulan']) && $filters['bulan'] !== 'all' ? $filters['bulan'] : date('Y-m');
+        
+        $tahun = (int) substr($bulanSekarang, 0, 4);
+        $bulan = (int) substr($bulanSekarang, 5, 2);
+        
+        $semester = $bulan <= 6 ? 1 : 2;
+        $semesterStart = $semester === 1 ? "$tahun-01" : "$tahun-07";
+        $semesterEnd   = $semester === 1 ? "$tahun-06" : "$tahun-12";
+
+        // Fungsi Helper untuk mengambil status
+        $getStats = function(string $jenis, string $periodeStart, string $periodeEnd) use ($db, $totalMesin, $filters) {
+            $builder = $db->table('transaksi_check t')
+                          ->select('t.id_mesin, 
+                                    (SELECT CASE 
+                                        WHEN SUM(CASE WHEN d.hasil_check = \'Δ\' THEN 1 ELSE 0 END) > 0 THEN \'Δ\' 
+                                        WHEN COUNT(d.id_detail) > 0 AND SUM(CASE WHEN d.hasil_check = \'X\' THEN 1 ELSE 0 END) = COUNT(d.id_detail) THEN \'X\' 
+                                        ELSE \'V\' 
+                                     END 
+                                     FROM transaksi_check_detail d 
+                                     WHERE d.id_transaksi = t.id_transaksi) as kondisi')
+                          ->join('master_mesin m', 'm.id_mesin = t.id_mesin', 'left')
+                          ->where('t.jenis_check', $jenis)
+                          ->where('t.status', 'Approved');
+            
+            // Terapkan Filter Tambahan (Line, Lokasi, Mesin)
+            if (!empty($filters['line'])) {
+                $builder->where('m.line', $filters['line']);
+            }
+            if (!empty($filters['lokasi'])) {
+                $builder->where('m.lokasi', $filters['lokasi']);
+            }
+            if (!empty($filters['id_mesin'])) {
+                $builder->where('t.id_mesin', $filters['id_mesin']);
+            }
+            
+            // Logika Periode (Y-m)
+            if ($periodeStart === $periodeEnd) {
+                // Bulan tertentu
+                $builder->groupStart()
+                            ->where('t.target_periode', $periodeStart)
+                            ->orGroupStart()
+                                ->where('(t.target_periode IS NULL OR t.target_periode = "")', null, false)
+                                ->like('t.waktu_mulai', $periodeStart, 'after')
+                            ->groupEnd()
+                        ->groupEnd();
+            } else {
+                // Range Semester
+                $builder->groupStart()
+                            ->where("t.target_periode >= '$periodeStart'")
+                            ->where("t.target_periode <= '$periodeEnd'")
+                            ->orGroupStart()
+                                ->where('(t.target_periode IS NULL OR t.target_periode = "")', null, false)
+                                ->where("DATE_FORMAT(t.waktu_mulai, '%Y-%m') >= '$periodeStart'")
+                                ->where("DATE_FORMAT(t.waktu_mulai, '%Y-%m') <= '$periodeEnd'")
+                            ->groupEnd()
+                        ->groupEnd();
+            }
+
+            $builder->orderBy('t.id_transaksi', 'ASC');
+            $results = $builder->get()->getResultArray();
+
+            $mesinUnik = [];
+            foreach ($results as $row) {
+                $mesinUnik[$row['id_mesin']] = $row['kondisi'];
+            }
+
+            $checked = count($mesinUnik);
+            $normal = 0;
+            $abnormal = 0;
+            
+            foreach ($mesinUnik as $kondisi) {
+                if ($kondisi === 'V') {
+                    $normal++;
+                } else {
+                    $abnormal++;
+                }
+            }
+
+            return [
+                'checked'  => $checked,
+                'coverage' => $totalMesin > 0 ? round(($checked / $totalMesin) * 100, 1) : 0,
+                'normal'   => $checked > 0 ? round(($normal / $checked) * 100, 1) : 0,
+                'abnormal' => $checked > 0 ? round(($abnormal / $checked) * 100, 1) : 0,
+                'normal_count' => $normal,
+                'abnormal_count' => $abnormal
+            ];
+        };
+
+        return [
+            'total_mesin' => $totalMesin,
+            'preventive'  => $getStats('Preventive', $bulanSekarang, $bulanSekarang),
+            'overhaul'    => $getStats('Overhaul', $semesterStart, $semesterEnd),
+            'bulan'       => $bulanSekarang,
+            'semester'    => "Semester $semester $tahun"
+        ];
     }
 }

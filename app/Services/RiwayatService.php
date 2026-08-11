@@ -42,7 +42,8 @@ class RiwayatService
             'allReports' => $allReports,
             'filters'    => $filters,
             'lokasiName' => $lokasiName,
-            'jenisLabel' => $jenisLabel
+            'jenisLabel' => $jenisLabel,
+            'percentageSummary' => $transaksiModel->getPercentageSummary($filters)
         ];
     }
 
@@ -58,7 +59,7 @@ class RiwayatService
         $approvalStatus = $header['status'] ?? 'Pending';
 
         if ($roleSession === Role::Sheadprd->value && $approvalStatus === 'Pending') {
-            throw new \Exception('Dokumen ini belum siap (Masih menunggu Leader).');
+            throw new \Exception('Dokumen ini belum siap (Masih menunggu Leader PRD).');
         }
         if ($roleSession === Role::Sheadmtc->value && in_array($approvalStatus, ['Pending', 'Approved L1'], true)) {
             throw new \Exception('Dokumen ini belum siap (Masih menunggu SHead Produksi).');

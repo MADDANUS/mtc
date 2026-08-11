@@ -11,6 +11,11 @@ use App\Models\TransaksiCheckModel;
 use App\Models\MesinModel;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 class RiwayatController extends BaseController
 {
@@ -146,6 +151,118 @@ class RiwayatController extends BaseController
         $dompdf->render();
         $filename = "Summary_Riwayat_" . str_replace(' ', '_', $data['jenisLabel']) . "_" . date('Ymd_His') . ".pdf";
         $dompdf->stream($filename, ["Attachment" => true]);
+    }
+
+    /**
+     * GET /riwayat/export-excel/(:segment)
+     * Download rekap riwayat dalam format Excel
+     */
+    public function exportExcel(string $lokasiSlug)
+    {
+        $lokasiName = $this->resolveLokasi($lokasiSlug);
+        $riwayatService = new \App\Services\RiwayatService();
+        try {
+            $lokasiName = $riwayatService->validateLeaderAccess($lokasiName);
+        } catch (\Exception $e) {
+            return redirect()->to('/dashboard')->with('error', $e->getMessage());
+        }
+
+        $userLine = (session()->get('role') === Role::Leader->value) ? session()->get('line') : null;
+        $filters = $this->buildSearchFilters($lokasiName, $userLine);
+        
+        $transaksiModel = new TransaksiCheckModel();
+        // Fetch all matching records (no pagination)
+        $riwayat = $transaksiModel->getRiwayatFiltered($filters, null, null, null);
+
+        $jenisLabel = $filters['jenis_check'] === JenisCheck::Preventive->value
+            ? 'Preventive'
+            : ($filters['jenis_check'] === JenisCheck::Overhaul->value ? 'Overhaul' : 'Pengecekan');
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Rekap ' . $jenisLabel);
+
+        // Header Styling
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FF4F81BD']
+            ],
+            'borders' => [
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN]
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+
+        helper('tanggal');
+        
+        // Headers
+        $headers = ['No', 'Tipe', 'Lokasi', 'Line', 'Nama Mesin', 'Kategori', 'Kondisi', 'PIC (Mekanik)', 'Waktu Mulai', 'Waktu Selesai', 'Status'];
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . '1', $header);
+            $col++;
+        }
+        $sheet->getStyle('A1:K1')->applyFromArray($headerStyle);
+
+        // Data Rows
+        $row = 2;
+        $no = 1;
+        $dataStyle = [
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER]
+        ];
+
+        foreach ($riwayat as $data) {
+            $sheet->setCellValue('A' . $row, $no++);
+            $sheet->setCellValue('B' . $row, $data['jenis_check'] ?? '-');
+            $sheet->setCellValue('C' . $row, $data['lokasi_check'] ?? '-');
+            $sheet->setCellValue('D' . $row, $data['line'] ?? '-');
+            $sheet->setCellValue('E' . $row, $data['no_mesin'] ?? '-');
+            $sheet->setCellValue('F' . $row, $data['kategori'] ?? '-');
+            
+            $kondisiExcel = 'Normal';
+            if ($data['kondisi_mesin'] === 'Δ') {
+                $kondisiExcel = 'Perlu Tindakan';
+            } elseif ($data['kondisi_mesin'] === 'X') {
+                $kondisiExcel = 'Tidak Ada';
+            }
+            $sheet->setCellValue('G' . $row, $kondisiExcel);
+            
+            $waktuMulai = !empty($data['waktu_mulai']) ? format_tanggal_indo($data['waktu_mulai'], true, true) : '-';
+            $waktuSelesai = !empty($data['waktu_selesai']) ? format_tanggal_indo($data['waktu_selesai'], true, true) : '-';
+            
+            $sheet->setCellValue('H' . $row, $data['nama_pic'] ?? '-');
+            $sheet->setCellValue('I' . $row, $waktuMulai);
+            $sheet->setCellValue('J' . $row, $waktuSelesai);
+            $sheet->setCellValue('K' . $row, $data['status'] ?? '-');
+            $row++;
+        }
+
+        if ($row > 2) {
+            $sheet->getStyle('A2:K' . ($row - 1))->applyFromArray($dataStyle);
+            $sheet->getStyle('A2:A' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('B2:K' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        }
+
+        // Auto size columns
+        foreach (range('A', 'K') as $columnID) {
+            $sheet->getColumnDimension($columnID)->setAutoSize(true);
+        }
+
+        $filename = "Rekap_Riwayat_" . $jenisLabel . "_" . date('Ymd_His') . ".xlsx";
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
     }
 
     public function detail(int $id)

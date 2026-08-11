@@ -48,12 +48,17 @@
       <td style="font-weight:bold;">START TIME</td>
       <td><?= date('H:i:s', $waktuMulai) ?></td>
     </tr>
-    <tr>
-      <td style="font-weight:bold;">BAR FEEDER TYPE</td>
-      <td><?= esc($header['bar_feeder_type'] ?? '-') ?></td>
-      <td style="font-weight:bold;">FINISH TIME</td>
-      <td><?= $waktuSelesai ? date('H:i:s', $waktuSelesai) : '-' ?></td>
-    </tr>
+      <tr>
+        <?php if (stripos($header['kategori'] ?? '', 'CNC') !== false): ?>
+          <td style="font-weight:bold;">BAR FEEDER TYPE</td>
+          <td><?= esc($header['bar_feeder_type'] ?? '-') ?></td>
+        <?php else: ?>
+          <td style="font-weight:bold;"></td>
+          <td></td>
+        <?php endif; ?>
+        <td style="font-weight:bold;">FINISH TIME</td>
+        <td><?= $waktuSelesai ? date('H:i:s', $waktuSelesai) : '-' ?></td>
+      </tr>
   </table>
 
   <!-- KETERANGAN CHECK LIST - standalone, tidak dipaksa full width -->

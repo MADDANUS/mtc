@@ -3,6 +3,13 @@
 namespace App\Controllers;
 
 use App\Services\AbnormalService;
+use App\Models\MasterMesinModel;
+use App\Models\TransaksiCheckModel;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 class AbnormalController extends BaseController
 {
@@ -52,6 +59,92 @@ class AbnormalController extends BaseController
         $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
         $dompdf->stream('Laporan_Abnormal_Ringkasan_Semua_Area_' . $data['bulanFilter'] . '.pdf', ['Attachment' => true]);
+    }
+
+    public function excelAllSummary()
+    {
+        $service = new AbnormalService();
+        $data = $service->pdfAllSummary($this->request);
+        
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Summary Abnormal');
+
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FFE53935'] // Red for abnormal
+            ],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER
+            ]
+        ];
+
+        $headers = ['No', 'Lokasi', 'Kategori', 'Mesin', 'Point Check', 'Abnormal Condition', 'Type Sparepart', 'Tgl Pengecekan', 'PIC Cek', 'Progres', 'Tgl Progres', 'Action', 'PIC Action', 'Keterangan'];
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . '1', $header);
+            $col++;
+        }
+        $sheet->getStyle('A1:N1')->applyFromArray($headerStyle);
+
+        $rowNum = 2;
+        $no = 1;
+        $dataStyle = [
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER]
+        ];
+
+        foreach ($data['allReportsData'] as $item) {
+            $lokasi = $item['lokasi'];
+            $kategori = $item['kategori'];
+            foreach ($item['reports'] as $r) {
+                $pointCheckDisplay = $r['point_check'];
+                if (!empty($r['bagian_check'])) {
+                    $parts = [$r['bagian_check']];
+                    if (!empty($r['sub_item_check'])) $parts[] = $r['sub_item_check'];
+                    $parts[] = $r['point_check'];
+                    $pointCheckDisplay = implode(' - ', $parts);
+                }
+
+                $sheet->setCellValue('A' . $rowNum, $no++);
+                $sheet->setCellValue('B' . $rowNum, $lokasi);
+                $sheet->setCellValue('C' . $rowNum, $kategori);
+                $sheet->setCellValue('D' . $rowNum, $r['no_mesin']);
+                $sheet->setCellValue('E' . $rowNum, $pointCheckDisplay);
+                $sheet->setCellValue('F' . $rowNum, $r['abnormal_condition']);
+                $sheet->setCellValue('G' . $rowNum, $r['type_sparepart'] ?? '');
+                $sheet->setCellValue('H' . $rowNum, $r['pengecekan_tanggal'] ?? '');
+                $sheet->setCellValue('I' . $rowNum, $r['pengecekan_pic'] ?? '');
+                $sheet->setCellValue('J' . $rowNum, $r['progres_stock'] ?? '');
+                $sheet->setCellValue('K' . $rowNum, $r['progres_tanggal'] ?? '');
+                $sheet->setCellValue('L' . $rowNum, $r['action'] ?? '');
+                $sheet->setCellValue('M' . $rowNum, $r['repair_pic'] ?? '');
+                $sheet->setCellValue('N' . $rowNum, $r['keterangan'] ?? '');
+                
+                $rowNum++;
+            }
+        }
+
+        if ($rowNum > 2) {
+            $sheet->getStyle('A2:N' . ($rowNum - 1))->applyFromArray($dataStyle);
+            $sheet->getStyle('A2:A' . ($rowNum - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        }
+
+        foreach (range('A', 'N') as $columnID) {
+            $sheet->getColumnDimension($columnID)->setAutoSize(true);
+        }
+
+        $filename = "Laporan_Abnormal_Ringkasan_Semua_Area_" . $data['bulanFilter'] . ".xlsx";
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
     }
 
     public function index()

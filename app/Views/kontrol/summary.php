@@ -128,15 +128,7 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                         </th>
                         <th class="py-2"></th>
                         <th class="py-2">
-                            <select name="filter_status" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Status..." onchange="document.getElementById('filterForm').submit();">
-                                <option value=""></option>
-                                <option value="all" <?= ($filterStatus ?? '') === 'all' ? 'selected' : '' ?>>Semua Status</option>
-                                <option value="Belum Selesai" <?= ($filterStatus ?? '') === 'Belum Selesai' ? 'selected' : '' ?>>Belum Selesai</option>
-                                <option value="Menunggu Approval (L1)" <?= ($filterStatus ?? '') === 'Menunggu Approval (L1)' ? 'selected' : '' ?>>Menunggu Approval (L1)</option>
-                                <option value="Approved L1 (Menunggu L2)" <?= ($filterStatus ?? '') === 'Approved L1 (Menunggu L2)' ? 'selected' : '' ?>>Approved L1 (Menunggu L2)</option>
-                                <option value="Approved L2 (Menunggu Final)" <?= ($filterStatus ?? '') === 'Approved L2 (Menunggu Final)' ? 'selected' : '' ?>>Approved L2 (Menunggu Final)</option>
-                                <option value="Selesai (Final)" <?= ($filterStatus ?? '') === 'Selesai (Final)' ? 'selected' : '' ?>>Selesai (Final)</option>
-                            </select>
+                            <!-- Filter status approval dihilangkan -->
                         </th>
                         <th class="py-2">
                             <select name="bulan" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-no-sort="true" onchange="document.getElementById('filterForm').submit();">

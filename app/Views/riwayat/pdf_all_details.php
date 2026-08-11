@@ -40,9 +40,33 @@
   </style>
 </head>
 <body>
-<div class="pdf-container">
-
-<?php foreach ($allReports as $reportIndex => $report): ?>
+  <div class="pdf-container">
+  
+  <?php if (isset($percentageSummary) && isset($filters)): ?>
+  <div style="border: 1px solid #000; padding: 10px; margin-bottom: 20px; font-size: 12px; background-color: #f8f9fa;">
+    <strong style="font-size: 14px;">RINGKASAN LAPORAN (Berdasarkan Filter)</strong><br>
+    <?php
+      $jenis = ($filters['jenis_check'] ?? '') === 'Overhaul' ? 'overhaul' : 'preventive';
+      $cov = $percentageSummary[$jenis];
+    ?>
+    <table style="width: 100%; margin-top: 5px; border: none;">
+      <tr>
+        <td style="width: 25%; border: none;">Total Mesin Terdaftar</td>
+        <td style="width: 75%; border: none;">: <strong><?= $percentageSummary['total_mesin'] ?></strong> Mesin</td>
+      </tr>
+      <tr>
+        <td style="border: none;">Mesin Telah Dicek</td>
+        <td style="border: none;">: <strong><?= $cov['checked'] ?></strong> Mesin (Capaian: <strong><?= $cov['coverage'] ?>%</strong>)</td>
+      </tr>
+      <tr>
+        <td style="border: none;">Kondisi Mesin</td>
+        <td style="border: none;">: Normal = <strong><?= $cov['normal_count'] ?></strong> (<?= $cov['normal'] ?>%) | Abnormal = <strong><?= $cov['abnormal_count'] ?></strong> (<?= $cov['abnormal'] ?>%)</td>
+      </tr>
+    </table>
+  </div>
+  <?php endif; ?>
+  
+  <?php foreach ($allReports as $reportIndex => $report): ?>
 <?php
   $header = $report['header'];
   $details = $report['details'];

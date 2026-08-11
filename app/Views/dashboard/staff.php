@@ -93,4 +93,8 @@
   </div>
 </div>
 
+<div class="mt-5">
+  <?= view('components/percentage_cards') ?>
+</div>
+
 <?= view('layout/footer') ?>

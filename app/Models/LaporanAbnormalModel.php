@@ -148,9 +148,7 @@ class LaporanAbnormalModel extends Model
         if (!empty($lokasi) && $lokasi !== 'all') {
             $builder->where('master_mesin.lokasi', $lokasi);
         }
-        if (!empty($bulan) && $bulan !== 'all') {
-            $builder->like('laporan_abnormal.pengecekan_tanggal', $bulan . '-', 'after');
-        }
+        $this->applySemesterFilter($builder, $bulan);
         if (!empty($search)) {
             $builder->groupStart()
                     ->like('laporan_abnormal.point_check', $search)
@@ -174,9 +172,9 @@ class LaporanAbnormalModel extends Model
                         ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
                         ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
                         ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value);
-        if (!empty($bulan)) {
-            $builder->like('laporan_abnormal.pengecekan_tanggal', $bulan . '-', 'after');
-        }
+        
+        $this->applySemesterFilter($builder, $bulan);
+
         return $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
                        ->orderBy('laporan_abnormal.id_abnormal', 'DESC')
                        ->findAll();
@@ -184,21 +182,38 @@ class LaporanAbnormalModel extends Model
 
     public function getOverhaulDashboardSummaryLaporan(string $lokasi, string $bulan): array
     {
-        return $this->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi')
+        $builder = $this->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi')
                     ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
                     ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
                     ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value)
-                    ->where('master_mesin.lokasi', $lokasi)
-                    ->like('laporan_abnormal.pengecekan_tanggal', $bulan . '-', 'after')
-                    ->findAll();
+                    ->where('master_mesin.lokasi', $lokasi);
+        $this->applySemesterFilter($builder, $bulan);
+        return $builder->findAll();
     }
 
     public function getOverhaulDashboardSummaryTotals(string $bulan): array
     {
-        return $this->select('SUM(CASE WHEN laporan_abnormal.action IS NULL OR laporan_abnormal.action = \'\' THEN 1 ELSE 0 END) as totalOpen, COUNT(laporan_abnormal.id_abnormal) as totalAll')
+        $builder = $this->select('SUM(CASE WHEN laporan_abnormal.action IS NULL OR laporan_abnormal.action = \'\' THEN 1 ELSE 0 END) as totalOpen, COUNT(laporan_abnormal.id_abnormal) as totalAll')
                     ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
-                    ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value)
-                    ->like('laporan_abnormal.pengecekan_tanggal', $bulan . '-', 'after')
-                    ->first() ?: [];
+                    ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value);
+        $this->applySemesterFilter($builder, $bulan);
+        return $builder->first() ?: [];
+    }
+
+    private function applySemesterFilter($builder, string $bulan)
+    {
+        if (!empty($bulan) && $bulan !== 'all') {
+            $year = substr($bulan, 0, 4);
+            $month = (int)substr($bulan, 5, 2);
+            if ($month <= 6) {
+                $startDate = $year . '-01-01';
+                $endDate = $year . '-06-30';
+            } else {
+                $startDate = $year . '-07-01';
+                $endDate = $year . '-12-31';
+            }
+            $builder->where('laporan_abnormal.pengecekan_tanggal >=', $startDate)
+                    ->where('laporan_abnormal.pengecekan_tanggal <=', $endDate);
+        }
     }
 }

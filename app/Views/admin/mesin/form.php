@@ -32,13 +32,8 @@
     <div class="mb-3">
       <label class="form-label">Line (Opsional)</label>
       <?php $lineVal = strtoupper(old('line', $mesin['line'] ?? '')); ?>
-      <select name="line" class="form-select">
+      <select name="line" class="form-select" data-selected="<?= esc($lineVal) ?>">
         <option value="">-- Pilih Line --</option>
-        <option value="Line 1" <?= $lineVal === 'LINE 1' ? 'selected' : '' ?>>Line 1</option>
-        <option value="Line 2" <?= $lineVal === 'LINE 2' ? 'selected' : '' ?>>Line 2</option>
-        <option value="Line 3" <?= $lineVal === 'LINE 3' ? 'selected' : '' ?>>Line 3</option>
-        <option value="CG" <?= $lineVal === 'CG' ? 'selected' : '' ?>>CG</option>
-        <option value="Second" <?= $lineVal === 'SECOND' ? 'selected' : '' ?>>Second</option>
       </select>
       <div class="form-text small">Pilih line tempat mesin ini berada (untuk akses approval Leader).</div>
     </div>
@@ -51,12 +46,11 @@
     <div class="mb-4">
       <label class="form-label text-primary fw-semibold">Jenis (Opsional)</label>
       <select name="jenis" class="form-select border-primary bg-primary bg-opacity-10">
-        <option value="">-- Standar --</option>
+        <option value="">-- Pilih Jenis --</option>
         <?php 
           $jenisVal = old('jenis', $mesin['jenis'] ?? '');
           $categories = [
-              'CNC',
-              'CAM',
+              'CNC', 'MANUAL LATHE', 'TAPPING', 'BENDING', 'DRILLING', 'WASHING', 
               'THREAD', 
               'DOUBLE MILLING', 'MILLING', 'DOUBLE CENTER DRILL', 'OSL', 
               'KNURLING', 'BROTHER', 'BURNISHING', 'BUFFING', 'CENTERING GRINDING'
@@ -81,6 +75,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const lokasiSelect = document.querySelector('select[name="lokasi"]');
     const typeInput = document.querySelector('input[name="type_mesin"]');
     const serialInput = document.querySelector('input[name="serial_nomor"]');
+    const lineSelect = document.querySelector('select[name="line"]');
+
+    const lines = {
+        'MFG 1': ['Line 1', 'Line 2', 'Line 3'],
+        'MFG 2': ['CG', 'Second']
+    };
+
+    function updateLines() {
+        const selectedLokasi = lokasiSelect.value;
+        const selectedLine = lineSelect.getAttribute('data-selected');
+        
+        lineSelect.innerHTML = '<option value="">-- Pilih Line --</option>';
+        
+        if (lines[selectedLokasi]) {
+            lines[selectedLokasi].forEach(line => {
+                const option = document.createElement('option');
+                option.value = line;
+                option.textContent = line;
+                if (line.toUpperCase() === selectedLine) {
+                    option.selected = true;
+                }
+                lineSelect.appendChild(option);
+            });
+        }
+    }
 
     function toggleRequired() {
         if (lokasiSelect.value === 'MFG 2') {
@@ -90,11 +109,19 @@ document.addEventListener('DOMContentLoaded', function() {
             typeInput.required = true;
             serialInput.required = true;
         }
+        updateLines();
     }
 
-    if(lokasiSelect && typeInput && serialInput) {
+    if(lokasiSelect) {
         lokasiSelect.addEventListener('change', toggleRequired);
         toggleRequired(); // Run on init
+        
+        // Update data-selected when user manually changes it
+        if(lineSelect) {
+            lineSelect.addEventListener('change', function() {
+                this.setAttribute('data-selected', this.value.toUpperCase());
+            });
+        }
     }
 });
 </script>

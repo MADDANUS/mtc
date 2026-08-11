@@ -23,7 +23,7 @@
           <div>The Future</div><div>In Our Hands</div>
         </div>
       </td>
-      <td colspan="6" class="kop-table-title" style="padding:6px; font-size:13px;">CHECKLIST REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?></td>
+      <td colspan="6" class="kop-table-title" style="padding:6px; font-size:13px;">CHECKLIST REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?> (<?= strtoupper(esc($header['lokasi_check'] ?? '-')) ?>)</td>
     </tr>
     <!-- ROW 2: Label dokumen -->
     <tr>
@@ -43,31 +43,23 @@
 
   <!-- KOP INFO ROWS (Table terpisah agar jumlah kolom tidak berbenturan dengan logo) -->
   <table style="margin-top:0 !important; border-top:none;">
-    <!-- ROW INFO 1: NO MACHINE | DATE | LOKASI -->
+    <!-- ROW INFO 1: DATE | MACHINE TYPE | START TIME -->
     <tr>
-      <td style="font-weight:bold; width:16%; border-top:none;">NO MACHINE</td>
-      <td style="width:17%; border-top:none;"><?= esc($header['no_mesin']) ?></td>
       <td style="font-weight:bold; width:16%; border-top:none;">DATE</td>
       <td style="width:17%; border-top:none;"><?= format_tanggal_indo(date('Y-m-d', $waktuMulai)) ?></td>
-      <td style="font-weight:bold; width:16%; border-top:none;">LOKASI</td>
-      <td style="border-top:none;"><?= esc($header['lokasi_check'] ?? '-') ?></td>
+      <td style="font-weight:bold; width:16%; border-top:none;">MACHINE TYPE</td>
+      <td style="width:17%; border-top:none;"><?= esc($header['type_mesin']) ?></td>
+      <td style="font-weight:bold; width:16%; border-top:none;">START TIME</td>
+      <td style="border-top:none;"><?= date('H:i:s', $waktuMulai) ?></td>
     </tr>
-    <!-- ROW INFO 2: MACHINE TYPE | START TIME | DURASI -->
+    <!-- ROW INFO 2: NO MACHINE | SERIAL NUMBER | FINISH TIME -->
     <tr>
-      <td style="font-weight:bold;">MACHINE TYPE</td>
-      <td><?= esc($header['type_mesin']) ?></td>
-      <td style="font-weight:bold;">START TIME</td>
-      <td><?= date('H:i:s', $waktuMulai) ?></td>
-      <td style="font-weight:bold;">DURASI</td>
-      <td><?= $durasiStr ?></td>
-    </tr>
-    <!-- ROW INFO 3: SERIAL NUMBER | FINISH TIME -->
-    <tr>
+      <td style="font-weight:bold;">NO MACHINE</td>
+      <td><?= esc($header['no_mesin']) ?></td>
       <td style="font-weight:bold;">SERIAL NUMBER</td>
       <td><?= esc($header['serial_nomor'] ?? '-') ?></td>
       <td style="font-weight:bold;">FINISH TIME</td>
       <td><?= $waktuSelesai ? date('H:i:s', $waktuSelesai) : '-' ?></td>
-      <td colspan="2">&nbsp;</td>
     </tr>
   </table>
 

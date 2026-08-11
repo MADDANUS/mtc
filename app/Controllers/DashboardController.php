@@ -48,11 +48,15 @@ class DashboardController extends BaseController
             }
         }
 
+        $bulan = $this->request->getGet('bulan') ?: date('Y-m');
+        $lokasiUser = session()->get('lokasi');
+
         return view('dashboard/staff', [
             'title'         => 'Dashboard Magang',
             'hariIni'       => $hariIni,
             'minggu'        => $minggu,
             'riwayatTerbaru' => array_slice($riwayat, 0, 5),
+            'percentageSummary' => $transaksiModel->getPercentageSummary(['bulan' => $bulan, 'lokasi' => $lokasiUser]),
         ]);
     }
 
@@ -153,14 +157,16 @@ class DashboardController extends BaseController
             }
         }
 
+        $bulan = $this->request->getGet('bulan') ?: date('Y-m');
         return view('dashboard/leader', [
             'title'          => 'Dashboard Leader Line ' . ($lokasiLine ?: ''),
             'totalTransaksi' => $totalTransaksi,
             'rataDetik'      => $rataDetik,
             'perluTindakan'  => $findings,
             'terbaru'        => array_slice($terbaru, 0, 8),
-            'pendingOverhaul'=> $pendingOverhaul,
             'pendingKontrol' => $pendingKontrol,
+            'pendingOverhaul'=> $pendingOverhaul,
+            'percentageSummary' => $transaksiModel->getPercentageSummary(['bulan' => $bulan, 'line' => $lokasiLine]),
         ]);
     }
 
@@ -209,6 +215,9 @@ class DashboardController extends BaseController
         $sessionLine = session()->get('line') ?: session()->get('lokasi');
         $pendingOverhaul = $transaksiModel->getPendingOverhaulByRole($role, $sessionLine);
 
+        $bulan = $this->request->getGet('bulan') ?: date('Y-m');
+        $sessionLokasi = session()->get('lokasi');
+
         return view('dashboard/leader', [
             'title'          => $title,
             'totalTransaksi' => $totalTransaksi,
@@ -217,6 +226,7 @@ class DashboardController extends BaseController
             'terbaru'        => array_slice($laporan, 0, 8),
             'pendingKontrol' => $pendingKontrol,
             'pendingOverhaul'=> $pendingOverhaul,
+            'percentageSummary' => $transaksiModel->getPercentageSummary(['bulan' => $bulan, 'lokasi' => $sessionLokasi]),
         ]);
     }
 
@@ -225,12 +235,15 @@ class DashboardController extends BaseController
      */
     private function admin()
     {
+        $transaksiModel = new TransaksiCheckModel();
+        $bulan = $this->request->getGet('bulan') ?: date('Y-m');
         return view('dashboard/admin', [
             'title'        => 'Dashboard Admin',
             'totalUser'    => (new UserModel())->countAllResults(),
             'totalMesin'   => (new MesinModel())->countAllResults(),
             'totalParam'   => (new ParameterCheckModel())->countAllResults(),
-            'totalTrans'   => (new TransaksiCheckModel())->countAllResults(),
+            'totalTrans'   => $transaksiModel->countAllResults(),
+            'percentageSummary' => $transaksiModel->getPercentageSummary(['bulan' => $bulan]),
         ]);
     }
 }

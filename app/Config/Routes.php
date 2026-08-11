@@ -50,6 +50,7 @@ $routes->group('riwayat', ['filter' => 'auth'], static function ($routes) {
     $routes->get('lokasi/(:segment)', 'RiwayatController::lokasi/$1');
     $routes->get('kategori/(:segment)', 'RiwayatController::kategori/$1');
     $routes->get('download-pdf-all/(:segment)', 'RiwayatController::downloadPdfAll/$1', ['filter' => 'role:member,admin,magang']);
+    $routes->get('export-excel/(:segment)', 'RiwayatController::exportExcel/$1', ['filter' => 'role:member,admin,magang']);
     $routes->get('download-pdf/(:num)', 'RiwayatController::downloadPdf/$1', ['filter' => 'role:member,admin,magang']);
     $routes->get('(:num)', 'RiwayatController::detail/$1');
     $routes->post('approve/(:num)', 'RiwayatController::approve/$1', ['filter' => 'role:member,sheadprd,sheadmtc,admin,leader']);
@@ -84,6 +85,7 @@ $routes->group('abnormal', ['filter' => 'auth'], static function ($routes) {
     $routes->get('pdf', 'AbnormalController::pdf', ['filter' => 'role:member,admin']);
     $routes->get('pdf-all-categories', 'AbnormalController::pdfAllCategories', ['filter' => 'role:member,admin']);
     $routes->get('pdf-all-summary', 'AbnormalController::pdfAllSummary', ['filter' => 'role:member,admin']);
+    $routes->get('excel-all-summary', 'AbnormalController::excelAllSummary', ['filter' => 'role:member,admin']);
     $routes->post('update', 'AbnormalController::update');
     $routes->post('approve', 'AbnormalController::approveBulanan');
     
@@ -117,6 +119,7 @@ $routes->group('admin/mesin', ['filter' => 'role:admin,member,sheadprd,sheadmtc,
     $routes->get('template', 'MesinController::template');
     $routes->post('import', 'MesinController::import');
     $routes->get('download-all-qr', 'MesinController::downloadAllQr');
+    $routes->get('riwayat/(:num)', 'MesinController::getRiwayat/$1');
     $routes->get('generate-qr', 'MesinController::generateQr');
 });
 

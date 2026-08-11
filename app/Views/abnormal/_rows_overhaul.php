@@ -50,7 +50,7 @@
         data-foto-perbaikan-2="<?= !empty($r['foto_perbaikan_2']) ? base_url('uploads/abnormal/' . $r['foto_perbaikan_2']) : '' ?>">
       
       <td class="fw-bold font-monospace text-secondary" style="background-color: #f8fafc;"><?= $no++ ?></td>
-      <td class="text-start fw-bold text-dark ps-3"><?= esc($r['no_mesin']) ?> - <?= esc($r['type_mesin']) ?></td>
+      <td class="text-start fw-bold text-dark ps-3"><?= esc($r['no_mesin']) ?></td>
       <td><?= $pointCheckDisplay ?></td>
       <td class="text-danger fw-semibold">
         <?= esc($r['abnormal_condition']) ?>

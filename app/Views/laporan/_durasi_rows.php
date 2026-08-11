@@ -38,7 +38,7 @@ if (!function_exists('formatDurasiText')) {
       $namaDurasiOnly = end($namaDurasiParts);
     ?>
     <td><?= esc($namaDurasiOnly) ?></td>
-    <td><?= esc($l['no_mesin']) ?> - <?= esc($l['type_mesin']) ?></td>
+    <td><?= esc($l['no_mesin']) ?></td>
     <td><?= esc($l['lokasi_check']) ?> / <?= esc($l['line'] ?? '-') ?></td>
     <td>
       <?php if (strtolower($l['jenis_check']) === 'overhaul'): ?>

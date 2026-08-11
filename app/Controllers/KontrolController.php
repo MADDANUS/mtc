@@ -21,7 +21,7 @@ class KontrolController extends BaseController
         $dompdf = new \Dompdf\Dompdf();
         $dompdf->set_option('isRemoteEnabled', true);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
         $dompdf->stream('Checklist_Control_' . str_replace(' ', '_', $data['kategori']) . '_' . str_replace(' ', '_', $data['lokasi']) . '.pdf', ['Attachment' => 0]);
     }
@@ -36,7 +36,7 @@ class KontrolController extends BaseController
         $options->set('isRemoteEnabled', true);
         $dompdf = new \Dompdf\Dompdf($options);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
         $dompdf->stream('Checklist_Control_Semua_Kategori_' . str_replace(' ', '_', $data['lokasi']) . '_' . $data['bulan'] . '.pdf', ['Attachment' => true]);
     }
@@ -51,7 +51,7 @@ class KontrolController extends BaseController
         $options->set('isRemoteEnabled', true);
         $dompdf = new \Dompdf\Dompdf($options);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
         $dompdf->stream('Checklist_Control_Ringkasan_Semua_Area_' . $data['bulan'] . '.pdf', ['Attachment' => true]);
     }

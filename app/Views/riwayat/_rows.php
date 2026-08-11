@@ -18,7 +18,7 @@
     <td class="fw-semibold text-muted text-center"><?= $no++ ?></td>
     <td class="text-muted" style="font-size: 0.85rem;"><?= esc($r['nama_pic']) ?></td>
     <td class="fw-medium text-dark" style="font-size: 0.85rem; text-center"><?= esc($r['lokasi_check'] ?? '-') ?></td>
-    <td class="fw-medium text-dark" style="font-size: 0.85rem; text-center"><?= esc($r['line'] ?? '-') ?></td>
+    <td class="fw-medium text-dark" style="font-size: 0.85rem; text-center"><?= strtoupper(esc($r['line'] ?? '-')) ?></td>
     <td>
       <div class="fw-semibold text-dark" style="font-size: 0.85rem;"><?= esc($r['no_mesin']) ?></div>
       <div class="text-muted small" style="font-size: 0.75rem;"><?= esc($r['type_mesin']) ?></div>
@@ -26,6 +26,15 @@
     <td>
       <span class="badge bg-primary"><?= esc($r['kategori']) ?></span>
       <span class="badge bg-secondary text-capitalize"><?= esc($r['jenis_check'] === 'Preventive' ? 'Checklist Report' : $r['jenis_check']) ?></span>
+    </td>
+    <td class="text-center align-middle">
+      <?php if ($r['kondisi_mesin'] === 'Δ'): ?>
+        <i class="bi bi-exclamation-triangle-fill text-warning fs-5" title="Ada Segitiga"></i>
+      <?php elseif ($r['kondisi_mesin'] === 'X'): ?>
+        <i class="bi bi-x-circle-fill text-danger fs-5" title="X (Tidak Ada)"></i>
+      <?php else: ?>
+        <i class="bi bi-check-circle-fill text-success fs-5" title="Normal (V)"></i>
+      <?php endif; ?>
     </td>
     <td style="font-size: 0.8rem; color: var(--text-secondary);">
       <?= esc(format_tanggal_indo($r['waktu_mulai'], true, true)) ?>

@@ -78,7 +78,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
           <option value="">-- Cari PIC --</option>
           <?php if (isset($masterPic) && !empty($masterPic)): ?>
             <?php foreach ($masterPic as $pic): ?>
-              <?php $picVal = esc($pic['id_pic'] . ' - ' . $pic['nama_pic']); ?>
+              <?php $picVal = esc($pic['nama_pic']); ?>
               <option value="<?= $picVal ?>" <?= (isset($namaPic) && $namaPic === $picVal) ? 'selected' : '' ?>><?= $picVal ?></option>
             <?php endforeach; ?>
           <?php endif; ?>
@@ -210,7 +210,13 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                       allowOutsideClick: false
                   }).then(function(result) {
                       if (!result.isConfirmed) {
-                          window.location.href = '<?= $backUrl ?>';
+                          if (typeof selectMesin !== 'undefined' && selectMesin && !new URLSearchParams(window.location.search).get('id_mesin')) {
+                              if (selectMesin.tomselect) selectMesin.tomselect.setValue('', true);
+                              else selectMesin.value = '';
+                              updateFields();
+                          } else {
+                              window.location.href = '<?= $backUrl ?>';
+                          }
                       }
                   });
               } else if (data.status === 'blocked') {
@@ -222,7 +228,13 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                       confirmButtonColor: '#198754',
                       allowOutsideClick: false
                   }).then(function() {
-                      window.location.href = '<?= $backUrl ?>';
+                      if (typeof selectMesin !== 'undefined' && selectMesin && !new URLSearchParams(window.location.search).get('id_mesin')) {
+                          if (selectMesin.tomselect) selectMesin.tomselect.setValue('', true);
+                          else selectMesin.value = '';
+                          updateFields();
+                      } else {
+                          window.location.href = '<?= $backUrl ?>';
+                      }
                   });
               } else if (data.status === 'overdue') {
                   Swal.fire({

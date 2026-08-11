@@ -101,6 +101,13 @@ class MesinController extends BaseController
 
     public function store()
     {
+        $noMesin = $this->request->getPost('no_mesin');
+        $existing = $this->model->where('no_mesin', $noMesin)->first();
+
+        if ($existing) {
+            return $this->update((int) $existing['id_mesin']);
+        }
+
         if (! $this->validate($this->rules())) {
             return $this->redirectValidationError();
         }
@@ -114,6 +121,8 @@ class MesinController extends BaseController
             'bar_feeder_type' => $this->request->getPost('bar_feeder_type'),
             'jenis'           => $this->request->getPost('jenis') ?: null,
         ]);
+
+        $idMesin = $this->model->getInsertID();
 
         // --- TAHAP 3: RIWAYAT MESIN OTOMATIS ---
         $lokasiTujuan = $this->request->getPost('lokasi');
@@ -169,7 +178,7 @@ class MesinController extends BaseController
 
         $oldMesin = $this->model->find($id);
 
-        if (! $this->validate($this->rules())) {
+        if (! $this->validate($this->rules($id))) {
             return $this->redirectValidationError();
         }
 
@@ -240,6 +249,12 @@ class MesinController extends BaseController
             ]);
         }
         // -----------------------------------------
+
+        // --- TAHAP 4: PENCATATAN AUDIT TRAIL ---
+        $logModel = new \App\Models\LogMasterMesinModel();
+        $newData = $this->model->find($id);
+        $logModel->logChanges($id, $oldMesin, $newData, session()->get('user_id'));
+
 
         return $this->redirectSuccess($redirectUrl, 'Mesin berhasil diperbarui.');
     }
@@ -408,9 +423,17 @@ class MesinController extends BaseController
                     continue;
                 }
                 
-                if ($lokasi !== Lokasi::MFG2->value && (empty($typeMesin) || empty($serialNomor))) {
-                    $errors[] = "Baris {$row}: Type Mesin dan Serial Nomor wajib diisi untuk lokasi selain MFG 2.";
+                if ($lokasi !== Lokasi::MFG2->value && empty($typeMesin)) {
+                    $errors[] = "Baris {$row}: Type Mesin wajib diisi untuk lokasi selain MFG 2.";
                     continue;
+                }
+                
+                if (!empty($serialNomor)) {
+                    $existingSerial = $this->model->where('serial_nomor', $serialNomor)->first();
+                    if ($existingSerial && $existingSerial['no_mesin'] !== $noMesin) {
+                        $errors[] = "Baris {$row}: Serial Nomor '{$serialNomor}' sudah digunakan oleh mesin lain.";
+                        continue;
+                    }
                 }
                 
                 if (! in_array($lokasi, [Lokasi::MFG1->value, Lokasi::MFG2->value], true)) {
@@ -429,6 +452,58 @@ class MesinController extends BaseController
                         'bar_feeder_type' => empty($barFeederType) ? null : $barFeederType,
                         'jenis'           => empty($jenis) ? null : $jenis,
                     ]);
+                    
+                    // --- TAHAP 3: RIWAYAT MESIN OTOMATIS (UPDATE) ---
+                    $lokasiBaru = $lokasi;
+                    $lineBaru = empty($line) ? null : $line;
+                    if ($existing['lokasi'] !== $lokasiBaru || $existing['line'] !== $lineBaru) {
+                        $bulanIni = date('Y-m');
+                        $approvalModel = new \App\Models\ApprovalBulananModel();
+                        $approvalLama = $approvalModel->where('lokasi', $existing['lokasi'])
+                                                      ->where('line', $existing['line'])
+                                                      ->where('bulan_tahun', $bulanIni)
+                                                      ->first();
+                        $approvalBaru = $approvalModel->where('lokasi', $lokasiBaru)
+                                                      ->where('line', $lineBaru)
+                                                      ->where('bulan_tahun', $bulanIni)
+                                                      ->first();
+                                                      
+                        $isLamaFinal = ($approvalLama && $approvalLama['status_approval'] === 'Approved Final');
+                        $isBaruFinal = ($approvalBaru && $approvalBaru['status_approval'] === 'Approved Final');
+                        
+                        if ($isLamaFinal || $isBaruFinal) {
+                            $tanggalSelesaiLama = date('Y-m-t');
+                            $tanggalMulaiBaru = date('Y-m-01', strtotime('+1 month'));
+                        } else {
+                            $tanggalSelesaiLama = date('Y-m-t', strtotime('-1 month'));
+                            $tanggalMulaiBaru = date('Y-m-01');
+                        }
+                        
+                        $riwayatModel = new \App\Models\RiwayatMesinModel();
+                        $riwayatModel->where('id_mesin', $existing['id_mesin'])
+                                     ->where('tanggal_mulai >=', $tanggalMulaiBaru)
+                                     ->delete();
+                        $riwayatModel->where('id_mesin', $existing['id_mesin'])
+                                     ->groupStart()
+                                         ->where('tanggal_selesai', null)
+                                         ->orWhere('tanggal_selesai >=', $tanggalMulaiBaru)
+                                     ->groupEnd()
+                                     ->set(['tanggal_selesai' => $tanggalSelesaiLama])
+                                     ->update();
+                        $riwayatModel->insert([
+                            'id_mesin' => $existing['id_mesin'],
+                            'lokasi' => $lokasiBaru,
+                            'line' => $lineBaru,
+                            'tanggal_mulai' => $tanggalMulaiBaru,
+                            'tanggal_selesai' => null
+                        ]);
+                    }
+                    
+                    // --- TAHAP 4: AUDIT TRAIL EXCEL ---
+                    $logModel = new \App\Models\LogMasterMesinModel();
+                    $newData = $this->model->find($existing['id_mesin']);
+                    $logModel->logChanges($existing['id_mesin'], $existing, $newData, session()->get('user_id'));
+
                     $successUpdate++;
                 } else {
                     $this->model->insert([
@@ -440,6 +515,30 @@ class MesinController extends BaseController
                         'bar_feeder_type' => empty($barFeederType) ? null : $barFeederType,
                         'jenis'           => empty($jenis) ? null : $jenis,
                     ]);
+                    $idMesin = $this->model->getInsertID();
+
+                    // --- TAHAP 3: RIWAYAT MESIN OTOMATIS (INSERT) ---
+                    $lokasiTujuan = $lokasi;
+                    $lineTujuan = empty($line) ? null : $line;
+                    $bulanIni = date('Y-m');
+                    $approvalModel = new \App\Models\ApprovalBulananModel();
+                    $approvalTujuan = $approvalModel->where('lokasi', $lokasiTujuan)
+                                                    ->where('line', $lineTujuan)
+                                                    ->where('bulan_tahun', $bulanIni)
+                                                    ->first();
+                    $tanggalMulai = date('Y-m-d');
+                    if ($approvalTujuan && $approvalTujuan['status_approval'] === 'Approved Final') {
+                        $tanggalMulai = date('Y-m-01', strtotime('+1 month'));
+                    }
+                    $riwayatModel = new \App\Models\RiwayatMesinModel();
+                    $riwayatModel->insert([
+                        'id_mesin' => $idMesin,
+                        'lokasi' => $lokasiTujuan,
+                        'line' => $lineTujuan,
+                        'tanggal_mulai' => $tanggalMulai,
+                        'tanggal_selesai' => null
+                    ]);
+
                     $successInsert++;
                 }
             }
@@ -457,12 +556,23 @@ class MesinController extends BaseController
         }
     }
 
-    private function rules(): array
+    private function rules(?int $id = null): array
     {
+        $noMesinRule = 'required|max_length[50]';
+        $serialNomorRule = 'permit_empty|max_length[100]';
+        
+        if ($id) {
+            $noMesinRule .= "|is_unique[master_mesin.no_mesin,id_mesin,{$id}]";
+            $serialNomorRule .= "|is_unique[master_mesin.serial_nomor,id_mesin,{$id}]";
+        } else {
+            $noMesinRule .= "|is_unique[master_mesin.no_mesin]";
+            $serialNomorRule .= "|is_unique[master_mesin.serial_nomor]";
+        }
+
         return [
-            'no_mesin'        => 'required|max_length[50]',
+            'no_mesin'        => $noMesinRule,
             'type_mesin'      => ($this->request->getPost('lokasi') === Lokasi::MFG2->value ? 'permit_empty|max_length[100]' : 'required|max_length[100]'),
-            'serial_nomor'    => ($this->request->getPost('lokasi') === Lokasi::MFG2->value ? 'permit_empty|max_length[100]' : 'required|max_length[100]'),
+            'serial_nomor'    => $serialNomorRule,
             'lokasi'          => 'required|in_list[MFG 1,MFG 2]',
             'line'            => 'permit_empty|string|max_length[50]',
             'bar_feeder_type' => 'permit_empty|string|max_length[100]',
@@ -521,5 +631,12 @@ class MesinController extends BaseController
         return $this->response
             ->setContentType('image/png')
             ->setBody($qrcode->render($data));
+    }
+
+    public function getRiwayat(int $id)
+    {
+        $logModel = new \App\Models\LogMasterMesinModel();
+        $riwayat = $logModel->getRiwayatByMesin($id);
+        return $this->response->setJSON($riwayat);
     }
 }

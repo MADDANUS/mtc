@@ -51,7 +51,7 @@
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
   <h5 class="mb-0">Master Mesin</h5>
   <div class="d-flex align-items-center gap-2 flex-wrap">
-    <?php if (session()->get('role') === 'admin'): ?>
+    <?php if (in_array(session()->get('role'), ['admin', 'member'])): ?>
       <!-- Form Impor Excel -->
       <form action="<?= site_url('admin/mesin/import') ?>" method="post" enctype="multipart/form-data" class="d-flex align-items-center gap-1 border rounded p-1 bg-white shadow-sm" style="max-height: 38px;">
         <?= csrf_field() ?>
@@ -109,9 +109,9 @@
             <td>
               <?php if (session()->get('role') === 'leader'): ?>
                 <input type="text" class="form-control form-control-sm" value="<?= esc(session()->get('lokasi')) ?>" readonly>
-                <input type="hidden" name="lokasi" value="<?= esc(session()->get('lokasi')) ?>">
+                <input type="hidden" id="filterLokasi" name="lokasi" value="<?= esc(session()->get('lokasi')) ?>">
               <?php else: ?>
-                <select name="lokasi" class="form-select form-select-sm" onchange="this.form.submit()">
+                <select name="lokasi" id="filterLokasi" class="form-select form-select-sm" onchange="this.form.submit()">
                   <option value="all">Semua Lokasi</option>
                   <option value="MFG 1" <?= ($filters['lokasi'] ?? '') === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
                   <option value="MFG 2" <?= ($filters['lokasi'] ?? '') === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
@@ -119,11 +119,8 @@
               <?php endif; ?>
             </td>
             <td>
-              <select name="line" class="form-select form-select-sm" onchange="this.form.submit()">
+              <select name="line" id="filterLine" class="form-select form-select-sm" onchange="this.form.submit()" data-selected="<?= esc($filters['line'] ?? 'all') ?>">
                 <option value="all">Semua Line</option>
-                <?php foreach (['Line 1', 'Line 2', 'Line 3', 'CG', 'Second'] as $l): ?>
-                  <option value="<?= $l ?>" <?= ($filters['line'] ?? '') === $l ? 'selected' : '' ?>><?= $l ?></option>
-                <?php endforeach; ?>
               </select>
             </td>
             <td></td>
@@ -178,7 +175,13 @@
                           data-lokasi="<?= esc($m['lokasi']) ?>">
                     <i class="bi bi-qr-code"></i> QR
                   </button>
-                  <?php if (session()->get('role') === 'admin'): ?>
+                  <?php if (in_array(session()->get('role'), ['admin', 'member'])): ?>
+                    <button type="button" class="btn btn-outline-info btn-sm py-1 px-2 btn-riwayat-mesin" 
+                            data-id="<?= $m['id_mesin'] ?>" 
+                            data-no="<?= esc($m['no_mesin']) ?>"
+                            title="Riwayat Mesin">
+                      <i class="bi bi-clock-history"></i>
+                    </button>
                     <a href="<?= site_url('admin/mesin/edit/' . $m['id_mesin']) ?>" class="btn btn-outline-primary btn-sm py-1 px-2" title="Edit Mesin">
                       <i class="bi bi-pencil"></i>
                     </a>
@@ -223,8 +226,78 @@
   </div>
 </div>
 
+<!-- Modal Riwayat -->
+<div class="modal fade" id="riwayatModal" tabindex="-1" aria-labelledby="riwayatModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <div class="modal-header border-0 pb-0">
+        <h6 class="modal-title fw-bold" id="riwayatModalLabel">Riwayat Mesin</h6>
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" id="riwayatModalBody">
+        <div class="text-center text-muted" id="riwayatLoading">
+          <div class="spinner-border spinner-border-sm me-1" role="status"></div> Memuat riwayat...
+        </div>
+        <div id="riwayatContent" class="timeline-container d-none">
+          <!-- Timeline items will be injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.timeline-container { position: relative; padding-left: 1.5rem; }
+.timeline-container::before {
+    content: ''; position: absolute; left: 0.35rem; top: 0; bottom: 0;
+    width: 2px; background: #e9ecef;
+}
+.timeline-item { position: relative; margin-bottom: 1.5rem; }
+.timeline-item:last-child { margin-bottom: 0; }
+.timeline-item::before {
+    content: ''; position: absolute; left: -1.45rem; top: 0.25rem;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--bs-primary, #0d6efd);
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+}
+.timeline-date { font-size: 0.85rem; font-weight: 600; color: #343a40; margin-bottom: 0.1rem; }
+.timeline-admin { font-size: 0.75rem; color: #6c757d; margin-bottom: 0.4rem; display: block; }
+.timeline-changes { margin: 0; padding-left: 0; list-style-type: none; }
+.timeline-changes li { font-size: 0.85rem; position: relative; margin-bottom: 0.3rem; padding-left: 1.3rem; color: #495057; }
+.timeline-changes li::before {
+    content: '🔄'; position: absolute; left: 0; top: 0; font-size: 0.75rem;
+}
+.val-lama { text-decoration: line-through; color: #dc3545; }
+.val-baru { color: #198754; font-weight: 500; }
+</style>
+
 <script>
   document.addEventListener("DOMContentLoaded", function() {
+    // Dynamic Filter Line Logic
+    const filterLokasi = document.getElementById('filterLokasi');
+    const filterLine = document.getElementById('filterLine');
+    if (filterLokasi && filterLine) {
+      const linesData = {
+          'MFG 1': ['Line 1', 'Line 2', 'Line 3'],
+          'MFG 2': ['CG', 'Second']
+      };
+      const selectedLokasi = filterLokasi.value;
+      const selectedLine = filterLine.getAttribute('data-selected');
+      
+      filterLine.innerHTML = '<option value="all">Semua Line</option>';
+      if (linesData[selectedLokasi]) {
+          linesData[selectedLokasi].forEach(line => {
+              const option = document.createElement('option');
+              option.value = line;
+              option.textContent = line;
+              if (line === selectedLine) {
+                  option.selected = true;
+              }
+              filterLine.appendChild(option);
+          });
+      }
+    }
+
     // Suggestion Logic
     const searchInput = document.getElementById('mesinSearchInput');
     const suggestionBox = document.getElementById('mesinSuggestionBox');
@@ -436,6 +509,78 @@
         </html>
       `);
       printWin.document.close();
+    });
+
+    // --- RIWAYAT MODAL LOGIC ---
+    const riwayatModal = new bootstrap.Modal(document.getElementById('riwayatModal'));
+    const btnRiwayat = document.querySelectorAll('.btn-riwayat-mesin');
+    
+    btnRiwayat.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const idMesin = this.getAttribute('data-id');
+        const noMesin = this.getAttribute('data-no');
+        
+        document.getElementById('riwayatModalLabel').innerText = `Riwayat Mesin: ${noMesin}`;
+        document.getElementById('riwayatLoading').classList.remove('d-none');
+        const contentDiv = document.getElementById('riwayatContent');
+        contentDiv.classList.add('d-none');
+        contentDiv.innerHTML = '';
+        
+        riwayatModal.show();
+        
+        fetch(`<?= site_url('admin/mesin/riwayat/') ?>${idMesin}`)
+          .then(res => res.json())
+          .then(data => {
+            document.getElementById('riwayatLoading').classList.add('d-none');
+            contentDiv.classList.remove('d-none');
+            
+            if (!data || data.length === 0) {
+              contentDiv.innerHTML = '<div class="text-center text-muted"><i class="bi bi-info-circle"></i> Tidak ada riwayat.</div>';
+              return;
+            }
+            
+            // Group by waktu
+            const grouped = {};
+            data.forEach(item => {
+                const timeKey = item.created_at.substring(0, 16) + '_' + item.diubah_oleh;
+                if (!grouped[timeKey]) {
+                    grouped[timeKey] = {
+                        date: new Date(item.created_at).toLocaleString('id-ID', {day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute:'2-digit'}),
+                        admin: item.nama_admin || 'Sistem',
+                        changes: []
+                    };
+                }
+                grouped[timeKey].changes.push(item);
+            });
+            
+            let html = '';
+            for (const key in grouped) {
+                const group = grouped[key];
+                html += `
+                <div class="timeline-item">
+                    <div class="timeline-date">${group.date}</div>
+                    <span class="timeline-admin"><i class="bi bi-person-fill"></i> Oleh: ${group.admin}</span>
+                    <ul class="timeline-changes">
+                `;
+                
+                group.changes.forEach(change => {
+                    const fieldLabel = change.kolom_diubah.replace(/_/g, ' ').toUpperCase();
+                    const oldVal = change.nilai_lama || '-';
+                    const newVal = change.nilai_baru || '-';
+                    html += `<li><strong>${fieldLabel}</strong> diubah dari <span class="val-lama">${oldVal}</span> menjadi <span class="val-baru">${newVal}</span></li>`;
+                });
+                
+                html += `</ul></div>`;
+            }
+            
+            contentDiv.innerHTML = html;
+          })
+          .catch(err => {
+            document.getElementById('riwayatLoading').classList.add('d-none');
+            contentDiv.classList.remove('d-none');
+            contentDiv.innerHTML = '<div class="text-center text-muted"><i class="bi bi-info-circle"></i> Tidak ada riwayat.</div>';
+          });
+      });
     });
   });
 </script>

@@ -11,9 +11,15 @@
             <input type="hidden" name="view" value="summary">
             <?php
                 $pdfUrl = site_url('abnormal/pdf-all-summary?bulan=' . urlencode($bulan));
-                if (!empty($filterLokasi)) $pdfUrl .= '&filter_lokasi=' . urlencode($filterLokasi);
-                if (!empty($filterLine)) $pdfUrl .= '&filter_line=' . urlencode($filterLine);
-                if (!empty($filterKategori)) $pdfUrl .= '&filter_kategori=' . urlencode($filterKategori);
+                if (!empty($filterLokasi)) {
+                    $pdfUrl .= '&filter_lokasi=' . urlencode($filterLokasi);
+                }
+                if (!empty($filterLine)) {
+                    $pdfUrl .= '&filter_line=' . urlencode($filterLine);
+                }
+                if (!empty($filterKategori)) {
+                    $pdfUrl .= '&filter_kategori=' . urlencode($filterKategori);
+                }
             ?>
             <?php if (!in_array(session()->get('role'), ['sheadprd', 'sheadmtc', 'leader'], true)): ?>
             <a href="<?= $pdfUrl ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Download PDF">

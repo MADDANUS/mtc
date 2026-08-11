@@ -55,13 +55,13 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
               <select name="jenis" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Tipe..." onchange="this.form.submit()" style="font-size:0.75rem;">
                 <option value=""></option>
                 <option value="all" <?= ($filterJenis === 'all') ? 'selected' : '' ?>>Semua Tipe</option>
-                <?php if (in_array($role, ['member', 'admin'])): ?>
+                <?php if (in_array($role, ['member', 'sheadprd', 'sheadmtc', 'admin'])): ?>
                 <option value="Preventive" <?= ($filterJenis === 'Preventive') ? 'selected' : '' ?>>Checklist Report</option>
                 <?php endif; ?>
-                <?php if (in_array($role, ['leader', 'sheadprd', 'sheadmtc', 'admin'])): ?>
+                <?php if (in_array($role, ['member', 'leader', 'sheadprd', 'sheadmtc', 'admin'])): ?>
                 <option value="Overhaul" <?= ($filterJenis === 'Overhaul') ? 'selected' : '' ?>>Inspection Report</option>
                 <?php endif; ?>
-                <?php if (in_array($role, ['sheadprd', 'sheadmtc', 'admin'])): ?>
+                <?php if (in_array($role, ['member', 'sheadprd', 'sheadmtc', 'admin'])): ?>
                 <option value="kontrol" <?= ($filterJenis === 'kontrol') ? 'selected' : '' ?>>Checklist Control</option>
                 <?php endif; ?>
               </select>
@@ -112,10 +112,10 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
               <select name="status" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Status..." onchange="this.form.submit()" style="font-size:0.75rem;">
                 <option value=""></option>
                 <option value="all" <?= ($filterStatus === 'all') ? 'selected' : '' ?>>Semua Status</option>
-                <option value="Pending_Overhaul" <?= ($filterStatus === 'Pending_Overhaul') ? 'selected' : '' ?>>Menunggu Leader</option>
-                <option value="Pending_Preventive" <?= ($filterStatus === 'Pending_Preventive') ? 'selected' : '' ?>>Menunggu Member</option>
-                <option value="Approved L1" <?= ($filterStatus === 'Approved L1') ? 'selected' : '' ?>>Menunggu SHead 1</option>
-                <option value="Approved L2" <?= ($filterStatus === 'Approved L2') ? 'selected' : '' ?>>Menunggu SHead 2</option>
+                <option value="Pending" <?= ($filterStatus === 'Pending') ? 'selected' : '' ?>>Menunggu Member (Prev)</option>
+                <option value="Pending_Overhaul" <?= ($filterStatus === 'Pending_Overhaul') ? 'selected' : '' ?>>Menunggu Leader PRD</option>
+                <option value="Approved L1" <?= ($filterStatus === 'Approved L1') ? 'selected' : '' ?>>Menunggu SHead PRD</option>
+                <option value="Approved L2" <?= ($filterStatus === 'Approved L2') ? 'selected' : '' ?>>Menunggu SHead MTC</option>
               </select>
             </th>
             <!-- Reset -->
@@ -178,7 +178,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                 } else {
                     $keterangan = esc($doc['no_mesin'] ?? '') . ' — ' . esc($doc['type_mesin'] ?? '') . ' (' . esc($doc['kategori'] ?? '') . ')'; // Tetap untuk JS
                     $tdKategori = esc($doc['kategori'] ?? '-');
-                    $tdMesin    = esc($doc['no_mesin'] ?? '') . (!empty($doc['type_mesin']) ? ' - ' . esc($doc['type_mesin']) : '');
+                    $tdMesin    = esc($doc['no_mesin'] ?? '');
                     $lokasiLine = esc($doc['lokasi_check'] ?? '-') . ($doc['line'] ? ' / ' . esc($doc['line']) : '');
                     $rawPic = $doc['nama_pic'] ?: $doc['nama_staff'];
                     $parts = explode(' - ', $rawPic ?? '');
@@ -191,10 +191,10 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                 $status = $doc['status'] ?? 'Pending';
                 if ($status === 'Approved' || $status === 'Approved Final' || $status === 'Final') {
                     $statusBadge = '<span class="badge bg-success">Selesai (Final)</span>';
-                } elseif ($status === 'Approved L1') {
-                    $statusBadge = '<span class="badge bg-info text-dark">Menunggu SHead 1</span>';
-                } elseif ($status === 'Approved L2') {
-                    $statusBadge = '<span class="badge bg-primary">Menunggu SHead 2</span>';
+                } elseif ($doc['status'] === 'Approved L1') {
+                    $statusBadge = '<span class="badge bg-info text-dark">Menunggu SHead PRD</span>';
+                } elseif ($doc['status'] === 'Approved L2') {
+                    $statusBadge = '<span class="badge bg-primary">Menunggu SHead MTC</span>';
                 } elseif ($status === 'Belum Selesai') {
                     $persen = $doc['persen'] ?? 0;
                     if ($persen == 100) {
@@ -204,7 +204,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                     }
                 } else {
                     if (($doc['jenis_check'] ?? '') === 'Overhaul') {
-                        $statusBadge = '<span class="badge bg-warning text-dark">Menunggu Leader</span>';
+                        $statusBadge = '<span class="badge bg-warning text-dark">Menunggu Leader PRD</span>';
                     } else {
                         $statusBadge = '<span class="badge bg-warning text-dark">Menunggu Member</span>';
                     }

@@ -66,7 +66,7 @@
     }
 
     /* ---- LAYOUT ---- */
-    .app-container { display: flex; min-height: 100vh; }
+    .app-container { display: flex; min-height: 100vh; width: 100%; overflow-x: hidden; }
 
     /* ---- SIDEBAR ---- */
     .sidebar {
@@ -188,7 +188,7 @@
     }
 
     /* ---- CONTENT ---- */
-    .content-area { padding: 1.75rem; flex: 1; }
+    .content-area { padding: 1.75rem; flex: 1; min-width: 0; }
 
     /* ---- PAGE HEADER utility ---- */
     .page-header {
@@ -608,7 +608,7 @@
     }
 
     /* ---- RESPONSIVE ---- */
-    @media (max-width: 991.98px) {
+    @media (max-width: 1199.98px) {
         .sidebar { left: calc(-1 * var(--sidebar-w)); }
         .sidebar.show { left: 0; }
         .sidebar-overlay.show { display: block; }
@@ -831,7 +831,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
     <!-- Header Topbar -->
     <header class="topbar">
       <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-sm btn-outline-secondary d-lg-none" id="sidebarToggle" style="padding:0.35rem 0.6rem;">
+        <button class="btn btn-sm btn-outline-secondary d-xl-none" id="sidebarToggle" style="padding:0.35rem 0.6rem;">
           <i class="bi bi-list"></i>
         </button>
         <h1 class="topbar-title"><?= esc($title ?? 'Dashboard') ?></h1>
@@ -846,11 +846,19 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
     <!-- Main Content Area -->
     <main class="content-area">
       <!-- Flash Alerts -->
-      <?php if (isset($errors)): ?>
+      <?php $flashErrors = session()->getFlashdata('errors'); ?>
+      <?php if (!empty($flashErrors) || !empty($errors)): ?>
         <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 mb-4" role="alert">
           <i class="bi bi-exclamation-triangle-fill me-2"></i>
           <ul class="mb-0 ps-3">
-            <?php foreach ($errors as $e): ?><li><?= esc($e) ?></li><?php endforeach; ?>
+            <?php 
+              $allErrors = !empty($flashErrors) ? $flashErrors : (!empty($errors) ? $errors : []);
+              if (is_array($allErrors)) {
+                  foreach ($allErrors as $e) echo "<li>" . esc($e) . "</li>";
+              } else {
+                  echo "<li>" . esc($allErrors) . "</li>";
+              }
+            ?>
           </ul>
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>

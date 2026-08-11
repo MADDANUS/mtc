@@ -377,6 +377,9 @@ class ChecklistController extends BaseController
             'waktu_mulai'   => $waktuMulai,
             'waktu_selesai' => $waktuSelesai,
             'status'        => 'Pending',
+            'ss_type_mesin'   => $mesinInfo['type_mesin'] ?? null,
+            'ss_serial_nomor' => $mesinInfo['serial_nomor'] ?? null,
+            'ss_bar_feeder'   => $mesinInfo['bar_feeder_type'] ?? null,
         ]);
         if (!$idTransaksi) {
             log_message('error', 'Failed to insert transaksi_check: ' . json_encode($this->transaksiModel->errors()));

@@ -44,8 +44,12 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
       // Hapus filter lokasi dari parameter GET karena sudah ada di URL segment
       unset($pdfParams['lokasi']);
       $downloadUrl = site_url("riwayat/download-pdf-all/{$lokasiSlug}") . '?' . http_build_query($pdfParams);
+      $excelUrl = site_url("riwayat/export-excel/{$lokasiSlug}") . '?' . http_build_query($pdfParams);
     ?>
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
+    <a href="<?= $excelUrl ?>" class="btn btn-sm btn-outline-success shadow-sm" target="_blank">
+      <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel
+    </a>
     <a href="<?= $downloadUrl ?>" class="btn btn-sm btn-outline-danger shadow-sm" target="_blank">
       <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
     </a>
@@ -98,13 +102,18 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
               </a>
             </th>
             <th style="width: 15%;" class="align-middle">
-              <a href="<?= $getSortUrl('kategori') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
-                KATEGORI <?= $getSortIcon('kategori') ?>
-              </a>
-            </th>
-            <th style="width: 15%;" class="align-middle">
-              <a href="<?= $getSortUrl('waktu_mulai') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
-                TANGGAL <?= $getSortIcon('waktu_mulai') ?>
+                <a href="<?= $getSortUrl('kategori') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                  KATEGORI <?= $getSortIcon('kategori') ?>
+                </a>
+              </th>
+              <th style="width: 10%;" class="align-middle text-center">
+                <a href="#" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em; cursor: default;" onclick="return false;">
+                  KONDISI
+                </a>
+              </th>
+              <th style="width: 15%;" class="align-middle">
+                <a href="<?= $getSortUrl('waktu_mulai') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                TARGET BULAN <?= $getSortIcon('waktu_mulai') ?>
               </a>
             </th>
             <th style="width: 12%;" class="align-middle">
@@ -158,16 +167,19 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
               </select>
             </th>
             <th class="p-1" style="min-width: 140px;">
-              <select name="kategori" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Kategori..." onchange="this.form.submit()" style="font-size: 0.75rem;">
-                <option value=""></option>
-                <option value="all">Semua Kategori</option>
-                <?php foreach ($categories as $slug => $name): ?>
-                  <option value="<?= esc($name) ?>" <?= isset($selectedFilters['kategori']) && $selectedFilters['kategori'] === $name ? 'selected' : '' ?>><?= esc($name) ?></option>
-                <?php endforeach; ?>
-              </select>
-            </th>
+                <select name="kategori" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Kategori..." onchange="this.form.submit()" style="font-size: 0.75rem;">
+                  <option value=""></option>
+                  <option value="all">Semua Kategori</option>
+                  <?php foreach ($categories as $slug => $name): ?>
+                    <option value="<?= esc($name) ?>" <?= isset($selectedFilters['kategori']) && $selectedFilters['kategori'] === $name ? 'selected' : '' ?>><?= esc($name) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </th>
+              <th class="p-1">
+                 <!-- No filter for Kondisi for now -->
+              </th>
             <th class="p-1" style="min-width: 140px;">
-              <select name="bulan" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-no-sort="true" data-placeholder="Cari Bulan..." onchange="this.form.submit()" style="font-size: 0.75rem;">
+              <select name="bulan" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-no-sort="true" data-placeholder="Cari Target Bulan..." onchange="this.form.submit()" style="font-size: 0.75rem;">
                 <option value=""></option>
                 <option value="all">Semua Bulan</option>
                 <?php if (!empty($bulanList)) foreach ($bulanList as $val => $label): ?>

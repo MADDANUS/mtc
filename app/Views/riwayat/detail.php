@@ -45,7 +45,7 @@
     </a>
   <?php endif; ?>
     <div>
-      <h5 class="mb-0 fw-bold text-uppercase"><i class="bi bi-clipboard-check me-2 text-primary"></i>Detail Checklist Report</h5>
+      <h5 class="mb-0 fw-bold text-uppercase"><i class="bi bi-clipboard-check me-2 text-primary"></i>Detail <?= strtolower($header['jenis_check']) === 'overhaul' ? 'Inspection' : 'Checklist' ?> Report</h5>
     </div>
   <div class="ms-auto d-flex align-items-center gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
@@ -69,7 +69,7 @@
 <?php if (strtolower($header['jenis_check']) === 'overhaul'): ?>
   <table class="kop-table text-center">
     <tr>
-      <td colspan="7" class="kop-table-title" style="padding: 10px;">CHECKLIST REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?></td>
+      <td colspan="7" class="kop-table-title" style="padding: 10px;">INSPECTION REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?></td>
     </tr>
     <tr>
       <td class="kop-label text-start" style="width:12%;">MAIN PIC</td>
@@ -88,8 +88,13 @@
       <td class="kop-val text-start"><?= date('H:i:s', $waktuMulai) ?></td>
     </tr>
     <tr>
-      <td class="kop-label text-start">BAR FEEDER TYPE</td>
-      <td class="kop-val text-start"><?= esc($header['bar_feeder_type'] ?? '-') ?></td>
+      <?php if (stripos($header['kategori'] ?? '', 'CNC') !== false): ?>
+        <td class="kop-label text-start">BAR FEEDER TYPE</td>
+        <td class="kop-val text-start"><?= esc($header['bar_feeder_type'] ?? '-') ?></td>
+      <?php else: ?>
+        <td class="kop-label text-start"></td>
+        <td class="kop-val text-start"></td>
+      <?php endif; ?>
       <td class="kop-label text-start">FINISH TIME</td>
       <td class="kop-val text-start"><?= $waktuSelesai ? date('H:i:s', $waktuSelesai) : '-' ?></td>
     </tr>
@@ -118,29 +123,23 @@
 <?php else: ?>
   <table class="kop-table text-center">
     <tr>
-      <td colspan="7" class="kop-table-title" style="padding: 10px;">CHECKLIST REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?></td>
+      <td colspan="6" class="kop-table-title" style="padding: 10px;">CHECKLIST REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?> (<?= strtoupper(esc($header['lokasi_check'] ?? '-')) ?>)</td>
     </tr>
     <tr>
-      <td class="kop-label text-start" style="width:12%;">NO MACHINE</td>
-      <td class="kop-val text-start" colspan="2" style="width:28%;"><?= esc($header['no_mesin']) ?></td>
-      <td class="kop-label text-start" style="width:15%;">DATE</td>
-      <td class="kop-val text-start" style="width:15%;"><?= format_tanggal_indo(date('Y-m-d', $waktuMulai)) ?></td>
-      <td class="kop-label text-start" style="width:15%;">LOKASI</td>
-      <td class="kop-val text-start" style="width:15%;"><?= esc($header['lokasi_check']) ?></td>
+      <td class="kop-label text-start" style="width:16%;">DATE</td>
+      <td class="kop-val text-start" style="width:17%;"><?= format_tanggal_indo(date('Y-m-d', $waktuMulai)) ?></td>
+      <td class="kop-label text-start" style="width:16%;">MACHINE TYPE</td>
+      <td class="kop-val text-start" style="width:17%;"><?= esc($header['type_mesin']) ?></td>
+      <td class="kop-label text-start" style="width:16%;">START TIME</td>
+      <td class="kop-val text-start" style="width:17%;"><?= date('H:i:s', $waktuMulai) ?></td>
     </tr>
     <tr>
-      <td class="kop-label text-start">MACHINE TYPE</td>
-      <td class="kop-val text-start" colspan="2"><?= esc($header['type_mesin']) ?></td>
-      <td class="kop-label text-start">START TIME</td>
-      <td class="kop-val text-start"><?= date('H:i:s', $waktuMulai) ?></td>
-      <td class="kop-label text-start">DURASI</td>
-      <td class="kop-val text-start"><?= $durasiDetik !== null ? gmdate('H:i:s', $durasiDetik) : '-' ?></td>
-    </tr>
-    <tr>
+      <td class="kop-label text-start">NO MACHINE</td>
+      <td class="kop-val text-start"><?= esc($header['no_mesin']) ?></td>
       <td class="kop-label text-start">SERIAL NUMBER</td>
-      <td class="kop-val text-start" colspan="2"><?= esc($header['serial_nomor'] ?? '-') ?></td>
+      <td class="kop-val text-start"><?= esc($header['serial_nomor'] ?? '-') ?></td>
       <td class="kop-label text-start">FINISH TIME</td>
-      <td class="kop-val text-start" colspan="3"><?= $waktuSelesai ? date('H:i:s', $waktuSelesai) : '-' ?></td>
+      <td class="kop-val text-start"><?= $waktuSelesai ? date('H:i:s', $waktuSelesai) : '-' ?></td>
     </tr>
   </table>
 

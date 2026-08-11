@@ -112,9 +112,9 @@
 
   <!-- HEADER ISI Row 2: Nama Bulan -->
   <tr>
-    <th colspan="5" style="border:1.5pt solid #000; text-align:center; background-color:#f2f2f2; font-weight:700; padding:3px; text-transform:uppercase;">
-      <?= isset($bulanList[$bulan]) ? strtoupper($bulanList[$bulan]) : strtoupper($bulan) ?>
-    </th>
+      <th colspan="5" style="border:1.5pt solid #000; text-align:center; background-color:#f2f2f2; font-weight:700; padding:3px; text-transform:uppercase;">
+        <?= strtoupper(format_bulan_indo($bulan)) ?>
+      </th>
   </tr>
 
   <!-- HEADER ISI Row 3: Nomor Periode / Tanggal -->
@@ -144,7 +144,7 @@
       <!-- BARIS STATUS CHECK -->
       <tr style="page-break-after: avoid;">
         <td style="border:1.5pt solid #000; border-bottom:none; text-align:center; vertical-align:middle; font-weight:bold;"><?= $no++ ?></td>
-        <td style="border:1.5pt solid #000; text-align:left; font-weight:bold; padding-left:6px; padding-top:2px; padding-bottom:2px;"><?= esc($m['jenis']) ?> <?= esc($m['no_mesin']) ?></td>
+        <td style="border:1.5pt solid #000; text-align:left; font-weight:bold; padding-left:6px; padding-top:2px; padding-bottom:2px;"><?= (isset($itemLokasi) && $itemLokasi === 'MFG 2') ? esc($m['no_mesin']) : (!empty($m['jenis']) ? esc($m['jenis']) . ' ' . esc($m['no_mesin']) : esc($m['no_mesin'])) ?></td>
         <?php for ($p = 1; $p <= 5; $p++): ?>
           <?php
             $cell = $row['periodes'][$p];
@@ -243,7 +243,7 @@
     </td>
     <td style="border: none; width: 33.33%; vertical-align: top;">
       <div style="margin-bottom: 5px; font-size: 0.85rem;">Diketahui Oleh</div>
-      <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">SECTION HEAD MAINTENANCE</div>
+      <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">SECTION HEAD MTC</div>
       <?php if (isset($approvalData['approved_final_by'])): ?>
         <div style="color: green; font-weight: bold; margin-bottom: 20px;">[ Disetujui ]</div>
       <?php else: ?>
