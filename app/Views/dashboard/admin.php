@@ -1,42 +1,46 @@
 <?= view('layout/header', ['title' => $title]) ?>
 
-<div class="dashboard-header mb-4">
+<div class="dashboard-header mb-4 py-3">
     <div class="d-flex align-items-center justify-content-between position-relative" style="z-index: 2;">
         <div>
-            <h2 class="fw-bold mb-1">Halo, <?= esc(ucwords(session('nama'))) ?>! 👋</h2>
-            <p class="mb-0 opacity-75">Berikut adalah ringkasan seluruh data sistem pada platform MTCE saat ini.</p>
+            <h3 class="fw-bold mb-1">Halo, <?= esc(ucwords(session('nama'))) ?>! 👋</h3>
+            <p class="mb-0 opacity-75 small">Berikut adalah ringkasan seluruh data sistem pada platform MTCE saat ini.</p>
         </div>
         <div class="d-none d-md-block text-white opacity-50">
-            <i class="bi bi-speedometer2" style="font-size: 4rem;"></i>
+            <i class="bi bi-speedometer2" style="font-size: 3rem;"></i>
         </div>
     </div>
+</div>
+
+<div class="mb-5">
+    <?= view('components/percentage_cards') ?>
 </div>
 
 <div class="row g-4 mb-5">
   <!-- Total User -->
   <div class="col-md-4">
-    <div class="card-stat-premium grad-indigo p-4">
-      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-2">Total User</div>
-      <div class="value display-5 fw-bolder mb-0"><?= (int) $totalUser ?></div>
-      <i class="bi bi-people-fill watermark-icon"></i>
+    <div class="card-stat-premium grad-indigo py-3 px-4">
+      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-1" style="font-size:0.75rem;">Total User</div>
+      <div class="value fs-2 fw-bolder mb-0"><?= (int) $totalUser ?></div>
+      <i class="bi bi-people-fill watermark-icon" style="font-size:3.5rem; bottom:-10px;"></i>
     </div>
   </div>
   
   <!-- Total Mesin -->
   <div class="col-md-4">
-    <div class="card-stat-premium grad-emerald p-4">
-      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-2">Total Mesin</div>
-      <div class="value display-5 fw-bolder mb-0"><?= (int) $totalMesin ?></div>
-      <i class="bi bi-hdd-rack-fill watermark-icon"></i>
+    <div class="card-stat-premium grad-emerald py-3 px-4">
+      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-1" style="font-size:0.75rem;">Total Mesin</div>
+      <div class="value fs-2 fw-bolder mb-0"><?= (int) $totalMesin ?></div>
+      <i class="bi bi-hdd-rack-fill watermark-icon" style="font-size:3.5rem; bottom:-10px;"></i>
     </div>
   </div>
   
   <!-- Total Pengecekan -->
   <div class="col-md-4">
-    <div class="card-stat-premium grad-cyan p-4">
-      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-2">Total Pengecekan</div>
-      <div class="value display-5 fw-bolder mb-0"><?= (int) $totalTrans ?></div>
-      <i class="bi bi-clipboard2-data-fill watermark-icon"></i>
+    <div class="card-stat-premium grad-cyan py-3 px-4">
+      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-1" style="font-size:0.75rem;">Total Pengecekan</div>
+      <div class="value fs-2 fw-bolder mb-0"><?= (int) $totalTrans ?></div>
+      <i class="bi bi-clipboard2-data-fill watermark-icon" style="font-size:3.5rem; bottom:-10px;"></i>
     </div>
   </div>
 </div>
@@ -86,8 +90,6 @@
   </div>
 </div>
 
-<div class="mt-5">
-  <?= view('components/percentage_cards') ?>
-</div>
+
 
 <?= view('layout/footer') ?>

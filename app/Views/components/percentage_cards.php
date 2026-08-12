@@ -34,7 +34,11 @@
                 <!-- Text Data -->
                 <div class="flex-grow-1">
                     <h5 class="fw-bold mb-1 text-uppercase text-secondary" style="font-size: 0.85rem; letter-spacing: 1px;">Pencapaian Preventive</h5>
-                    <p class="text-muted mb-2 small"><i class="bi bi-calendar2-check me-1"></i> <?= $percentageSummary['bulan'] ?></p>
+                    <?php 
+                        $rawBulan = $percentageSummary['bulan']; 
+                        $fmtBulan = preg_match('/^\d{4}-\d{2}$/', $rawBulan) ? date('m/Y', strtotime($rawBulan . '-01')) : $rawBulan;
+                    ?>
+                    <p class="text-muted mb-2 small"><i class="bi bi-calendar2-check me-1"></i> <?= $fmtBulan ?></p>
                     <div class="d-flex gap-3">
                         <div>
                             <span class="d-block fw-bold text-success fs-5"><?= $percentageSummary['preventive']['normal_count'] ?> <small class="fw-normal text-muted fs-6">Normal (<?= $percentageSummary['preventive']['normal'] ?>%)</small></span>

@@ -1,37 +1,41 @@
 <?= view('layout/header', ['title' => $title]) ?>
 
-<div class="dashboard-header mb-4">
+<div class="dashboard-header mb-4 py-3">
     <div class="d-flex align-items-center justify-content-between position-relative" style="z-index: 2;">
         <div>
-            <h2 class="fw-bold mb-1">Halo, <?= esc(ucwords(session('nama'))) ?>! 👋</h2>
-            <p class="mb-0 opacity-75">Selamat bekerja, pastikan semua pengecekan berjalan sesuai standar hari ini.</p>
+            <h3 class="fw-bold mb-1">Halo, <?= esc(ucwords(session('nama'))) ?>! 👋</h3>
+            <p class="mb-0 opacity-75 small">Selamat bekerja, pastikan semua pengecekan berjalan sesuai standar hari ini.</p>
         </div>
         <div class="d-none d-md-block text-white opacity-50">
-            <i class="bi bi-tools" style="font-size: 4rem;"></i>
+            <i class="bi bi-tools" style="font-size: 3rem;"></i>
         </div>
     </div>
 </div>
 
+<div class="mb-5">
+    <?= view('components/percentage_cards') ?>
+</div>
+
 <div class="row g-4 mb-5">
   <div class="col-md-4">
-    <div class="card-stat-premium grad-cyan p-4">
-      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-2">Pengecekan Hari Ini</div>
-      <div class="value display-5 fw-bolder mb-0"><?= (int) $hariIni ?></div>
-      <i class="bi bi-calendar-check-fill watermark-icon"></i>
+    <div class="card-stat-premium grad-cyan py-3 px-4">
+      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-1" style="font-size:0.75rem;">Pengecekan Hari Ini</div>
+      <div class="value fs-2 fw-bolder mb-0"><?= (int) $hariIni ?></div>
+      <i class="bi bi-calendar-check-fill watermark-icon" style="font-size:3.5rem; bottom:-10px;"></i>
     </div>
   </div>
   <div class="col-md-4">
-    <div class="card-stat-premium grad-indigo p-4">
-      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-2">7 Hari Terakhir</div>
-      <div class="value display-5 fw-bolder mb-0"><?= (int) $minggu ?></div>
-      <i class="bi bi-bar-chart-fill watermark-icon"></i>
+    <div class="card-stat-premium grad-indigo py-3 px-4">
+      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-1" style="font-size:0.75rem;">7 Hari Terakhir</div>
+      <div class="value fs-2 fw-bolder mb-0"><?= (int) $minggu ?></div>
+      <i class="bi bi-bar-chart-fill watermark-icon" style="font-size:3.5rem; bottom:-10px;"></i>
     </div>
   </div>
   <?php if (session()->get('role') !== 'leader'): ?>
   <div class="col-md-4">
-    <div class="card-stat-premium bg-white border-0 p-4 d-flex flex-column justify-content-center h-100" style="border: 2px dashed var(--accent) !important;">
+    <div class="card-stat-premium bg-white border-0 py-3 px-4 d-flex flex-column justify-content-center h-100" style="border: 2px dashed var(--accent) !important;">
       <div class="text-center">
-        <i class="bi bi-plus-circle-dotted text-primary mb-3 d-block" style="font-size: 3rem;"></i>
+        <i class="bi bi-plus-circle-dotted text-primary mb-2 d-block" style="font-size: 2.5rem;"></i>
         <a href="<?= site_url('checklist') ?>" class="btn btn-primary fw-bold rounded-pill px-4 py-2 shadow-sm">Buat Pengecekan Baru</a>
       </div>
     </div>
@@ -93,8 +97,6 @@
   </div>
 </div>
 
-<div class="mt-5">
-  <?= view('components/percentage_cards') ?>
-</div>
+
 
 <?= view('layout/footer') ?>

@@ -1,62 +1,87 @@
 <?= view('layout/header', ['title' => $title]) ?>
 
-<div class="dashboard-header mb-4">
-    <div class="d-flex align-items-center justify-content-between position-relative" style="z-index: 2;">
-        <div>
-            <h2 class="fw-bold mb-1">Halo, <?= esc(ucwords(session('nama'))) ?>! 👋</h2>
-            <p class="mb-0 opacity-75">Pantau kinerja maintenance dan status pengecekan dari seluruh PIC hari ini.</p>
-        </div>
-        <div class="d-none d-md-block text-white opacity-50">
-            <i class="bi bi-graph-up-arrow" style="font-size: 4rem;"></i>
-        </div>
-    </div>
-</div>
-
 <?php
   $roleSession = session()->get('role');
   $isApproverRole = in_array($roleSession, ['sheadprd', 'sheadmtc', 'leader'], true);
 ?>
 
 <?php if ($isApproverRole): ?>
-<div class="row g-4 mb-4">
-  <div class="col-md-<?= in_array($roleSession, ['sheadprd', 'sheadmtc']) ? '6' : '12' ?>">
-    <div class="card-stat-premium grad-cyan p-4">
-      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-2">Inspection Report</div>
-      <div class="value display-5 fw-bolder mb-0"><?= count($pendingOverhaul) ?></div>
-      <i class="bi bi-clipboard-check watermark-icon"></i>
+<div class="row g-4 mb-4 align-items-stretch">
+  <!-- Halo Banner -->
+  <div class="col-md-6">
+    <div class="dashboard-header h-100 py-3 d-flex flex-column justify-content-center m-0">
+        <div class="d-flex align-items-center justify-content-between position-relative" style="z-index: 2;">
+            <div>
+                <h3 class="fw-bold mb-1">Halo, <?= esc(ucwords(session('nama'))) ?>! 👋</h3>
+                <p class="mb-0 opacity-75 small">Pantau kinerja maintenance dan status pengecekan dari seluruh PIC hari ini.</p>
+            </div>
+            <div class="d-none d-xl-block text-white opacity-50">
+                <i class="bi bi-graph-up-arrow" style="font-size: 3rem;"></i>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- Approver Cards -->
+  <div class="col-md-<?= in_array($roleSession, ['sheadprd', 'sheadmtc']) ? '3' : '6' ?>">
+    <div class="card-stat-premium grad-cyan h-100 py-3 px-4 d-flex flex-column justify-content-center">
+      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-1" style="font-size:0.75rem;">Inspection Report</div>
+      <div class="value fs-2 fw-bolder mb-0"><?= count($pendingOverhaul) ?></div>
+      <i class="bi bi-clipboard-check watermark-icon" style="font-size:3.5rem; bottom:-10px;"></i>
     </div>
   </div>
   <?php if (in_array($roleSession, ['sheadprd', 'sheadmtc'])): ?>
-  <div class="col-md-6">
-    <div class="card-stat-premium grad-emerald p-4">
-      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-2">Checklist Control</div>
-      <div class="value display-5 fw-bolder mb-0"><?= count($pendingKontrol) ?></div>
-      <i class="bi bi-grid-3x3-gap watermark-icon"></i>
+  <div class="col-md-3">
+    <div class="card-stat-premium grad-emerald h-100 py-3 px-4 d-flex flex-column justify-content-center">
+      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-1" style="font-size:0.75rem;">Checklist Control</div>
+      <div class="value fs-2 fw-bolder mb-0"><?= count($pendingKontrol) ?></div>
+      <i class="bi bi-grid-3x3-gap watermark-icon" style="font-size:3.5rem; bottom:-10px;"></i>
     </div>
   </div>
   <?php endif; ?>
 </div>
+
+<div class="mb-5">
+    <?= view('components/percentage_cards') ?>
+</div>
+
 <?php else: ?>
+
+<div class="dashboard-header mb-4 py-3">
+    <div class="d-flex align-items-center justify-content-between position-relative" style="z-index: 2;">
+        <div>
+            <h3 class="fw-bold mb-1">Halo, <?= esc(ucwords(session('nama'))) ?>! 👋</h3>
+            <p class="mb-0 opacity-75 small">Pantau kinerja maintenance dan status pengecekan dari seluruh PIC hari ini.</p>
+        </div>
+        <div class="d-none d-md-block text-white opacity-50">
+            <i class="bi bi-graph-up-arrow" style="font-size: 3rem;"></i>
+        </div>
+    </div>
+</div>
+
+<div class="mb-5">
+    <?= view('components/percentage_cards') ?>
+</div>
 <div class="row g-4 mb-5">
   <div class="col-md-4">
-    <div class="card-stat-premium grad-cyan p-4">
-      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-2">Total Pengecekan</div>
-      <div class="value display-5 fw-bolder mb-0"><?= (int) $totalTransaksi ?></div>
-      <i class="bi bi-file-earmark-bar-graph-fill watermark-icon"></i>
+    <div class="card-stat-premium grad-cyan py-3 px-4">
+      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-1" style="font-size:0.75rem;">Total Pengecekan</div>
+      <div class="value fs-2 fw-bolder mb-0"><?= (int) $totalTransaksi ?></div>
+      <i class="bi bi-file-earmark-bar-graph-fill watermark-icon" style="font-size:3.5rem; bottom:-10px;"></i>
     </div>
   </div>
   <div class="col-md-4">
-    <div class="card-stat-premium grad-emerald p-4">
-      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-2">Rata-rata Durasi</div>
-      <div class="value fs-3 fw-bolder mb-0 mt-2"><?= gmdate('i \m\e\n\i\t s \d\e\t\i\k', $rataDetik) ?></div>
-      <i class="bi bi-stopwatch-fill watermark-icon"></i>
+    <div class="card-stat-premium grad-emerald py-3 px-4">
+      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-1" style="font-size:0.75rem;">Rata-rata Durasi</div>
+      <div class="value fs-4 fw-bolder mb-0 mt-2"><?= gmdate('i \m\e\n\i\t s \d\e\t\i\k', $rataDetik) ?></div>
+      <i class="bi bi-stopwatch-fill watermark-icon" style="font-size:3.5rem; bottom:-10px;"></i>
     </div>
   </div>
   <div class="col-md-4">
-    <div class="card-stat-premium grad-rose p-4 border-0">
-      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-2">Temuan Perlu Tindakan</div>
-      <div class="value display-5 fw-bolder mb-0"><?= (int) $perluTindakan ?></div>
-      <i class="bi bi-exclamation-triangle-fill watermark-icon"></i>
+    <div class="card-stat-premium grad-rose py-3 px-4 border-0">
+      <div class="text-white-50 small fw-bold text-uppercase tracking-wider mb-1" style="font-size:0.75rem;">Temuan Perlu Tindakan</div>
+      <div class="value fs-2 fw-bolder mb-0"><?= (int) $perluTindakan ?></div>
+      <i class="bi bi-exclamation-triangle-fill watermark-icon" style="font-size:3.5rem; bottom:-10px;"></i>
     </div>
   </div>
 </div>
@@ -308,8 +333,6 @@
 </div>
 <?php endif; ?>
 
-<div class="mt-5">
-  <?= view('components/percentage_cards') ?>
-</div>
+
 
 <?= view('layout/footer') ?>
