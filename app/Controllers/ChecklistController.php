@@ -210,9 +210,7 @@ class ChecklistController extends BaseController
             'categoryName'      => $categoryName,
             'daftarMesin'       => $daftarMesin,
             'rows'              => $this->parameterModel->getFormRows($lokasiName, $jenisDbName, $categoryName),
-            'masterPic'         => array_filter((new \App\Models\PicModel())->findAll(), function($p) {
-                return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), Role::Leader->value) === false;
-            }),
+            'masterPic'         => (new \App\Models\UserModel())->whereIn('role', ['member', 'magang'])->orderBy('nama', 'ASC')->findAll(),
             'namaStaff'         => session()->get('nama'),
             'waktuMulai'        => $waktuMulai->toDateTimeString(),
             'waktuMulaiDisplay' => $waktuMulai->format("d/m/Y H:i:s"),
@@ -355,7 +353,7 @@ class ChecklistController extends BaseController
 
         $hasilCheck = $this->request->getPost('hasil_check') ?? [];
         $ulasan     = $this->request->getPost('ulasan') ?? [];
-        $inputPic   = $this->request->getPost('nama_pic') ?: (session()->get('nama') ?: 'Staff');
+        $inputPic   = session()->get('nama') ?: 'Staff';
 
         $categorySlug = array_search($kategoriName, $this->categoryMap, true) ?: 'penerangan';
 

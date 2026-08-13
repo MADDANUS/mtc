@@ -347,7 +347,6 @@ class KontrolService
             'allChecked'     => $allChecked,
             'approvalStatus' => $approvalStatus,
             'approvalData'   => $approval,
-            'staffPicList'   => (new \App\Models\PicModel())->where('role_pic', 'Staff')->findAll(),
         ];
     }
 
@@ -579,9 +578,10 @@ class KontrolService
         } elseif ($role === Role::Member->value) {
             if ($currentStatus !== 'Pending') return ["status" => false, "message" => 'Sudah diproses L1.'];
             
-            $picLineNama = $request->getPost('pic_line_nama');
-            if (empty(trim($picLineNama))) {
-                return ["status" => false, "message" => 'Nama PIC Line wajib diisi.'];
+            // Nama PIC Line diambil otomatis dari sesi login
+            $picLineNama = session()->get('nama');
+            if (empty(trim($picLineNama ?? ''))) {
+                return ["status" => false, "message" => 'Tidak dapat mengidentifikasi nama Anda. Pastikan Anda sudah login.'];
             }
             
             $data['status'] = 'Approved L1';

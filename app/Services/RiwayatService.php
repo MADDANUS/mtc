@@ -66,15 +66,12 @@ class RiwayatService
         }
 
         [$details] = $this->fetchHeaderAndDetails($id, $header);
-        $durasiDetik   = $this->calculateDurasiDetik($header);
-        $leaderPicList = $this->resolveLeaderPicList($roleSession);
+        $durasiDetik = $this->calculateDurasiDetik($header);
 
         return [
-            'header'       => $header,
-            'details'      => $details,
-            'durasiDetik'  => $durasiDetik,
-            'staffPicList' => (new \App\Models\PicModel())->where('role_pic', 'Staff')->findAll(),
-            'leaderPicList'=> $leaderPicList,
+            'header'      => $header,
+            'details'     => $details,
+            'durasiDetik' => $durasiDetik,
         ];
     }
 
@@ -177,10 +174,6 @@ class RiwayatService
             'categoryName'      => $header['kategori'],
             'daftarMesin'       => $mesinModel->getByLokasi($header['lokasi_check']),
             'rows'              => $parameterModel->getFormRows($header['lokasi_check'], $header['jenis_check'], $header['kategori']),
-            'masterPic'         => array_filter((new \App\Models\PicModel())->findAll(), function($p) {
-                return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), Role::Leader->value) === false;
-            }),
-            'staffPic'          => (new \App\Models\PicModel())->where('role_pic', 'Staff')->findAll(),
             'namaPic'           => $header['nama_pic'],
             'namaStaff'         => $header['nama_staff'],
             'waktuMulai'        => $header['waktu_mulai'],
@@ -428,6 +421,9 @@ class RiwayatService
         }
 
         if ($newStatus === 'Approved') {
+            if ($jenisSlug === 'overhaul') {
+                return ["status" => true, "message" => 'Laporan berhasil disetujui sepenuhnya. Data kini masuk ke Laporan Abnormal jika ada.'];
+            }
             return ["status" => true, "message" => 'Laporan berhasil disetujui sepenuhnya. Data kini masuk ke Checklist Control dan Laporan Abnormal jika ada.'];
         }
         return ["status" => true, "message" => 'Laporan berhasil disetujui (Tahap: ' . $newStatus . '). Menunggu persetujuan selanjutnya.'];
@@ -476,9 +472,10 @@ class RiwayatService
                 if ($transaksi['status'] !== 'Pending') {
                     return ["status" => false, "message" => 'Laporan sudah diperiksa (bukan status Pending).'];
                 }
-                $leaderNama = $request->getPost('leader_nama');
+                // Nama Leader diambil otomatis dari sesi login
+                $leaderNama = session()->get('nama');
                 if (empty(trim($leaderNama ?? ''))) {
-                    return ["status" => false, "message" => 'Nama Leader wajib diisi.'];
+                    return ["status" => false, "message" => 'Tidak dapat mengidentifikasi nama Leader. Pastikan Anda sudah login.'];
                 }
                 return [[
                     'status'         => 'Approved L1',
@@ -509,9 +506,10 @@ class RiwayatService
         if (!in_array($role, [Role::Admin->value, Role::Member->value], true)) {
             return ["status" => false, "message" => 'Hanya Admin atau Member MTC yang dapat menyetujui laporan Preventive.'];
         }
-        $picLineNama = $request->getPost('pic_line_nama');
+        // Nama PIC Line diambil otomatis dari sesi login
+        $picLineNama = session()->get('nama');
         if (empty(trim($picLineNama ?? ''))) {
-            return ["status" => false, "message" => 'Nama PIC Line wajib diisi.'];
+            return ["status" => false, "message" => 'Tidak dapat mengidentifikasi nama Anda. Pastikan Anda sudah login.'];
         }
         return [[
             'status'        => 'Approved',
@@ -839,28 +837,5 @@ class RiwayatService
     /**
      * Fetch daftar PIC leader berdasarkan role dan line sesi yang sedang login.
      */
-    private function resolveLeaderPicList(?string $roleSession): array
-    {
-        $leaderPicModel = new \App\Models\PicModel();
 
-        if ($roleSession === Role::Leader->value) {
-            $userLine = session()->get('line');
-            $lineMap  = [
-                'Line 1' => 'leader1',
-                'Line 2' => 'leader2',
-                'Line 3' => 'leader3',
-                'CG'     => 'leadercg',
-                'Second' => 'leadersc',
-            ];
-            if (isset($lineMap[$userLine])) {
-                $leaderPicModel->where('role_pic', $lineMap[$userLine]);
-            } else {
-                $leaderPicModel->like('role_pic', Role::Leader->value, 'both');
-            }
-        } else {
-            $leaderPicModel->like('role_pic', Role::Leader->value, 'both');
-        }
-
-        return $leaderPicModel->findAll();
-    }
 }

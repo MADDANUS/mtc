@@ -40,7 +40,8 @@
             <th>Username</th>
             <th>Role</th>
             <th>Line</th>
-            <th style="width:160px;"></th>
+            <th>Status</th>
+            <th style="width:220px;">AKSI</th>
           </tr>
         </thead>
         <tbody>
@@ -51,11 +52,24 @@
               <td><span class="badge bg-secondary text-uppercase"><?= esc($u['role']) ?></span></td>
               <td><?= esc($u['line'] ?? '-') ?></td>
               <td>
-                <a href="<?= site_url('admin/user/edit/' . $u['id']) ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
-                <?php if ((int) $u['id'] !== (int) session()->get('user_id')): ?>
-                  <a href="<?= site_url('admin/user/delete/' . $u['id']) ?>" class="btn btn-sm btn-outline-danger"
-                     onclick="return confirm('Hapus user <?= esc($u['nama'], 'js') ?>?');">Hapus</a>
+                <?php $isActive = (isset($u['is_active']) && (int)$u['is_active'] === 1); ?>
+                <?php if ($isActive): ?>
+                  <span class="badge bg-success">Active</span>
+                <?php else: ?>
+                  <span class="badge bg-danger">Inactive</span>
                 <?php endif; ?>
+              </td>
+              <td>
+                <div class="d-flex gap-1">
+                  <a href="<?= site_url('admin/user/toggle-active/' . $u['id']) ?>" class="btn btn-sm <?= $isActive ? 'btn-outline-warning border-warning' : 'btn-outline-success border-success' ?>" title="<?= $isActive ? 'Nonaktifkan User' : 'Aktifkan User' ?>" onclick="return confirm('Anda yakin ingin <?= $isActive ? 'menonaktifkan' : 'mengaktifkan' ?> user ini?');" style="border-width: 1px; border-style: solid;">
+                    <?= $isActive ? 'Inactive' : 'Active' ?>
+                  </a>
+                  <a href="<?= site_url('admin/user/edit/' . $u['id']) ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
+                  <?php if ((int) $u['id'] !== (int) session()->get('user_id')): ?>
+                    <a href="<?= site_url('admin/user/delete/' . $u['id']) ?>" class="btn btn-sm btn-outline-danger"
+                       onclick="return confirm('Hapus user <?= esc($u['nama'], 'js') ?>?');">Hapus</a>
+                  <?php endif; ?>
+                </div>
               </td>
             </tr>
           <?php endforeach; ?>

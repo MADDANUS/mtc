@@ -23,6 +23,10 @@ class Auth extends BaseController
             return redirect()->back()->withInput()->with('error', 'Username atau password salah.');
         }
 
+        if ((int) $user['is_active'] === 0) {
+            return redirect()->back()->withInput()->with('error', 'Akun Anda sedang dinonaktifkan. Silakan hubungi Administrator.');
+        }
+
         session()->set([
             'user_id'   => $user['id'],
             'nama'      => $user['nama'],

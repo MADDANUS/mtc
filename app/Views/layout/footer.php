@@ -32,6 +32,13 @@
     }
     if (!el.hasAttribute('multiple')) {
         config.plugins.push('dropdown_input');
+    } else {
+        config.plugins.push('remove_button');
+        config.onItemAdd = function() {
+            if (this.control_input) {
+                this.control_input.value = '';
+            }
+        };
     }
     new TomSelect(el, config);
   });

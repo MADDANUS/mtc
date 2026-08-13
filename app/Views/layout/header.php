@@ -801,9 +801,6 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
               <a href="<?= site_url('admin/user') ?>" class="menu-item <?= $seg2 === 'user' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
                 <i class="bi bi-people"></i>Master User
               </a>
-              <a href="<?= site_url('admin/pic') ?>" class="menu-item <?= $seg2 === 'pic' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
-                <i class="bi bi-person-badge"></i>Master PIC
-              </a>
             <?php endif; ?>
 
             <?php if (in_array($role, ['admin', 'sheadmtc'], true)): ?>

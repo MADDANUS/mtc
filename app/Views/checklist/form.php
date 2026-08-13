@@ -74,15 +74,8 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
       </div>
       <div class="col-md-3">
         <label class="form-label fw-semibold">PIC</label>
-        <select name="nama_pic" class="form-select searchable-select" required>
-          <option value="">-- Cari PIC --</option>
-          <?php if (isset($masterPic) && !empty($masterPic)): ?>
-            <?php foreach ($masterPic as $pic): ?>
-              <?php $picVal = esc($pic['nama_pic']); ?>
-              <option value="<?= $picVal ?>" <?= (isset($namaPic) && $namaPic === $picVal) ? 'selected' : '' ?>><?= $picVal ?></option>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </select>
+        <input type="text" class="form-control bg-light" value="<?= esc($namaStaff) ?>" readonly>
+        <!-- nama_pic diambil otomatis dari sesi login di Controller store() -->
       </div>
       <div class="col-md-3">
         <label class="form-label fw-semibold">Waktu Mulai</label>
@@ -109,9 +102,9 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
               <div class="col-12">
                 <select name="support_pic[]" class="form-select searchable-select border-primary bg-primary bg-opacity-10" multiple data-max-items="4" data-placeholder="Pilih maksimal 4 PIC Support...">
                   <?php foreach ($masterPic as $pic): ?>
-                    <?php $selected = in_array($pic['nama_pic'], $arrSupport) ? 'selected' : ''; ?>
-                    <option value="<?= esc($pic['nama_pic']) ?>" <?= $selected ?>>
-                      <?= esc($pic['nama_pic']) ?>
+                    <?php $selected = in_array($pic['nama'], $arrSupport) ? 'selected' : ''; ?>
+                    <option value="<?= esc($pic['nama']) ?>" <?= $selected ?>>
+                      <?= esc($pic['nama']) ?>
                     </option>
                   <?php endforeach; ?>
                 </select>

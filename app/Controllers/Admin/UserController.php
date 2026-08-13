@@ -21,7 +21,10 @@ class UserController extends BaseController
     {
         return view('admin/user/index', [
             'title'  => 'Master User',
-            'daftar' => $this->model->orderBy('nama', 'ASC')->findAll(),
+            'daftar' => $this->model
+                ->orderBy("FIELD(role, 'admin', 'sheadmtc', 'sheadprd', 'leader', 'member', 'magang')")
+                ->orderBy('nama', 'ASC')
+                ->findAll(),
         ]);
     }
 
@@ -99,6 +102,24 @@ class UserController extends BaseController
         $this->model->update($id, $data);
 
         return $this->redirectSuccess('/admin/user', 'User berhasil diperbarui.');
+    }
+
+    public function toggleActive(int $id)
+    {
+        $user = $this->model->find($id);
+        if (! $user) {
+            return $this->redirectNotFound('/admin/user', 'User');
+        }
+        
+        if ((int) $id === (int) session()->get('user_id')) {
+            return $this->redirectError('/admin/user', 'Tidak bisa menonaktifkan akun yang sedang digunakan.');
+        }
+
+        $newStatus = (isset($user['is_active']) && (int)$user['is_active'] === 1) ? 0 : 1;
+        $this->model->update($id, ['is_active' => $newStatus]);
+
+        $statusText = $newStatus === 1 ? 'diaktifkan' : 'dinonaktifkan';
+        return $this->redirectSuccess('/admin/user', "User berhasil $statusText.");
     }
 
     public function delete(int $id)

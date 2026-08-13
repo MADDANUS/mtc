@@ -282,7 +282,6 @@ class RiwayatController extends BaseController
         $data['cb_line'] = $this->request->getGet('line');
         $data['cb_kategori'] = $this->request->getGet('kategori');
         $data['cb_bulan'] = $this->request->getGet('bulan');
-        $data['staffPic'] = $data['staffPicList'];
         return view('riwayat/detail', $data);
     }
 

@@ -536,34 +536,17 @@
   <div class="card-body d-flex justify-content-between align-items-center p-3">
     <div>
       <h6 class="mb-1 text-dark fw-bold">Setujui Laporan Pengecekan</h6>
-      <p class="text-muted small mb-0">Klik tombol Approve jika laporan ini sudah diperiksa dan valid.</p>
+      <p class="text-muted small mb-0">
+        Anda akan menyetujui laporan ini sebagai
+        <strong class="text-success"><?= esc(session()->get('nama')) ?></strong>.
+        Klik Approve jika laporan sudah diperiksa dan valid.
+      </p>
     </div>
-    <form action="<?= site_url('riwayat/approve/' . (int) $header['id_transaksi']) ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menyetujui laporan ini?');">
+    <form action="<?= site_url('riwayat/approve/' . (int) $header['id_transaksi']) ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menyetujui laporan ini sebagai <?= esc(session()->get('nama')) ?>?');">
       <?= csrf_field() ?>
-      <div class="d-flex align-items-center gap-2">
-        <div style="min-width: 250px;">
-          <?php if (!$isOverhaul): ?>
-            <select name="pic_line_nama" class="form-select form-select-sm searchable-select" required>
-              <option value="">|-- Cari PIC Line --</option>
-              <?php foreach ($staffPicList ?? [] as $pic): ?>
-                <option value="<?= esc($pic['nama_pic']) ?>"><?= esc($pic['nama_pic']) ?></option>
-              <?php endforeach; ?>
-            </select>
-          <?php else: ?>
-            <?php if ($role === 'leader' || $role === 'admin'): ?>
-              <select name="leader_nama" class="form-select form-select-sm searchable-select" required>
-                <option value="">|-- Cari Nama Leader --</option>
-                <?php foreach ($leaderPicList ?? [] as $pic): ?>
-                  <option value="<?= esc($pic['nama_pic']) ?>"><?= esc($pic['nama_pic']) ?></option>
-                <?php endforeach; ?>
-              </select>
-            <?php endif; ?>
-          <?php endif; ?>
-        </div>
-        <button type="submit" class="btn btn-success px-4 py-2 fw-semibold shadow-sm">
-          <i class="bi bi-check-circle-fill me-2"></i> Approve (<?= esc($role) ?>)
-        </button>
-      </div>
+      <button type="submit" class="btn btn-success px-4 py-2 fw-semibold shadow-sm">
+        <i class="bi bi-check-circle-fill me-2"></i> Approve (<?= esc($role) ?>)
+      </button>
     </form>
   </div>
 </div>

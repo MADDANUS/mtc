@@ -377,29 +377,21 @@
   <div class="card-body d-flex justify-content-between align-items-center p-3">
     <div>
       <h6 class="mb-1 text-dark fw-bold">Setujui Checklist Control Bulanan</h6>
-      <p class="text-muted small mb-0">Klik tombol Approve jika data checklist control sudah diperiksa dan valid.</p>
+      <p class="text-muted small mb-0">
+        Anda akan menyetujui sebagai
+        <strong class="text-success"><?= esc(session()->get('nama')) ?></strong>.
+        Klik Approve jika data sudah diperiksa dan valid.
+      </p>
     </div>
-    <form action="<?= site_url('kontrol/approve') ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menyetujui Checklist Control ini?');">
+    <form action="<?= site_url('kontrol/approve') ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menyetujui Checklist Control ini sebagai <?= esc(session()->get('nama')) ?>?');">
       <?= csrf_field() ?>
       <input type="hidden" name="lokasi" value="<?= esc($lokasi) ?>">
       <input type="hidden" name="line" value="<?= esc($line) ?>">
       <input type="hidden" name="kategori" value="<?= esc($kategori) ?>">
       <input type="hidden" name="bulan_tahun" value="<?= esc($bulan) ?>">
-      <div class="d-flex align-items-center gap-2">
-        <div style="min-width: 250px;">
-          <?php if ($role === 'member'): ?>
-            <select name="pic_line_nama" class="form-select form-select-sm searchable-select" required>
-              <option value="">|-- Cari PIC Line --</option>
-              <?php foreach ($staffPicList ?? [] as $pic): ?>
-                <option value="<?= esc($pic['nama_pic']) ?>"><?= esc($pic['nama_pic']) ?></option>
-              <?php endforeach; ?>
-            </select>
-          <?php endif; ?>
-        </div>
-        <button type="submit" class="btn btn-success px-4 py-2 fw-semibold shadow-sm">
-          <i class="bi bi-check-circle-fill me-2"></i> Approve (<?= esc($role) ?>)
-        </button>
-      </div>
+      <button type="submit" class="btn btn-success px-4 py-2 fw-semibold shadow-sm">
+        <i class="bi bi-check-circle-fill me-2"></i> Approve (<?= esc($role) ?>)
+      </button>
     </form>
   </div>
 </div>

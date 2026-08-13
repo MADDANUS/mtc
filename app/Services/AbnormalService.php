@@ -642,19 +642,7 @@ class AbnormalService
         return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
     }
 
-    /**
-     * Mendapatkan daftar master PIC dengan filter (tanpa role Leader).
-     *
-     * @return array Daftar PIC
-     */
-    private function getFilteredMasterPic(): array
-    {
-        $allPics = (new \App\Models\PicModel())->orderBy('nama_pic', 'ASC')->findAll();
-        
-        return array_filter($allPics, function($p) {
-            return strpos(strtolower(str_replace(' ', '', $p['role_pic'] ?? '')), Role::Leader->value) === false;
-        });
-    }
+
 
     /**
      * Memproses data untuk tabel ringkasan (summary) abnormal.

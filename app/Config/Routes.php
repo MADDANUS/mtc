@@ -133,6 +133,7 @@ $routes->group('admin/user', ['filter' => 'role:admin', 'namespace' => 'App\Cont
     $routes->get('delete/(:num)', 'UserController::delete/$1');
     $routes->get('export', 'UserController::export');
     $routes->post('import', 'UserController::import');
+    $routes->get('toggle-active/(:num)', 'UserController::toggleActive/$1');
 });
 
 // Admin - Master Parameter Check (admin = full CRUD, sheadmtc = view-only)
@@ -149,18 +150,7 @@ $routes->group('admin/parameter', ['filter' => 'role:admin,sheadmtc', 'namespace
     $routes->post('import', 'ParameterController::import');
 });
 
-// Admin - Master PIC (admin only)
-$routes->group('admin/pic', ['filter' => 'role:admin', 'namespace' => 'App\Controllers\Admin'], static function ($routes) {
-    $routes->get('/', 'PicController::index');
-    $routes->get('create', 'PicController::create');
-    $routes->post('store', 'PicController::store');
-    $routes->get('edit/(:segment)', 'PicController::edit/$1');
-    $routes->post('update/(:segment)', 'PicController::update/$1');
-    $routes->get('delete/(:segment)', 'PicController::delete/$1');
-    $routes->get('export', 'PicController::export');
-    $routes->get('template', 'PicController::template');
-    $routes->post('import', 'PicController::import');
-});
+
 
 // Jadwal Preventive (semua role login, CRUD di controller dibatasi per role)
 $routes->group('admin/jadwal', ['filter' => 'auth', 'namespace' => 'App\Controllers\Admin'], static function ($routes) {
