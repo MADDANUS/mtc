@@ -215,7 +215,7 @@ class ChecklistController extends BaseController
             }),
             'namaStaff'         => session()->get('nama'),
             'waktuMulai'        => $waktuMulai->toDateTimeString(),
-            'waktuMulaiDisplay' => $waktuMulai->format("Y-m-d H:i:s"),
+            'waktuMulaiDisplay' => $waktuMulai->format("d/m/Y H:i:s"),
             'idMesin'           => $idMesin,
         ];
 

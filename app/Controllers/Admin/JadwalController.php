@@ -193,7 +193,16 @@ class JadwalController extends BaseController
         $cekTransaksi = $transaksiModel->where('jenis_check', JenisCheck::Preventive->value)
                                        ->where('lokasi_check', $schedule['lokasi'])
                                        ->where('kategori', $schedule['kategori'])
-                                       ->like('created_at', $bulanTahun . '-', 'after')
+                                       ->groupStart()
+                                           ->where('target_periode', $bulanTahun)
+                                           ->orGroupStart()
+                                               ->groupStart()
+                                                   ->where('target_periode IS NULL')
+                                                   ->orWhere('target_periode', '')
+                                               ->groupEnd()
+                                               ->like('waktu_mulai', $bulanTahun . '-', 'after')
+                                           ->groupEnd()
+                                       ->groupEnd()
                                        ->first();
 
         if ($cekTransaksi) {
