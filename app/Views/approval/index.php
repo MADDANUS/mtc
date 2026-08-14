@@ -4,7 +4,7 @@
 $role = session()->get('role');
 
 // Helper: build query string while keeping existing params
-$buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin) {
+$buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin, $perPage) {
     $params = [
         'jenis'    => $filterJenis,
         'bulan'    => $filterBulan,
@@ -12,6 +12,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
         'lokasi'   => $filterLokasi,
         'kategori' => $filterKategori,
         'mesin'    => $filterMesin,
+        'per_page' => $perPage ?? 15,
     ];
     foreach ($override as $k => $v) {
         $params[$k] = $v;
@@ -174,7 +175,8 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                         . '&kategori=' . urlencode($doc['kategori']  ?? '')
                         . '&bulan='    . urlencode(substr($doc['doc_date'] ?? '', 0, 7))
                         . (!empty($doc['line']) ? '&line=' . urlencode($doc['line']) : '')
-                        . '&from=approval';
+                        . '&from=approval'
+                        . (!empty($_SERVER['QUERY_STRING']) ? '&qs_approval=' . urlencode($_SERVER['QUERY_STRING']) : '');
                 } else {
                     $keterangan = esc($doc['no_mesin'] ?? '') . ' — ' . esc($doc['type_mesin'] ?? '') . ' (' . esc($doc['kategori'] ?? '') . ')'; // Tetap untuk JS
                     $tdKategori = esc($doc['kategori'] ?? '-');
@@ -184,7 +186,8 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                     $parts = explode(' - ', $rawPic ?? '');
                     $dibuatOleh = esc(end($parts));
                     $tanggal = !empty($doc['doc_date']) ? esc(format_tanggal_indo($doc['doc_date'], true, true)) : '-';
-                    $linkDetail = site_url('riwayat/' . $doc['doc_id']) . '?from=approval';
+                    $linkDetail = site_url('riwayat/' . $doc['doc_id']) . '?from=approval'
+                        . (!empty($_SERVER['QUERY_STRING']) ? '&qs_approval=' . urlencode($_SERVER['QUERY_STRING']) : '');
                 }
 
                 // Status badge
@@ -262,11 +265,24 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
   </form><!-- end filterForm -->
 
   <!-- Pagination -->
-  <?php if ($totalPages > 1): ?>
+  <!-- Pagination -->
+  <?php if ($totalItems > 0): ?>
   <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top">
-    <span class="text-muted small">
-      Menampilkan <?= (($currentPage-1)*$perPage)+1 ?>–<?= min($currentPage*$perPage, $totalItems) ?> dari <?= $totalItems ?> dokumen
-    </span>
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center">
+          <span class="text-muted small me-2">Tampilkan:</span>
+          <select name="per_page" form="filterForm" class="form-select form-select-sm text-center" style="width:60px;" onchange="this.form.submit()">
+            <option value="15" <?= $perPage == 15 ? 'selected' : '' ?>>15</option>
+            <option value="30" <?= $perPage == 30 ? 'selected' : '' ?>>30</option>
+            <option value="50" <?= $perPage == 50 ? 'selected' : '' ?>>50</option>
+          </select>
+          <span class="text-muted small ms-2">baris</span>
+        </div>
+        <span class="text-muted small">
+          Menampilkan <?= (($currentPage-1)*$perPage)+1 ?>–<?= min($currentPage*$perPage, $totalItems) ?> dari <?= $totalItems ?> dokumen
+        </span>
+    </div>
+    <?php if ($totalPages > 1): ?>
     <nav>
       <ul class="pagination pagination-sm mb-0 gap-1">
         <li class="page-item <?= $currentPage <= 1 ? 'disabled' : '' ?>">
@@ -286,6 +302,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
         </li>
       </ul>
     </nav>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
 </div>

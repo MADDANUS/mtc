@@ -207,7 +207,7 @@
         <div style="height: 20px; margin-bottom: 20px;"></div>
       <?php endif; ?>
       <div style="font-weight: bold; text-decoration: underline; font-size: 0.9rem;">
-        <?= isset($approvalData['approved_l1_by']) ? esc($approvalData['pic_line_nama'] ?? $approvalData['l1_name']) : '( ........................................ )' ?>
+        <?= isset($approvalData['approved_l1_by']) ? esc($approvalData['l1_name'] ?? '') : '( ........................................ )' ?>
       </div>
       <div style="font-size: 0.8rem; color: #555;">
         Tanggal: <?= isset($approvalData['approved_l1_at']) ? format_tanggal_indo($approvalData['approved_l1_at'], false, true) : '( ......................... )' ?>

@@ -16,7 +16,6 @@ class ApprovalBulananModel extends Model
         'line',
         'status',
         'approved_l1_by',
-        'pic_line_nama',
         'approved_l1_at',
         'approved_l2_by',
         'approved_l2_at',

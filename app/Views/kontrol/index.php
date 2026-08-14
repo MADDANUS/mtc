@@ -6,6 +6,9 @@
   <?php
     if (!empty($_GET['from']) && $_GET['from'] === 'approval') {
         $backUrl = site_url('approval');
+        if (!empty($_GET['qs_approval'])) {
+            $backUrl .= '?' . $_GET['qs_approval'];
+        }
         $backLabel = 'Kembali ke Approval';
     } else {
         $backUrl = site_url('kontrol?view=summary');
@@ -268,7 +271,7 @@
         </div>
         <h6 class="mb-0 fw-bold text-dark">
           <?php if (isset($approvalData['approved_l1_by'])): ?>
-            <span class="text-decoration-underline"><?= esc($approvalData['pic_line_nama'] ?? $approvalData['l1_name']) ?></span>
+            <span class="text-decoration-underline"><?= esc($approvalData['l1_name'] ?? '') ?></span>
           <?php else: ?>
             <span class="text-muted">( ........................................ )</span>
           <?php endif; ?>

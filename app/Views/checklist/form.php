@@ -1751,10 +1751,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 
-                const picSelect = document.querySelector('select[name="pic_line_nama"]');
-                if (picSelect && picSelect.tomselect && data["pic_line_nama"]) {
-                    picSelect.tomselect.setValue(data["pic_line_nama"], true);
-                }
+
 
                 const mesinSelect = document.querySelector('select[name="id_mesin"]');
                 if (mesinSelect && mesinSelect.tomselect && data["id_mesin"]) {

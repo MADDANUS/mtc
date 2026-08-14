@@ -43,4 +43,41 @@ class Auth extends BaseController
         session()->remove(['user_id', 'nama', 'role', 'line', 'logged_in']);
         return redirect()->to('/login')->with('success', 'Berhasil memutuskan koneksi. Selamat beristirahat!');
     }
+
+    public function gantiPasswordForm()
+    {
+        $data = [
+            'title' => 'Ganti Password',
+        ];
+        return view('auth/ganti_password', $data);
+    }
+
+    public function updatePassword()
+    {
+        $passwordLama = $this->request->getPost('password_lama');
+        $passwordBaru = $this->request->getPost('password_baru');
+        $konfirmasiPassword = $this->request->getPost('konfirmasi_password');
+
+        if (strlen($passwordBaru) < 6) {
+            return redirect()->back()->with('error', 'Password baru minimal harus 6 karakter.');
+        }
+
+        if ($passwordBaru !== $konfirmasiPassword) {
+            return redirect()->back()->with('error', 'Konfirmasi password tidak cocok dengan password baru.');
+        }
+
+        $userId = session()->get('user_id');
+        $userModel = new UserModel();
+        $user = $userModel->find($userId);
+
+        if (!$user || !password_verify($passwordLama, $user['password'])) {
+            return redirect()->back()->with('error', 'Password lama yang Anda masukkan salah.');
+        }
+
+        $userModel->update($userId, [
+            'password' => password_hash($passwordBaru, PASSWORD_DEFAULT),
+        ]);
+
+        return redirect()->back()->with('success', 'Password Anda berhasil diperbarui.');
+    }
 }

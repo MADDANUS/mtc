@@ -821,4 +821,21 @@ class AbnormalService
 
         return ["status" => false, "message" => $failMsg];
     }
+
+    /**
+     * Retrieve the master list of PICs for dropdowns.
+     */
+    private function getFilteredMasterPic(): array
+    {
+        $userModel = new \App\Models\UserModel();
+        // Fetch users who are likely to act as a PIC
+        $users = $userModel->whereIn('role', ['member', 'magang', 'leader'])->orderBy('nama', 'ASC')->findAll();
+        
+        $masterPic = [];
+        foreach ($users as $u) {
+            $masterPic[] = ['nama_pic' => $u['nama']];
+        }
+        
+        return $masterPic;
+    }
 }

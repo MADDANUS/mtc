@@ -578,15 +578,8 @@ class KontrolService
         } elseif ($role === Role::Member->value) {
             if ($currentStatus !== 'Pending') return ["status" => false, "message" => 'Sudah diproses L1.'];
             
-            // Nama PIC Line diambil otomatis dari sesi login
-            $picLineNama = session()->get('nama');
-            if (empty(trim($picLineNama ?? ''))) {
-                return ["status" => false, "message" => 'Tidak dapat mengidentifikasi nama Anda. Pastikan Anda sudah login.'];
-            }
-            
             $data['status'] = 'Approved L1';
             $data['approved_l1_by'] = $userId;
-            $data['pic_line_nama']  = trim($picLineNama);
             $data['approved_l1_at'] = $now;
         } elseif ($role === Role::Sheadprd->value) {
             if ($currentStatus !== 'Approved L1') return ["status" => false, "message" => 'Belum disetujui L1.'];

@@ -10,8 +10,8 @@ class TransaksiCheckModel extends Model
     protected $primaryKey    = 'id_transaksi';
     protected $allowedFields = [
         'id_user', 'nama_pic', 'id_mesin', 'lokasi_check', 'line_check', 'jenis_check', 'kategori',
-        'waktu_mulai', 'waktu_selesai', 'status', 'approved_by', 'pic_line_nama', 'approved_at',
-        'approval_l1_by', 'leader_nama', 'approval_l1_at', 'approval_l2_by', 'approval_l2_at',
+        'waktu_mulai', 'waktu_selesai', 'status', 'approved_by', 'approved_at',
+        'approval_l1_by', 'approval_l1_at', 'approval_l2_by', 'approval_l2_at',
         'target_periode', 'ss_type_mesin', 'ss_serial_nomor', 'ss_bar_feeder'
     ];
     protected $useTimestamps = true;

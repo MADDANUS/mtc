@@ -812,6 +812,10 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
           </div>
         </div>
       <?php endif; ?>
+
+      <a href="<?= site_url('ganti-password') ?>" class="menu-item <?= $seg1 === 'ganti-password' ? 'active' : '' ?>">
+        <i class="bi bi-gear"></i>Settings
+      </a>
     </div>
     
     <div class="sidebar-footer">

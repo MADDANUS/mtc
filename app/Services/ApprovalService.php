@@ -66,7 +66,7 @@ class ApprovalService
         $filtered = array_values($filtered);
 
         // ─── 4. Pagination ─────────────────────────────────────────────────────────
-        $perPage     = 15;
+        $perPage     = (int) ($request->getGet('per_page') ?: 15);
         $totalItems  = count($filtered);
         $totalPages  = max(1, (int) ceil($totalItems / $perPage));
         $currentPage = max(1, (int) ($request->getGet('page') ?: 1));

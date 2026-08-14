@@ -32,7 +32,13 @@
       <i class="bi bi-arrow-left"></i> Kembali ke Laporan Durasi
     </a>
   <?php elseif (isset($from) && $from === 'approval'): ?>
-    <a href="<?= site_url('approval') ?>" class="btn btn-sm btn-outline-secondary">
+    <?php
+      $backUrl = site_url('approval');
+      if (!empty($_GET['qs_approval'])) {
+          $backUrl .= '?' . $_GET['qs_approval'];
+      }
+    ?>
+    <a href="<?= $backUrl ?>" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left"></i> Kembali ke Approval
     </a>
   <?php else: ?>
@@ -388,7 +394,7 @@
         </div>
         <h6 class="mb-0 fw-bold text-dark">
           <?php if (!empty($header['approval_l1_by'])): ?>
-            <span class="text-decoration-underline" style="font-size:0.9rem;"><?= esc($header['leader_nama'] ?? $header['approver_l1_nama']) ?></span>
+            <span class="text-decoration-underline" style="font-size:0.9rem;"><?= esc($header['approver_l1_nama']) ?></span>
           <?php else: ?>
             <span class="text-muted">( ........................................ )</span>
           <?php endif; ?>
@@ -497,7 +503,7 @@
         </div>
         <h6 class="mb-0 fw-bold text-dark">
           <?php if ($header['status'] === 'Approved'): ?>
-            <span class="text-decoration-underline"><?= esc($header['pic_line_nama'] ?? $header['approver_nama']) ?></span>
+            <span class="text-decoration-underline"><?= esc($header['approver_nama']) ?></span>
           <?php else: ?>
             <span class="text-muted">( ........................................ )</span>
           <?php endif; ?>

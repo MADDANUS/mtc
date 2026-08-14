@@ -20,6 +20,10 @@ $routes->get('logout', 'Auth::logout');
 // Dashboard (semua role login, konten beda per role di dalam controller)
 $routes->get('dashboard', 'DashboardController::index', ['filter' => 'auth']);
 
+// Settings
+$routes->get('ganti-password', 'Auth::gantiPasswordForm', ['filter' => 'auth']);
+$routes->post('ganti-password', 'Auth::updatePassword', ['filter' => 'auth']);
+
 // Checklist Dinamis (magang, member, admin bisa buat pengecekan)
 $routes->group('checklist', ['filter' => 'role:admin,magang,member'], static function ($routes) {
     // 0. API Check Duplicate

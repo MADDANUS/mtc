@@ -39,7 +39,7 @@
         <?php endif; ?>
         <div style="font-weight:bold; font-size:0.9rem;">
           <?php if (!empty($header['approval_l1_by'])): ?>
-            <span style="text-decoration:underline;"><?= esc($header['leader_nama'] ?? $header['approver_l1_nama']) ?></span>
+            <span style="text-decoration:underline;"><?= esc($header['approver_l1_nama']) ?></span>
           <?php else: ?>
             <span style="color:#999;">( .................................. )</span>
           <?php endif; ?>
@@ -108,7 +108,7 @@
         <?php endif; ?>
         <div style="font-weight:bold; font-size:0.9rem;">
           <?php if ($header['status'] === 'Approved'): ?>
-            <span style="text-decoration:underline;"><?= esc($header['pic_line_nama'] ?? $header['approver_nama']) ?></span>
+            <span style="text-decoration:underline;"><?= esc($header['approver_nama']) ?></span>
           <?php else: ?>
             <span style="color:#999;">( ........................................ )</span>
           <?php endif; ?>

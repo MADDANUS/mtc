@@ -212,22 +212,20 @@ class RiwayatService
             'approval_l1_at' => null,
             'approval_l2_by' => null,
             'approval_l2_at' => null,
-            'leader_nama'    => null,
-            'pic_line_nama'  => null,
+
         ]);
 
         (new \App\Models\LaporanAbnormalModel())->where('id_transaksi', $id)->delete();
 
         $jenisSlug = strtolower(str_replace(' ', '-', $header['jenis_check']));
         if ($jenisSlug === 'checklist-report' || $jenisSlug === 'preventive') {
-            $jadwal = null;
-            if (!empty($header['id_jadwal'])) {
-                $jadwal = (new \App\Models\JadwalPreventiveModel())->find($header['id_jadwal']);
-            }
             $waktu = $header['waktu_selesai'] ?? $header['created_at'] ?? date('Y-m-d H:i:s');
             $tanggalCheckDate = date('Y-m-d', strtotime($waktu));
+            $bulanTahun = $header['target_periode'] ?: date('Y-m', strtotime($tanggalCheckDate));
+            $kategoriName = $header['kategori'] ?? null;
+            $jadwalModel = new \App\Models\JadwalPreventiveModel();
+            $jadwal = $jadwalModel->getJadwalForChecklist($header['lokasi_check'], $kategoriName, $bulanTahun);
             [$periodeKe, ] = $this->resolvePeriodeKe($jadwal, $tanggalCheckDate, $waktu);
-            $bulanTahun = $jadwal ? $jadwal['bulan_tahun'] : date('Y-m', strtotime($tanggalCheckDate));
 
             $kategoriName = $header['kategori'] ?? null;
             if (!$kategoriName && $jadwal) {
@@ -263,14 +261,13 @@ class RiwayatService
         // --- Hapus Ceklis Kontrol yang bersangkutan ---
         $jenisSlug = strtolower(str_replace(' ', '-', $header['jenis_check']));
         if ($jenisSlug === 'checklist-report' || $jenisSlug === 'preventive') {
-            $jadwal = null;
-            if (!empty($header['id_jadwal'])) {
-                $jadwal = (new \App\Models\JadwalPreventiveModel())->find($header['id_jadwal']);
-            }
             $waktu = $header['waktu_selesai'] ?? $header['created_at'] ?? date('Y-m-d H:i:s');
             $tanggalCheckDate = date('Y-m-d', strtotime($waktu));
+            $bulanTahun = $header['target_periode'] ?: date('Y-m', strtotime($tanggalCheckDate));
+            $kategoriName = $header['kategori'] ?? null;
+            $jadwalModel = new \App\Models\JadwalPreventiveModel();
+            $jadwal = $jadwalModel->getJadwalForChecklist($header['lokasi_check'], $kategoriName, $bulanTahun);
             [$periodeKe, ] = $this->resolvePeriodeKe($jadwal, $tanggalCheckDate, $waktu);
-            $bulanTahun = $jadwal ? $jadwal['bulan_tahun'] : date('Y-m', strtotime($tanggalCheckDate));
 
             $kategoriName = $header['kategori'] ?? null;
             if (!$kategoriName && $jadwal) {
@@ -472,15 +469,10 @@ class RiwayatService
                 if ($transaksi['status'] !== 'Pending') {
                     return ["status" => false, "message" => 'Laporan sudah diperiksa (bukan status Pending).'];
                 }
-                // Nama Leader diambil otomatis dari sesi login
-                $leaderNama = session()->get('nama');
-                if (empty(trim($leaderNama ?? ''))) {
-                    return ["status" => false, "message" => 'Tidak dapat mengidentifikasi nama Leader. Pastikan Anda sudah login.'];
-                }
+
                 return [[
                     'status'         => 'Approved L1',
                     'approval_l1_by' => $userId,
-                    'leader_nama'    => trim($leaderNama),
                     'approval_l1_at' => $now,
                 ], 'Approved L1'];
             }
@@ -506,15 +498,10 @@ class RiwayatService
         if (!in_array($role, [Role::Admin->value, Role::Member->value], true)) {
             return ["status" => false, "message" => 'Hanya Admin atau Member MTC yang dapat menyetujui laporan Preventive.'];
         }
-        // Nama PIC Line diambil otomatis dari sesi login
-        $picLineNama = session()->get('nama');
-        if (empty(trim($picLineNama ?? ''))) {
-            return ["status" => false, "message" => 'Tidak dapat mengidentifikasi nama Anda. Pastikan Anda sudah login.'];
-        }
+
         return [[
             'status'        => 'Approved',
             'approved_by'   => $userId,
-            'pic_line_nama' => trim($picLineNama),
             'approved_at'   => $now,
         ], 'Approved'];
     }
@@ -632,8 +619,17 @@ class RiwayatService
                 $weekDates[] = date('Y-m-d', strtotime("+{$d} days", $mondayTs));
             }
             
-            $periodeKe = (int) $schedule['periode_ke'];
+            $waktuTs = strtotime($waktuSelesai);
+            $fridayTs = strtotime('+4 days', $mondayTs);
             $isOutOfPlan = !in_array($tanggalCheckDate, $weekDates);
+            
+            if ($waktuTs >= $mondayTs && $waktuTs <= ($fridayTs + 86399)) {
+                $periodeKe = (int) date('N', $waktuTs);
+                if ($periodeKe > 5) $periodeKe = 5;
+            } else {
+                $periodeKe = (int) date('N', $tglRencana);
+                if ($periodeKe > 5) $periodeKe = 5;
+            }
             
             return [$periodeKe, $isOutOfPlan ? $tanggalCheckDate : null];
         }
