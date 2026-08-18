@@ -350,7 +350,7 @@
 <?php
   $role = session()->get('role');
   $canApproveKontrol = false;
-  if ($role === 'admin' && $approvalStatus !== 'Approved Final') $canApproveKontrol = true;
+  if ($role === 'admin' && $approvalStatus !== 'Approved Final' && $allChecked) $canApproveKontrol = true;
   elseif ($role === 'member' && $approvalStatus === 'Pending' && $allChecked) $canApproveKontrol = true;
   elseif ($role === 'sheadprd' && $approvalStatus === 'Approved L1') $canApproveKontrol = true;
   elseif ($role === 'sheadmtc' && $approvalStatus === 'Approved L2') $canApproveKontrol = true;
@@ -369,7 +369,7 @@
   </div>
 <?php endif; ?>
 
-<?php if ($role === 'member' && $approvalStatus === 'Pending' && !$allChecked): ?>
+<?php if (($role === 'member' || $role === 'admin') && $approvalStatus !== 'Approved Final' && !$allChecked): ?>
   <div class="alert alert-warning mt-3 mb-3 shadow-sm">
     <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Perhatian:</strong> Anda belum bisa menyetujui Checklist Control ini karena belum semua mesin/item diperiksa (PIC belum terisi semua). Selesaikan pengisian tabel di atas terlebih dahulu.
   </div>

@@ -147,18 +147,13 @@
           <!-- Repair PIC -->
           <div class="mb-3">
             <label class="form-label small fw-semibold">PIC Perbaikan</label>
-            <select name="repair_pic" id="modalRepairPic" class="form-select form-select-sm rounded-2" placeholder="Pilih atau ketik nama teknisi / PIC perbaikan">
-              <option value="">-- Ketik atau Pilih PIC --</option>
-              <?php foreach ($masterPic as $p): ?>
-                <option value="<?= esc($p['nama_pic']) ?>"><?= esc($p['nama_pic']) ?></option>
-              <?php endforeach; ?>
-            </select>
+            <input type="text" name="repair_pic" id="modalRepairPic" class="form-control form-control-sm rounded-2 bg-light" readonly>
           </div>
 
           <!-- Foto Perbaikan -->
           <div class="row g-3 mb-3">
             <div class="col-6">
-              <label class="form-label small fw-semibold">Foto 1 <span class="text-muted fw-normal">(Opsional)</span></label>
+              <label class="form-label small fw-semibold">Foto 1 <span class="text-danger fw-normal">(Wajib)</span></label>
               <div id="modalFoto1Preview" class="mb-2" style="display:none; position:relative;">
                  <img src="" style="width:100%; height:80px; object-fit:cover; border-radius:4px; border:1px solid #dee2e6;">
               </div>
@@ -187,7 +182,7 @@
 
           <!-- Keterangan -->
           <div class="mb-3">
-            <label class="form-label small fw-semibold">Keterangan Tambahan</label>
+            <label class="form-label small fw-semibold">Keterangan Tambahan <span class="text-muted fw-normal">(Opsional)</span></label>
             <textarea name="keterangan" id="modalKeterangan" class="form-control form-control-sm rounded-2" rows="2" placeholder="Keterangan / remarks tambahan..."></textarea>
           </div>
         </div>
@@ -221,12 +216,10 @@
         document.getElementById("modalAction").value = row.getAttribute("data-action");
         
         let repairPicVal = row.getAttribute("data-repair-pic");
-        if (window.tomSelectRepairPic) {
-            window.tomSelectRepairPic.addOption({value: repairPicVal, text: repairPicVal});
-            window.tomSelectRepairPic.setValue(repairPicVal);
-        } else {
-            document.getElementById("modalRepairPic").value = repairPicVal;
+        if (!repairPicVal || repairPicVal === '-' || repairPicVal === '') {
+            repairPicVal = "<?= esc(session()->get('nama') ?? 'MEMBER') ?>";
         }
+        document.getElementById("modalRepairPic").value = repairPicVal;
 
         document.getElementById("modalKeterangan").value = row.getAttribute("data-keterangan");
 
@@ -257,6 +250,51 @@
             document.getElementById('modalFoto2UploadBtn').style.display = 'block';
         }
 
+                // --- RESTORE DRAFT IF EXISTS ---
+        const draftKey = 'draft_abnormal_' + row.getAttribute("data-id-abnormal");
+        const draftStr = localStorage.getItem(draftKey);
+        if (draftStr) {
+            try {
+                const draft = JSON.parse(draftStr);
+                // Check if draft is older than 10 minutes (600,000 ms)
+                if (Date.now() - draft.timestamp < 600000) {
+                    if (draft.typeSparepart !== undefined) document.getElementById("modalTypeSparepart").value = draft.typeSparepart;
+                    if (draft.progresStock !== undefined) document.getElementById("modalProgresStock").value = draft.progresStock;
+                    if (draft.progresTanggal !== undefined) document.getElementById("modalProgresTanggal").value = draft.progresTanggal;
+                    if (draft.action !== undefined) document.getElementById("modalAction").value = draft.action;
+                    if (draft.keterangan !== undefined) document.getElementById("modalKeterangan").value = draft.keterangan;
+
+                    if (draft.foto1 && preview1) {
+                        preview1.style.display = 'block';
+                        preview1.querySelector('img').src = draft.foto1;
+                        document.getElementById('modalFoto1Controls').style.display = 'flex';
+                        document.getElementById('modalFoto1UploadBtn').style.display = 'none';
+                    }
+                    if (draft.foto2 && preview2) {
+                        preview2.style.display = 'block';
+                        preview2.querySelector('img').src = draft.foto2;
+                        document.getElementById('modalFoto2Controls').style.display = 'flex';
+                        document.getElementById('modalFoto2UploadBtn').style.display = 'none';
+                    }
+                    
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'info',
+                        title: 'Draft sebelumnya berhasil dimuat.',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                } else {
+                    // Draft expired, remove it
+                    localStorage.removeItem(draftKey);
+                }
+            } catch(e) {
+                console.error("Failed to parse draft", e);
+            }
+        }
+        // --- END RESTORE DRAFT ---
+
         editModal.show();
       }
     });
@@ -266,15 +304,7 @@
       form.addEventListener("submit", validateAbnormalForm);
     }
     
-    // Initialize TomSelect for Repair PIC
-    if (document.getElementById("modalRepairPic")) {
-      window.tomSelectRepairPic = new TomSelect("#modalRepairPic", {
-          create: true, // Allow user to type in new values
-          sortField: { field: "text", direction: "asc" },
-          maxOptions: null,
-          dropdownParent: "body" // Important for selects inside modals
-      });
-    }
+
   });
 
   function validateAbnormalForm(e) {
@@ -290,12 +320,15 @@
     const repairPic = document.getElementById("modalRepairPic").value.trim();
     const keterangan = document.getElementById("modalKeterangan").value.trim();
 
-    if (!typeSparepart || !progresStock || !progresTanggal || !action || !repairPic || !keterangan) {
+    const foto1Preview = document.getElementById("modalFoto1Preview");
+    const foto1Exists = foto1Preview && foto1Preview.style.display !== 'none';
+
+    if (!typeSparepart || !progresStock || !progresTanggal || !action || !repairPic || !foto1Exists) {
       e.preventDefault(); // Mencegah form dikirim
       Swal.fire({
         icon: 'warning',
         title: 'Form Belum Lengkap',
-        text: 'Harap lengkapi semua isian form Tindak Lanjut sebelum menyimpan! (Atau gunakan tombol Hapus untuk menghapus data)',
+        text: 'Harap lengkapi semua isian form Tindak Lanjut (termasuk Foto 1) sebelum menyimpan! (Atau gunakan tombol Hapus untuk menghapus data)',
         confirmButtonColor: '#0d6efd',
         confirmButtonText: 'Oke, Paham'
       });
@@ -597,6 +630,7 @@
                             previewEl.style.display = 'block';
                             previewEl.querySelector('img').src = data.foto_url;
                             document.getElementById(controlsId).style.display = 'flex';
+                            if(typeof saveAbnormalDraft === 'function') saveAbnormalDraft();
                             document.getElementById(uploadBtnId).style.display = 'none';
                         }
                         
@@ -691,6 +725,7 @@ function deleteFotoAbnormal(slot) {
                         document.getElementById('modalFoto' + slot + 'Preview').style.display = 'none';
                         document.getElementById('modalFoto' + slot + 'Controls').style.display = 'none';
                         document.getElementById('modalFoto' + slot + 'UploadBtn').style.display = 'block';
+                        if(typeof saveAbnormalDraft === 'function') saveAbnormalDraft();
                         
                         // Update Table Row
                         let row = document.querySelector(`tr[data-id-abnormal="${idAbnormal}"]`);
@@ -716,3 +751,67 @@ function deleteFotoAbnormal(slot) {
 
 
 
+
+<script>
+
+  // --- AUTOSAVE LOGIC ---
+  function getAbnormalDraftKey() {
+    const idAbnormal = document.getElementById("modalIdAbnormal").value;
+    if (!idAbnormal) return null;
+    return 'draft_abnormal_' + idAbnormal;
+  }
+
+  function saveAbnormalDraft() {
+    const key = getAbnormalDraftKey();
+    if (!key) return;
+
+    const foto1Preview = document.getElementById("modalFoto1Preview");
+    const foto2Preview = document.getElementById("modalFoto2Preview");
+
+    const draft = {
+      timestamp: Date.now(),
+      typeSparepart: document.getElementById("modalTypeSparepart").value,
+      progresStock: document.getElementById("modalProgresStock").value,
+      progresTanggal: document.getElementById("modalProgresTanggal").value,
+      action: document.getElementById("modalAction").value,
+      keterangan: document.getElementById("modalKeterangan").value,
+      foto1: (foto1Preview && foto1Preview.style.display !== 'none') ? foto1Preview.querySelector('img').src : '',
+      foto2: (foto2Preview && foto2Preview.style.display !== 'none') ? foto2Preview.querySelector('img').src : ''
+    };
+    localStorage.setItem(key, JSON.stringify(draft));
+  }
+
+  // Bind autosave to form inputs
+  const modalInputs = ['modalTypeSparepart', 'modalProgresStock', 'modalProgresTanggal', 'modalAction', 'modalKeterangan'];
+  modalInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', saveAbnormalDraft);
+      el.addEventListener('change', saveAbnormalDraft);
+    }
+  });
+
+  // Overwrite the delete draft function on form submit
+  if (typeof validateAbnormalForm === 'function') {
+      const originalValidate = validateAbnormalForm;
+      validateAbnormalForm = function(e) {
+        const res = originalValidate(e);
+        if (res !== false) { // form is valid and being submitted
+          const key = getAbnormalDraftKey();
+          if (key) localStorage.removeItem(key);
+        }
+        return res;
+      }
+  }
+
+  // Also remove draft on Hapus click
+  const btnHapus = document.getElementById("btnHapusTindakLanjut");
+  if(btnHapus) {
+      btnHapus.addEventListener('click', function() {
+          const key = getAbnormalDraftKey();
+          if (key) localStorage.removeItem(key);
+      });
+  }
+  // --- END AUTOSAVE LOGIC ---
+
+</script>

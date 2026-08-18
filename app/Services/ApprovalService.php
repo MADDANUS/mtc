@@ -53,7 +53,7 @@ class ApprovalService
         // ─── 3. Gabungkan & apply filter GET ──────────────────────────────────────
         $allDocs = array_merge($transaksiRows, $kontrolRows);
 
-        [$uniqueLokasi, $uniqueKategori, $uniqueMesin] = $this->extractUniqueFilters($allDocs);
+        [$uniqueLokasi, $uniqueKategori, $uniqueMesin, $uniquePic] = $this->extractUniqueFilters($allDocs);
 
         $filterJenis    = $request->getGet('jenis') ?: null;
         $filterBulan    = $request->getGet('bulan') ?: null;
@@ -61,8 +61,9 @@ class ApprovalService
         $filterLokasi   = $request->getGet('lokasi') ?: null;
         $filterKategori = $request->getGet('kategori') ?: null;
         $filterMesin    = $request->getGet('mesin') ?: null;
+        $filterPic      = $request->getGet('pic') ?: null;
 
-        $filtered = $this->applyGetFilters($allDocs, $filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin);
+        $filtered = $this->applyGetFilters($allDocs, $filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin, $filterPic);
         $filtered = array_values($filtered);
 
         // ─── 4. Pagination ─────────────────────────────────────────────────────────
@@ -91,9 +92,11 @@ class ApprovalService
             'filterLokasi'   => $filterLokasi,
             'filterKategori' => $filterKategori,
             'filterMesin'    => $filterMesin,
+            'filterPic'      => $filterPic,
             'uniqueLokasi'   => $uniqueLokasi,
             'uniqueKategori' => $uniqueKategori,
             'uniqueMesin'    => $uniqueMesin,
+            'uniquePic'      => $uniquePic,
         ];
     }
 
@@ -180,7 +183,10 @@ class ApprovalService
         $uniqueLokasi = [];
         $uniqueKategori = [];
         $uniqueMesin = [];
+        $uniquePic = [];
         foreach ($allDocs as $doc) {
+            $pic = $doc['nama_pic'] ?? '';
+            if (!empty($pic)) $uniquePic[$pic] = true;
             $loc = $doc['lokasi_check'] ?? $doc['lokasi'] ?? '';
             $line = $doc['line'] ?? '';
             if (!empty($loc)) {
@@ -200,18 +206,18 @@ class ApprovalService
                 $uniqueMesin[$mesinNo] = $mesinLabel;
             }
         }
-        $uniqueLokasi = array_keys($uniqueLokasi);
-        $uniqueKategori = array_keys($uniqueKategori);
+        $uniquePic = array_keys($uniquePic);
         asort($uniqueLokasi);
         asort($uniqueKategori);
         asort($uniqueMesin);
+        asort($uniquePic);
 
-        return [$uniqueLokasi, $uniqueKategori, $uniqueMesin];
+        return [$uniqueLokasi, $uniqueKategori, $uniqueMesin, $uniquePic];
     }
 
-    private function applyGetFilters(array $allDocs, ?string $filterJenis, ?string $filterBulan, ?string $filterStatus, ?string $filterLokasi, ?string $filterKategori, ?string $filterMesin): array
+    private function applyGetFilters(array $allDocs, ?string $filterJenis, ?string $filterBulan, ?string $filterStatus, ?string $filterLokasi, ?string $filterKategori, ?string $filterMesin, ?string $filterPic = null): array
     {
-        return array_filter($allDocs, function($row) use ($filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin) {
+        return array_filter($allDocs, function($row) use ($filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin, $filterPic) {
             if ($filterJenis && $filterJenis !== 'all') {
                 $jenis = $row['jenis_check'] ?? '';
                 if ($filterJenis === JenisCheck::Preventive->value && strtolower($jenis) !== 'preventive') return false;
@@ -247,8 +253,13 @@ class ApprovalService
             }
             if ($filterMesin && $filterMesin !== 'all') {
                 $mesinNo = $row['no_mesin'] ?? '';
-                if (strtolower($mesinNo) !== strtolower($filterMesin)) return false;
+                if ($mesinNo !== $filterMesin) return false;
             }
+            if ($filterPic && $filterPic !== 'all') {
+                $pic = $row['nama_pic'] ?? '';
+                if ($pic !== $filterPic) return false;
+            }
+
             return true;
         });
     }

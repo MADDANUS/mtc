@@ -16,11 +16,11 @@
     $namaOvParts = explode(' - ', $rawNamaOv);
     $namaOvOnly  = end($namaOvParts);
   ?>
-  <table style="border:none; text-align:center; margin-top:20px;">
+  <table style="width:100%; border-collapse:collapse; text-align:center; margin-top:20px;">
     <tr>
-      <td style="border:none; width:25%; vertical-align:top;">
+      <td style="border:1.5pt solid #000; width:25%; vertical-align:top; padding:10px;">
         <div style="margin-bottom:5px; font-size:0.85rem;">Prepared</div>
-        <div style="font-weight:bold; font-size:0.9rem; margin-bottom:20px;">INSPECTOR</div>
+        <div style="font-weight:bold; font-size:0.9rem; margin-bottom:20px;">INSPECTOR<br>&nbsp;</div>
         <?php if (!empty($header['waktu_selesai'])): ?>
           <div style="color:green; font-weight:bold; margin-bottom:20px;">[ Selesai ]</div>
         <?php else: ?>
@@ -29,9 +29,9 @@
         <div style="font-weight:bold; text-decoration:underline; font-size:0.9rem;"><?= esc($namaOvOnly) ?></div>
         <div style="font-size:0.8rem; color:#555;">Tgl: <?= !empty($header['waktu_selesai']) ? format_tanggal_indo($header['waktu_selesai'], false, true) : '-' ?></div>
       </td>
-      <td style="border:none; width:25%; vertical-align:top;">
+      <td style="border:1.5pt solid #000; width:25%; vertical-align:top; padding:10px;">
         <div style="margin-bottom:5px; font-size:0.85rem;">Checked</div>
-        <div style="font-weight:bold; font-size:0.9rem; margin-bottom:20px;">LEADER PRODUKSI</div>
+        <div style="font-weight:bold; font-size:0.9rem; margin-bottom:20px;">LEADER PRODUKSI<br>&nbsp;</div>
         <?php if (!empty($header['approval_l1_by'])): ?>
           <div style="color:green; font-weight:bold; margin-bottom:20px;">[ Diperiksa ]</div>
         <?php else: ?>
@@ -46,7 +46,7 @@
         </div>
         <div style="font-size:0.8rem; color:#555;">Tgl: <?= !empty($header['approval_l1_at']) ? format_tanggal_indo($header['approval_l1_at'], false, true) : '( ..................... )' ?></div>
       </td>
-      <td style="border:none; width:25%; vertical-align:top;">
+      <td style="border:1.5pt solid #000; width:25%; vertical-align:top; padding:10px;">
         <div style="margin-bottom:5px; font-size:0.85rem;">Approved</div>
         <div style="font-weight:bold; font-size:0.9rem; margin-bottom:20px;">SECTION HEAD PRODUKSI</div>
         <?php if (!empty($header['approval_l2_by'])): ?>
@@ -63,7 +63,7 @@
         </div>
         <div style="font-size:0.8rem; color:#555;">Tgl: <?= !empty($header['approval_l2_at']) ? format_tanggal_indo($header['approval_l2_at'], false, true) : '( ..................... )' ?></div>
       </td>
-      <td style="border:none; width:25%; vertical-align:top;">
+      <td style="border:1.5pt solid #000; width:25%; vertical-align:top; padding:10px;">
         <div style="margin-bottom:5px; font-size:0.85rem;">Approved</div>
         <div style="font-weight:bold; font-size:0.9rem; margin-bottom:20px;">SECTION HEAD MTC</div>
         <?php if ($header['status'] === 'Approved'): ?>
@@ -85,9 +85,9 @@
 
   <?php else: ?>
   <!-- SIGNATURE: CHECKLIST REPORT (2 kolom) -->
-  <table style="border:none; text-align:center; margin-top:20px;">
+  <table style="width:100%; border-collapse:collapse; text-align:center; margin-top:20px;">
     <tr>
-      <td style="border:none; width:50%; vertical-align:top;">
+      <td style="border:1.5pt solid #000; width:50%; vertical-align:top; padding:10px;">
         <div style="margin-bottom:5px; font-size:0.85rem;">Dibuat Oleh</div>
         <div style="font-weight:bold; font-size:0.9rem; margin-bottom:20px;">PIC</div>
         <?php if (!empty($header['waktu_selesai'])): ?>
@@ -98,7 +98,7 @@
         <div style="font-weight:bold; text-decoration:underline; font-size:0.9rem;"><?= esc($namaP) ?></div>
         <div style="font-size:0.8rem; color:#555;">Tgl: <?= !empty($header['waktu_selesai']) ? format_tanggal_indo($header['waktu_selesai'], false, true) : '-' ?></div>
       </td>
-      <td style="border:none; width:50%; vertical-align:top;">
+      <td style="border:1.5pt solid #000; width:50%; vertical-align:top; padding:10px;">
         <div style="margin-bottom:5px; font-size:0.85rem;">Disetujui Oleh</div>
         <div style="font-weight:bold; font-size:0.9rem; margin-bottom:20px;">PIC LINE</div>
         <?php if ($header['status'] === 'Approved'): ?>

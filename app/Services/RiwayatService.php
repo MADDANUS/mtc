@@ -235,6 +235,15 @@ class RiwayatService
             if ($kategoriName) {
                 $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
                 $exist = $ceklisKontrolModel->findChecklistKontrol($header['id_mesin'], $kategoriName, $bulanTahun, $periodeKe);
+                
+                if (!$exist) {
+                    $exist = $ceklisKontrolModel->where('id_mesin', $header['id_mesin'])
+                                                ->where('kategori', $kategoriName)
+                                                ->where('bulan_tahun', $bulanTahun)
+                                                ->where('tanggal_check', $tanggalCheckDate)
+                                                ->first();
+                }
+
                 if ($exist) {
                     $ceklisKontrolModel->delete($exist['id_kontrol']);
                 }
@@ -277,6 +286,15 @@ class RiwayatService
             if ($kategoriName) {
                 $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
                 $exist = $ceklisKontrolModel->findChecklistKontrol($header['id_mesin'], $kategoriName, $bulanTahun, $periodeKe);
+                
+                if (!$exist) {
+                    $exist = $ceklisKontrolModel->where('id_mesin', $header['id_mesin'])
+                                                ->where('kategori', $kategoriName)
+                                                ->where('bulan_tahun', $bulanTahun)
+                                                ->where('tanggal_check', $tanggalCheckDate)
+                                                ->first();
+                }
+
                 if ($exist) {
                     $ceklisKontrolModel->delete($exist['id_kontrol']);
                 }

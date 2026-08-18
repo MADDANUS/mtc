@@ -142,7 +142,10 @@ class UserController extends BaseController
 
     public function export()
     {
-        $users = $this->model->orderBy('nama', 'ASC')->findAll();
+        $users = $this->model
+            ->orderBy("FIELD(role, 'admin', 'sheadmtc', 'sheadprd', 'leader', 'member', 'magang')")
+            ->orderBy('nama', 'ASC')
+            ->findAll();
         
         $filename = 'users_export_' . date('Ymd_His') . '.csv';
         

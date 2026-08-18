@@ -242,14 +242,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                       allowOutsideClick: false
                   }).then(function(result) {
                       if (!result.isConfirmed) {
-                          if (typeof selectMesin !== 'undefined' && selectMesin && !new URLSearchParams(window.location.search).get('id_mesin')) {
-                              if (selectMesin.tomselect) selectMesin.tomselect.setValue('', true);
-                              else selectMesin.value = '';
-                              updateFields();
-                              if (typeof window.clearFormAndLoadDraft === 'function') window.clearFormAndLoadDraft();
-                          } else {
-                              window.location.href = '<?= $backUrl ?>';
-                          }
+                          window.location.href = '<?= $backUrl ?>';
                       }
                   });
               } else if (data.status === 'advance') {
@@ -265,14 +258,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                       allowOutsideClick: false
                   }).then(function(result) {
                       if (!result.isConfirmed) {
-                          if (typeof selectMesin !== 'undefined' && selectMesin && !new URLSearchParams(window.location.search).get('id_mesin')) {
-                              if (selectMesin.tomselect) selectMesin.tomselect.setValue('', true);
-                              else selectMesin.value = '';
-                              updateFields();
-                              if (typeof window.clearFormAndLoadDraft === 'function') window.clearFormAndLoadDraft();
-                          } else {
-                              window.location.href = '<?= $backUrl ?>';
-                          }
+                          window.location.href = '<?= $backUrl ?>';
                       }
                   });
               }
@@ -317,17 +303,14 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
 
               if (!selectMesin.value) {
                   // Coba pulihkan mesin dari draf setelah TomSelect siap
-                  const currentUserId = "<?= session()->get('id_user') ?? session()->get('id') ?? 'guest' ?>";
-                  const _draftKey = `autosave_mtce_<?= esc($lokasiSlug ?? '') ?>_<?= esc($jenisSlug ?? '') ?>_<?= esc($categorySlug ?? '') ?>_${currentUserId}`;
+                  const _draftKey = `autosave_mtce_<?= esc($lokasiSlug ?? '') ?>_<?= esc($jenisSlug ?? '') ?>_<?= esc($categorySlug ?? '') ?>`;
                   try {
                       const _saved = localStorage.getItem(_draftKey);
                       if (_saved) {
                           const _dd = JSON.parse(_saved);
-                          const _lastActivity = _dd['_last_activity'] || 0;
-                          const _lastDate = new Date(_lastActivity).toLocaleDateString();
+                          const _lastDate = new Date(_dd['_last_activity'] || 0).toLocaleDateString();
                           const _today   = new Date().toLocaleDateString();
-                          const _gapMinutes = (Date.now() - _lastActivity) / (1000 * 60);
-                          if (_dd['id_mesin'] && _lastDate === _today && _gapMinutes <= 10) {
+                          if (_dd['id_mesin'] && _lastDate === _today) {
                               window._loadingDraft = true;
                               let restoreMesinId = Array.isArray(_dd['id_mesin']) ? _dd['id_mesin'][0] : _dd['id_mesin'];
                               selectMesin.tomselect.setValue(restoreMesinId, true);
@@ -1692,7 +1675,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const jenisSlug = "<?= esc($jenisSlug ?? '') ?>";
     const lokasiSlug = "<?= esc($lokasiSlug ?? '') ?>";
     const categorySlug = "<?= esc($categorySlug ?? '') ?>";
-    const currentUserId = "<?= session()->get('id_user') ?? session()->get('id') ?? 'guest' ?>";
 
     // Flag: cegah clearFormAndLoadDraft reset waktu saat draf sedang dimuat
     window._loadingDraft = false;
@@ -1713,7 +1695,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset input form karena user mengganti mesin
         const inputs = form.querySelectorAll('input, textarea');
         inputs.forEach(input => {
-            if (input.hasAttribute('readonly') || !input.name) return;
             if (['id_mesin', 'nama_pic', 'waktu_mulai', 'target_periode', 'csrf_test_name', 'kategori', 'bar_feeder_type', 'lokasi'].includes(input.name)) return;
             
             if (input.type === 'radio' || input.type === 'checkbox') {
@@ -1730,18 +1711,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (displayWaktu) displayWaktu.value = freshTime.display;
         const hiddenWaktu = document.querySelector('input[name="waktu_mulai"]');
         if (hiddenWaktu) hiddenWaktu.value = freshTime.raw;
-
-        // Hilangkan badge target periode (misal: tulisan "Curi Start" abu-abu)
-        const badgePeriode = document.getElementById('periode_badge');
-        if (badgePeriode) {
-            badgePeriode.classList.add('d-none');
-            badgePeriode.classList.remove('bg-warning', 'bg-info', 'bg-primary');
-            badgePeriode.innerHTML = '';
-        }
     };
 
     function getStorageKey() {
-        return `autosave_mtce_${lokasiSlug}_${jenisSlug}_${categorySlug}_${currentUserId}`;
+        return `autosave_mtce_${lokasiSlug}_${jenisSlug}_${categorySlug}`;
     }
 
     function saveFormData() {

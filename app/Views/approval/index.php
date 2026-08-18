@@ -97,7 +97,16 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                 <?php endforeach; ?>
               </select>
             </th>
-            <th class="p-1"></th>
+            <!-- Filter Dibuat Oleh -->
+            <th class="p-1" style="min-width:130px;">
+              <select name="pic" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari PIC..." onchange="this.form.submit()" style="font-size:0.75rem;">
+                <option value=""></option>
+                <option value="all" <?= ($filterPic === 'all') ? 'selected' : '' ?>>Semua PIC</option>
+                <?php foreach ($uniquePic as $pic): ?>
+                <option value="<?= esc($pic) ?>" <?= ($filterPic === $pic) ? 'selected' : '' ?>><?= esc($pic) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </th>
             <!-- Filter Bulan -->
             <th class="p-1" style="min-width:150px;">
               <select name="bulan" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-no-sort="true" data-placeholder="Cari Bulan..." onchange="this.form.submit()" style="font-size:0.75rem;">

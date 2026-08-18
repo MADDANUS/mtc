@@ -209,9 +209,9 @@
 </table>
 
 
-<table style="width: 100%; border: none; text-align: center; margin-top: 30px;">
+<table style="width: 100%; border: 1.5pt solid #000; text-align: center; margin-top: 30px;">
   <tr>
-    <td style="border: none; width: 33.33%; vertical-align: top;">
+    <td style="border: 1.5pt solid #000; width: 33.33%; vertical-align: top;">
       <div style="margin-bottom: 5px; font-size: 0.85rem;">Dibuat Oleh</div>
       <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">PIC LINE</div>
       <?php if (isset($approvalData['approved_l1_by'])): ?>
@@ -226,7 +226,7 @@
         Tanggal: <?= isset($approvalData['approved_l1_at']) ? format_tanggal_indo($approvalData['approved_l1_at'], false, true) : '( ......................... )' ?>
       </div>
     </td>
-    <td style="border: none; width: 33.33%; vertical-align: top;">
+    <td style="border: 1.5pt solid #000; width: 33.33%; vertical-align: top;">
       <div style="margin-bottom: 5px; font-size: 0.85rem;">Disetujui Oleh</div>
       <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">SECTION HEAD PRODUKSI</div>
       <?php if (isset($approvalData['approved_l2_by'])): ?>
@@ -241,7 +241,7 @@
         Tanggal: <?= isset($approvalData['approved_l2_at']) ? format_tanggal_indo($approvalData['approved_l2_at'], false, true) : '( ......................... )' ?>
       </div>
     </td>
-    <td style="border: none; width: 33.33%; vertical-align: top;">
+    <td style="border: 1.5pt solid #000; width: 33.33%; vertical-align: top;">
       <div style="margin-bottom: 5px; font-size: 0.85rem;">Diketahui Oleh</div>
       <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">SECTION HEAD MTC</div>
       <?php if (isset($approvalData['approved_final_by'])): ?>
