@@ -288,11 +288,14 @@
                     $rawNama = trim($t['nama_pic'] ?? '');
                     $namaStaff = trim($t['nama_staff'] ?? '');
                     
-                    if (empty($rawNama) || $rawNama === $namaStaff) {
-                        $picName = 'Belum Ada PIC';
-                    } else {
+                    if (!empty($rawNama)) {
+                        // nama_pic bisa berformat "Nama - NoMesin", ambil bagian pertama saja
                         $namaParts = explode(' - ', $rawNama);
-                        $picName = trim(end($namaParts));
+                        $picName = trim($namaParts[0]);
+                    } elseif (!empty($namaStaff)) {
+                        $picName = $namaStaff;
+                    } else {
+                        $picName = 'Belum Ada PIC';
                     }
                   ?>
                   <div class="d-flex align-items-center">

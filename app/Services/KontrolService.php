@@ -445,18 +445,18 @@ class KontrolService
                         continue;
                     }
                     $badgeClass = 'bg-secondary';
-                    $statusText = 'Belum Selesai';
+                    $statusText = 'Belum Selesai (' . $percent . '%)';
                     
                     if ($percent == 100) {
                         if (empty($status) || $status === 'Pending') {
                             $badgeClass = 'bg-warning text-dark';
-                            $statusText = 'Menunggu Approval (L1)';
+                            $statusText = 'Menunggu Member (100%)';
                         } elseif ($status === 'Approved L1') {
                             $badgeClass = 'bg-info text-dark';
-                            $statusText = 'Approved L1 (Menunggu L2)';
+                            $statusText = 'Menunggu SHead PRD';
                         } elseif ($status === 'Approved L2') {
                             $badgeClass = 'bg-primary';
-                            $statusText = 'Approved L2 (Menunggu Final)';
+                            $statusText = 'Menunggu SHead MTC';
                         } elseif ($status === 'Final' || $status === 'Approved Final') {
                             $badgeClass = 'bg-success';
                             $statusText = 'Selesai (Final)';

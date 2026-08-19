@@ -745,7 +745,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
             <i class="bi bi-file-earmark-text"></i>Checklist Report
           </a>
           <?php endif; ?>
-          <?php if (in_array($role, ['sheadprd', 'sheadmtc', 'admin', 'member'])): ?>
+          <?php if (in_array($role, ['sheadprd', 'sheadmtc', 'admin', 'member', 'magang'])): ?>
           <a href="<?= site_url('kontrol') ?>" class="menu-item <?= $seg1 === 'kontrol' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
             <i class="bi bi-calendar2-check"></i>Checklist Control
           </a>
@@ -767,7 +767,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
           </a>
           <?php endif; ?>
 
-          <?php if (in_array($role, ['member', 'admin'], true)): ?>
+          <?php if (in_array($role, ['member', 'admin', 'magang'], true)): ?>
             <a href="<?= site_url('laporan/durasi') ?>" class="menu-item <?= $seg1 === 'laporan' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
               <i class="bi bi-bar-chart-line"></i>Laporan Durasi
             </a>

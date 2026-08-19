@@ -639,4 +639,30 @@ class MesinController extends BaseController
         $riwayat = $logModel->getRiwayatByMesin($id);
         return $this->response->setJSON($riwayat);
     }
+
+    public function deleteRiwayat()
+    {
+        // Hanya admin yang boleh hapus
+        if (session()->get('role') !== \App\Enums\Role::Admin->value) {
+            return $this->response->setJSON(['status' => false, 'message' => 'Akses ditolak.']);
+        }
+
+        $body = $this->request->getJSON(true);
+        $rawIds = $body['ids'] ?? '';
+
+        // Validasi: hanya angka dan koma
+        if (!preg_match('/^[\d,]+$/', (string)$rawIds)) {
+            return $this->response->setJSON(['status' => false, 'message' => 'Input tidak valid.']);
+        }
+
+        $ids = array_filter(array_map('intval', explode(',', $rawIds)));
+        if (empty($ids)) {
+            return $this->response->setJSON(['status' => false, 'message' => 'Tidak ada ID yang dihapus.']);
+        }
+
+        $logModel = new \App\Models\LogMasterMesinModel();
+        $logModel->whereIn('id_log', $ids)->delete();
+
+        return $this->response->setJSON(['status' => true, 'message' => 'Riwayat berhasil dihapus.']);
+    }
 }

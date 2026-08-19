@@ -148,7 +148,9 @@ class LaporanAbnormalModel extends Model
         if (!empty($lokasi) && $lokasi !== 'all') {
             $builder->where('master_mesin.lokasi', $lokasi);
         }
-        $this->applySemesterFilter($builder, $bulan);
+        if (!empty($bulan) && $bulan !== 'all') {
+            $builder->like('laporan_abnormal.pengecekan_tanggal', $bulan . '-', 'after');
+        }
         if (!empty($search)) {
             $builder->groupStart()
                     ->like('laporan_abnormal.point_check', $search)

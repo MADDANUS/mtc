@@ -242,7 +242,7 @@
       </div>
     </td>
     <td style="border: 1.5pt solid #000; width: 33.33%; vertical-align: top;">
-      <div style="margin-bottom: 5px; font-size: 0.85rem;">Diketahui Oleh</div>
+      <div style="margin-bottom: 5px; font-size: 0.85rem;">Disetujui Oleh</div>
       <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">SECTION HEAD MTC</div>
       <?php if (isset($approvalData['approved_final_by'])): ?>
         <div style="color: green; font-weight: bold; margin-bottom: 20px;">[ Disetujui ]</div>

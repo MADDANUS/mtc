@@ -104,9 +104,9 @@ $routes->group('abnormal', ['filter' => 'auth'], static function ($routes) {
     $routes->post('delete-foto-perbaikan', 'AbnormalController::deleteFotoPerbaikan');
 });
 
-// Laporan Durasi (member, admin)
-$routes->get('laporan/durasi', 'LaporanController::durasi', ['filter' => 'role:member,admin']);
-$routes->get('laporan/durasi-pdf', 'LaporanController::durasiPdf', ['filter' => 'role:member,admin']);
+// Laporan Durasi (member, admin, magang)
+$routes->get('laporan/durasi', 'LaporanController::durasi', ['filter' => 'role:member,admin,magang']);
+$routes->get('laporan/durasi-pdf', 'LaporanController::durasiPdf', ['filter' => 'role:member,admin,magang']);
 
 // Approval Inbox (semua role kecuali magang)
 $routes->get('approval', 'ApprovalController::index', ['filter' => 'role:admin,member,leader,sheadprd,sheadmtc']);
@@ -124,6 +124,8 @@ $routes->group('admin/mesin', ['filter' => 'role:admin,member,sheadprd,sheadmtc,
     $routes->post('import', 'MesinController::import');
     $routes->get('download-all-qr', 'MesinController::downloadAllQr');
     $routes->get('riwayat/(:num)', 'MesinController::getRiwayat/$1');
+    $routes->post('riwayat/delete', 'MesinController::deleteRiwayat');
+
     $routes->get('generate-qr', 'MesinController::generateQr');
 });
 

@@ -226,7 +226,6 @@
   </div>
 </div>
 
-<!-- Modal Riwayat -->
 <div class="modal fade" id="riwayatModal" tabindex="-1" aria-labelledby="riwayatModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg rounded-4">
@@ -514,11 +513,13 @@
     // --- RIWAYAT MODAL LOGIC ---
     const riwayatModal = new bootstrap.Modal(document.getElementById('riwayatModal'));
     const btnRiwayat = document.querySelectorAll('.btn-riwayat-mesin');
+    let currentIdMesin = null;
     
     btnRiwayat.forEach(btn => {
       btn.addEventListener('click', function() {
         const idMesin = this.getAttribute('data-id');
         const noMesin = this.getAttribute('data-no');
+        currentIdMesin = idMesin;
         
         document.getElementById('riwayatModalLabel').innerText = `Riwayat Mesin: ${noMesin}`;
         document.getElementById('riwayatLoading').classList.remove('d-none');
@@ -527,7 +528,15 @@
         contentDiv.innerHTML = '';
         
         riwayatModal.show();
-        
+        loadRiwayat(idMesin);
+      });
+    });
+
+    function loadRiwayat(idMesin) {
+        const contentDiv = document.getElementById('riwayatContent');
+        document.getElementById('riwayatLoading').classList.remove('d-none');
+        contentDiv.classList.add('d-none');
+
         fetch(`<?= site_url('admin/mesin/riwayat/') ?>${idMesin}`)
           .then(res => res.json())
           .then(data => {
@@ -539,7 +548,7 @@
               return;
             }
             
-            // Group by waktu
+            // Group by waktu + diubah_oleh
             const grouped = {};
             data.forEach(item => {
                 const timeKey = item.created_at.substring(0, 16) + '_' + item.diubah_oleh;
@@ -556,10 +565,22 @@
             let html = '';
             for (const key in grouped) {
                 const group = grouped[key];
+                // Kumpulkan semua id_log dalam group ini
+                const logIds = group.changes.map(c => c.id_log).join(',');
                 html += `
-                <div class="timeline-item">
-                    <div class="timeline-date">${group.date}</div>
-                    <span class="timeline-admin"><i class="bi bi-person-fill"></i> Oleh: ${group.admin}</span>
+                <div class="timeline-item" id="group-${key.replace(/[^a-z0-9]/gi,'_')}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="timeline-date">${group.date}</div>
+                            <span class="timeline-admin"><i class="bi bi-person-fill"></i> Oleh: ${group.admin}</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger py-0 px-2 ms-2 btn-hapus-log" 
+                            data-ids="${logIds}" 
+                            data-key="${key.replace(/[^a-z0-9]/gi,'_')}"
+                            title="Hapus riwayat ini" style="font-size:0.75rem;">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
                     <ul class="timeline-changes">
                 `;
                 
@@ -574,14 +595,53 @@
             }
             
             contentDiv.innerHTML = html;
+
+            // Bind delete buttons
+            contentDiv.querySelectorAll('.btn-hapus-log').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const ids = this.getAttribute('data-ids');
+                    const groupKey = this.getAttribute('data-key');
+                    Swal.fire({
+                        title: 'Hapus Riwayat?',
+                        text: 'Data log perubahan ini akan dihapus permanen.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, Hapus',
+                        cancelButtonText: 'Batal'
+                    }).then(result => {
+                        if (result.isConfirmed) {
+                            fetch(`<?= site_url('admin/mesin/riwayat/delete') ?>`, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+                                body: JSON.stringify({ids: ids})
+                            })
+                            .then(r => r.json())
+                            .then(resp => {
+                                if (resp.status) {
+                                    document.getElementById(`group-${groupKey}`)?.remove();
+                                    const remaining = contentDiv.querySelectorAll('.timeline-item');
+                                    if (remaining.length === 0) {
+                                        contentDiv.innerHTML = '<div class="text-center text-muted"><i class="bi bi-info-circle"></i> Tidak ada riwayat.</div>';
+                                    }
+                                    Swal.fire({toast:true, position:'top-end', icon:'success', title:'Riwayat berhasil dihapus.', showConfirmButton:false, timer:2000});
+                                } else {
+                                    Swal.fire('Gagal', resp.message || 'Gagal menghapus.', 'error');
+                                }
+                            });
+                        }
+                    });
+                });
+            });
           })
           .catch(err => {
             document.getElementById('riwayatLoading').classList.add('d-none');
             contentDiv.classList.remove('d-none');
             contentDiv.innerHTML = '<div class="text-center text-muted"><i class="bi bi-info-circle"></i> Tidak ada riwayat.</div>';
           });
-      });
-    });
+    }
+
   });
 </script>
 
