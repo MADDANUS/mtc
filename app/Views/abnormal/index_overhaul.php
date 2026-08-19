@@ -276,15 +276,6 @@
                         document.getElementById('modalFoto2Controls').style.display = 'flex';
                         document.getElementById('modalFoto2UploadBtn').style.display = 'none';
                     }
-                    
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'info',
-                        title: 'Draft sebelumnya berhasil dimuat.',
-                        showConfirmButton: false,
-                        timer: 3000
-                    });
                 } else {
                     // Draft expired, remove it
                     localStorage.removeItem(draftKey);
@@ -756,59 +747,89 @@ function deleteFotoAbnormal(slot) {
 
   // --- AUTOSAVE LOGIC ---
   function getAbnormalDraftKey() {
-    const idAbnormal = document.getElementById("modalIdAbnormal").value;
-    if (!idAbnormal) return null;
+    const el = document.getElementById("modalIdAbnormal");
+    if (!el) { console.warn('[Autosave] modalIdAbnormal elemen tidak ditemukan!'); return null; }
+    const idAbnormal = el.value;
+    if (!idAbnormal) { console.warn('[Autosave] idAbnormal kosong!'); return null; }
     return 'draft_abnormal_' + idAbnormal;
   }
 
+  let autosaveNotifTimer = null;
   function saveAbnormalDraft() {
     const key = getAbnormalDraftKey();
-    if (!key) return;
+    if (!key) { console.warn('[Autosave] Key null, batal simpan.'); return; }
 
     const foto1Preview = document.getElementById("modalFoto1Preview");
     const foto2Preview = document.getElementById("modalFoto2Preview");
 
     const draft = {
       timestamp: Date.now(),
-      typeSparepart: document.getElementById("modalTypeSparepart").value,
-      progresStock: document.getElementById("modalProgresStock").value,
-      progresTanggal: document.getElementById("modalProgresTanggal").value,
-      action: document.getElementById("modalAction").value,
-      keterangan: document.getElementById("modalKeterangan").value,
-      foto1: (foto1Preview && foto1Preview.style.display !== 'none') ? foto1Preview.querySelector('img').src : '',
-      foto2: (foto2Preview && foto2Preview.style.display !== 'none') ? foto2Preview.querySelector('img').src : ''
+      typeSparepart: (document.getElementById("modalTypeSparepart") || {value:''}).value,
+      progresStock: (document.getElementById("modalProgresStock") || {value:''}).value,
+      progresTanggal: (document.getElementById("modalProgresTanggal") || {value:''}).value,
+      action: (document.getElementById("modalAction") || {value:''}).value,
+      keterangan: (document.getElementById("modalKeterangan") || {value:''}).value,
+      foto1: (foto1Preview && foto1Preview.style.display !== 'none' && foto1Preview.querySelector('img')) ? foto1Preview.querySelector('img').src : '',
+      foto2: (foto2Preview && foto2Preview.style.display !== 'none' && foto2Preview.querySelector('img')) ? foto2Preview.querySelector('img').src : ''
     };
-    localStorage.setItem(key, JSON.stringify(draft));
+    
+    try {
+        localStorage.setItem(key, JSON.stringify(draft));
+        console.log('[Autosave] Tersimpan:', key);
+    } catch(e) {
+        console.error('[Autosave] ERROR:', e);
+    }
   }
 
-  // Bind autosave to form inputs
-  const modalInputs = ['modalTypeSparepart', 'modalProgresStock', 'modalProgresTanggal', 'modalAction', 'modalKeterangan'];
-  modalInputs.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('input', saveAbnormalDraft);
-      el.addEventListener('change', saveAbnormalDraft);
+  // Event delegation pada document (capture phase - tidak bisa diblokir)
+  document.addEventListener('input', function(e) {
+    const ids = ['modalTypeSparepart','modalProgresStock','modalProgresTanggal','modalAction','modalKeterangan'];
+    if (e.target && ids.includes(e.target.id)) {
+        console.log('[Autosave] Input terdeteksi pada:', e.target.id);
+        saveAbnormalDraft();
     }
-  });
+  }, true);
+  
+  document.addEventListener('change', function(e) {
+    const ids = ['modalTypeSparepart','modalProgresStock','modalProgresTanggal','modalAction','modalKeterangan'];
+    if (e.target && ids.includes(e.target.id)) {
+        console.log('[Autosave] Change terdeteksi pada:', e.target.id);
+        saveAbnormalDraft();
+    }
+  }, true);
 
-  // Overwrite the delete draft function on form submit
+  // BACKUP: Polling setiap 3 detik saat modal terbuka
+  setInterval(function() {
+      const modalEl = document.getElementById("editAbnormalModal");
+      if (modalEl && modalEl.classList.contains("show")) {
+          const typeSparepart = (document.getElementById("modalTypeSparepart") || {value:''}).value.trim();
+          const action = (document.getElementById("modalAction") || {value:''}).value.trim();
+          const keterangan = (document.getElementById("modalKeterangan") || {value:''}).value.trim();
+          if (typeSparepart || action || keterangan) {
+              console.log('[Autosave Interval] Modal terbuka, ada isian, menyimpan...');
+              saveAbnormalDraft();
+          }
+      }
+  }, 3000);
+
+  // Hapus draft saat form submit sukses
   if (typeof validateAbnormalForm === 'function') {
-      const originalValidate = validateAbnormalForm;
+      var _origValidate = validateAbnormalForm;
       validateAbnormalForm = function(e) {
-        const res = originalValidate(e);
-        if (res !== false) { // form is valid and being submitted
-          const key = getAbnormalDraftKey();
+        var res = _origValidate(e);
+        if (res !== false) {
+          var key = getAbnormalDraftKey();
           if (key) localStorage.removeItem(key);
         }
         return res;
       }
   }
 
-  // Also remove draft on Hapus click
-  const btnHapus = document.getElementById("btnHapusTindakLanjut");
-  if(btnHapus) {
-      btnHapus.addEventListener('click', function() {
-          const key = getAbnormalDraftKey();
+  // Hapus draft saat tombol Hapus diklik
+  var btnHapus2 = document.getElementById("btnHapusTindakLanjut");
+  if(btnHapus2) {
+      btnHapus2.addEventListener('click', function() {
+          var key = getAbnormalDraftKey();
           if (key) localStorage.removeItem(key);
       });
   }
