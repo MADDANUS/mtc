@@ -331,12 +331,25 @@ class TransaksiCheckModel extends Model
         return $builder->orderBy('transaksi_check.waktu_mulai', 'DESC')->findAll();
     }
 
-    public function checkDuplicate(int $idMesin, string $jenisCheck, string $bulan, ?string $kategori = null): array
+    public function checkDuplicate(int $idMesin, string $jenisCheck, string $bulan, ?string $kategori = null, bool $isSemester = false): array
     {
         $builder = $this->select('id_transaksi, waktu_mulai, created_at, nama_pic, target_periode')
                         ->where('id_mesin', $idMesin)
-                        ->where('jenis_check', $jenisCheck)
-                        ->where('target_periode', $bulan);
+                        ->where('jenis_check', $jenisCheck);
+
+        if ($isSemester) {
+            $year = substr($bulan, 0, 4);
+            $month = (int)substr($bulan, 5, 2);
+            if ($month <= 6) {
+                $builder->where("target_periode >=", "$year-01")
+                        ->where("target_periode <=", "$year-06");
+            } else {
+                $builder->where("target_periode >=", "$year-07")
+                        ->where("target_periode <=", "$year-12");
+            }
+        } else {
+            $builder->where('target_periode', $bulan);
+        }
                         
         if (!empty($kategori)) {
             $builder->where('kategori', $kategori);
@@ -451,11 +464,13 @@ class TransaksiCheckModel extends Model
             $mesinBuilder->where('m.id_mesin', $filters['id_mesin']);
         }
         
-        $totalMesin = (int) $mesinBuilder->countAllResults();
+        $totalMesinPreventive = (int) $mesinBuilder->countAllResults(false);
+        $totalMesinOverhaul   = (int) $mesinBuilder->where('m.jenis !=', '-')->countAllResults();
         
-        if ($totalMesin === 0) {
+        if ($totalMesinPreventive === 0 && $totalMesinOverhaul === 0) {
             return [
                 'total_mesin' => 0,
+                'total_mesin_overhaul' => 0,
                 'preventive' => ['checked' => 0, 'coverage' => 0, 'normal' => 0, 'abnormal' => 0, 'normal_count' => 0, 'abnormal_count' => 0],
                 'overhaul'   => ['checked' => 0, 'coverage' => 0, 'normal' => 0, 'abnormal' => 0, 'normal_count' => 0, 'abnormal_count' => 0]
             ];
@@ -473,7 +488,7 @@ class TransaksiCheckModel extends Model
         $semesterEnd   = $semester === 1 ? "$tahun-06" : "$tahun-12";
 
         // Fungsi Helper untuk mengambil status
-        $getStats = function(string $jenis, string $periodeStart, string $periodeEnd) use ($db, $totalMesin, $filters) {
+        $getStats = function(string $jenis, string $periodeStart, string $periodeEnd, int $totalTarget) use ($db, $filters) {
             $builder = $db->table('transaksi_check t')
                           ->select('t.id_mesin, 
                                     (SELECT CASE 
@@ -532,29 +547,34 @@ class TransaksiCheckModel extends Model
             $checked = count($mesinUnik);
             $normal = 0;
             $abnormal = 0;
+            $tidakAda = 0;
             
             foreach ($mesinUnik as $kondisi) {
                 if ($kondisi === 'V') {
                     $normal++;
-                } else {
+                } elseif ($kondisi === 'Δ') {
                     $abnormal++;
+                } else if ($kondisi === 'X') {
+                    $tidakAda++;
                 }
             }
 
             return [
                 'checked'  => $checked,
-                'coverage' => $totalMesin > 0 ? round(($checked / $totalMesin) * 100, 1) : 0,
+                'coverage' => $totalTarget > 0 ? round(($checked / $totalTarget) * 100, 1) : 0,
                 'normal'   => $checked > 0 ? round(($normal / $checked) * 100, 1) : 0,
                 'abnormal' => $checked > 0 ? round(($abnormal / $checked) * 100, 1) : 0,
                 'normal_count' => $normal,
-                'abnormal_count' => $abnormal
+                'abnormal_count' => $abnormal,
+                'tidak_ada_count' => $tidakAda
             ];
         };
 
         return [
-            'total_mesin' => $totalMesin,
-            'preventive'  => $getStats('Preventive', $bulanSekarang, $bulanSekarang),
-            'overhaul'    => $getStats('Overhaul', $semesterStart, $semesterEnd),
+            'total_mesin' => $totalMesinPreventive,
+            'total_mesin_overhaul' => $totalMesinOverhaul,
+            'preventive'  => $getStats('Preventive', $bulanSekarang, $bulanSekarang, $totalMesinPreventive),
+            'overhaul'    => $getStats('Overhaul', $semesterStart, $semesterEnd, $totalMesinOverhaul),
             'bulan'       => $bulanSekarang,
             'semester'    => "Semester $semester $tahun"
         ];

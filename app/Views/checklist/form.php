@@ -180,17 +180,22 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                       badge.classList.add('bg-info', 'text-dark');
                       badge.innerHTML = '<i class="bi bi-info-circle-fill me-1"></i> Periode: ' + data.target_periode + ' (Curi Start / Out of Plan)';
                   } else if (data.status === 'normal') {
-                      badge.classList.add('bg-primary');
-                      badge.innerHTML = '<i class="bi bi-calendar-check-fill me-1"></i> Periode: ' + data.target_periode + ' (Bulan Ini)';
+                      if (jenisCheck === 'overhaul') {
+                          badge.classList.add('d-none');
+                      } else {
+                          badge.classList.add('bg-primary');
+                          badge.innerHTML = '<i class="bi bi-calendar-check-fill me-1"></i> Periode: ' + data.target_periode + ' (Bulan Ini)';
+                      }
                   }
               }
 
               if (data.duplicate || data.status === 'duplicate') {
+                  let timePeriodText = (jenisCheck === 'overhaul') ? 'semester ini' : 'bulan ini';
                   Swal.fire({
                       icon: 'warning',
                       title: 'Sudah Pernah Dicek!',
                       html: `
-                          <p>Mesin ini sudah pernah di-<strong>${data.kategori || jenisCheck}</strong> pada bulan ini.</p>
+                          <p>Mesin ini sudah pernah di-<strong>${data.kategori || jenisCheck}</strong> pada ${timePeriodText}.</p>
                           <table class="table table-sm table-bordered mt-2 text-start" style="font-size:0.9rem;">
                               <tr><td class="fw-semibold" style="width:40%">Tanggal & Waktu</td><td>${data.tanggal || '-'}</td></tr>
                               <tr><td class="fw-semibold">PIC</td><td>${data.pic || '-'}</td></tr>
@@ -1713,17 +1718,39 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isEditChk) return;
         if (window._loadingDraft) return;
 
-        // Reset input form karena user mengganti mesin
+        // Cek apakah ada input (radio/textarea) yang sudah diisi oleh user
+        let hasFilledData = false;
         const inputs = form.querySelectorAll('input, textarea');
         inputs.forEach(input => {
             if (input.hasAttribute('readonly') || !input.name) return;
             if (['id_mesin', 'nama_pic', 'waktu_mulai', 'target_periode', 'csrf_test_name', 'kategori', 'bar_feeder_type', 'lokasi'].includes(input.name)) return;
             
             if (input.type === 'radio' || input.type === 'checkbox') {
-                input.checked = false;
-                input.dispatchEvent(new Event('change', { bubbles: true }));
+                if (input.checked) hasFilledData = true;
+            } else if (input.type !== 'hidden' && input.type !== 'file') {
+                if (input.value.trim() !== '') hasFilledData = true;
+            }
+        });
+
+        // Jika sudah ada data yang diisi, JANGAN reset form (pertahankan ceklis user)
+        if (hasFilledData) {
+            return;
+        }
+
+        // Reset input form secara efisien (hanya jika ada nilainya, meski seharusnya kosong karena lolos cek di atas)
+        inputs.forEach(input => {
+            if (input.hasAttribute('readonly') || !input.name) return;
+            if (['id_mesin', 'nama_pic', 'waktu_mulai', 'target_periode', 'csrf_test_name', 'kategori', 'bar_feeder_type', 'lokasi'].includes(input.name)) return;
+            
+            if (input.type === 'radio' || input.type === 'checkbox') {
+                if (input.checked) {
+                    input.checked = false;
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             } else if (input.type !== 'hidden') {
-                input.value = '';
+                if (input.value !== '') {
+                    input.value = '';
+                }
             }
         });
 

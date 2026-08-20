@@ -19,6 +19,7 @@ $routes->get('logout', 'Auth::logout');
 
 // Dashboard (semua role login, konten beda per role di dalam controller)
 $routes->get('dashboard', 'DashboardController::index', ['filter' => 'auth']);
+$routes->get('dashboard/detail-pencapaian', 'DashboardController::detailPencapaian', ['filter' => 'auth']);
 
 // Settings
 $routes->get('ganti-password', 'Auth::gantiPasswordForm', ['filter' => 'auth']);

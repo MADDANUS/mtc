@@ -433,17 +433,9 @@ class KontrolService
                     }
                     
                     $percent = $total > 0 ? round(($checked / $total) * 100) : 0;
-                    
                     $status = $approvalData[$lokasi][$line][$kategori] ?? '';
                     
-                    // Filter based on role
-                    $roleSession = session()->get('role');
-                    if ($roleSession === Role::Sheadprd->value && (empty($status) || in_array($status, ['Pending', 'Approved L1'], true))) {
-                        continue;
-                    }
-                    if ($roleSession === Role::Sheadmtc->value && (empty($status) || in_array($status, ['Pending', 'Approved L1', 'Approved L2'], true))) {
-                        continue;
-                    }
+                    // Hitung status teks dan warna badge yang akurat sesuai progress
                     $badgeClass = 'bg-secondary';
                     $statusText = 'Belum Selesai (' . $percent . '%)';
                     
@@ -462,13 +454,11 @@ class KontrolService
                             $statusText = 'Selesai (Final)';
                         }
                     }
-                    
-                    // History hanya menampilkan yang sudah Final untuk role member/admin/leader
-                    // Role approver (sheadprd/sheadmtc) sudah difilter di atas
-                    if (in_array($roleSession, [Role::Member->value, Role::Admin->value, Role::Leader->value], true)) {
-                        if (!in_array($status, ['Final', 'Approved Final'], true)) {
-                            continue; // Belum selesai → tetap di Approval Inbox
-                        }
+
+                    // Eksekusi: History Checklist Control HANYA boleh menampilkan dokumen yang SUDAH 100% SELESAI DAN APPROVED FINAL.
+                    // Jika belum 100% atau belum di-approve final, maka sembunyikan dari History (otomatis masuk ke menu Approval).
+                    if ($percent < 100 || !in_array($status, ['Final', 'Approved Final'], true)) {
+                        continue;
                     }
                     
                     if (!empty($filterStatus) && $statusText !== $filterStatus) continue;

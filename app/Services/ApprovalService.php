@@ -133,7 +133,7 @@ class ApprovalService
         $existingApprovals = $approvalModel->getExistingApprovals();
         $approvedSet = [];
         foreach ($existingApprovals as $ea) {
-            $approvedSet[$ea['bulan_tahun']][$ea['lokasi']][$ea['line']][$ea['kategori']] = true;
+            $approvedSet[$ea['bulan_tahun']][$ea['lokasi']][$ea['line']][$ea['kategori']] = $ea['status'] ?? 'Pending';
         }
 
         foreach (array_keys($activeMonths) as $bt) {
@@ -148,10 +148,21 @@ class ApprovalService
                 if (!isset($totalMesinMap[$lok])) continue;
                 foreach ($totalMesinMap[$lok] as $ln => $totalMesin) {
                     foreach ($kats as $kat) {
-                        if (isset($approvedSet[$bt][$lok][$ln][$kat])) continue;
-
                         $checked = $checkedMap[$bt][$lok][$ln][$kat] ?? 0;
                         $persen = $totalMesin > 0 ? round(($checked / $totalMesin) * 100) : 0;
+
+                        $approvalStatus = $approvedSet[$bt][$lok][$ln][$kat] ?? null;
+
+                        if ($approvalStatus !== null) {
+                            if ($persen == 100) {
+                                continue; // Sudah 100% dan masuk tabel approval_bulanan -> diurus oleh Inbox normal atau History
+                            }
+                            if (!in_array($approvalStatus, ['Final', 'Approved Final'])) {
+                                continue; // < 100% dan status belum final -> sudah ditarik oleh getInboxApprovalKontrol
+                            }
+                            // BLACK HOLE: < 100% TAPI status sudah Final/Approved Final di database.
+                            // Kita biarkan lanjut agar muncul di Inbox (dengan status Belum Selesai) sehingga Admin bisa menghapus approvalnya.
+                        }
 
                         if ($checked === 0) continue;
 

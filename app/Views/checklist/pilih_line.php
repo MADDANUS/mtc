@@ -1,18 +1,18 @@
 <?= view('layout/header', ['title' => $title]) ?>
 
-<div class="row justify-content-center my-4">
-  <div class="col-md-8 text-center mb-3">
-    <a href="<?= site_url('checklist') ?>" class="btn btn-sm btn-outline-secondary mb-3">
+<div class="page-header">
+  <div>
+    <a href="<?= site_url('checklist') ?>" class="btn btn-sm btn-outline-secondary mb-2">
       <i class="bi bi-arrow-left"></i> Kembali
     </a>
-    <h5 class="fw-bold text-dark mb-1">
-      <i class="bi bi-diagram-3 me-2 text-primary"></i>Pilih Line — <?= esc($jenisName) ?> <?= esc($lokasiName) ?>
+    <h5 class="mb-0 fw-bold">
+      <i class="bi bi-diagram-3 me-2 text-primary"></i>Pilih Line — <span style="color:var(--accent)"><?= esc($jenisName) ?> <?= esc($lokasiName) ?></span>
     </h5>
-    <p class="text-muted small">Pilih area / line tempat mesin yang akan diperiksa.</p>
+    <p class="text-muted small mt-1 mb-0">Pilih area / line tempat mesin yang akan diperiksa.</p>
   </div>
 </div>
 
-<div class="row justify-content-center g-3">
+<div class="row g-3">
   <?php if (!empty($lines)): ?>
     <?php foreach ($lines as $lineName): ?>
       <div class="col-6 col-md-3">
@@ -23,9 +23,9 @@
                style="background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); border-top: 4px solid var(--primary); min-height: 130px;">
             <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary rounded-circle mb-3"
                  style="width: 52px; height: 52px;">
-              <i class="bi bi-layout-three-columns" style="font-size: 1.4rem;"></i>
+              <i class="bi bi-diagram-3-fill" style="font-size: 1.5rem;"></i>
             </div>
-            <h6 class="fw-bold text-dark mb-0" style="font-size: 0.9rem;"><?= esc($lineName) ?></h6>
+            <h6 class="fw-bold text-dark mb-0" style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em;"><?= esc($lineName) ?></h6>
           </div>
         </a>
       </div>

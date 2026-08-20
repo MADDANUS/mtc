@@ -297,7 +297,7 @@ class ChecklistController extends BaseController
         // Overhaul tidak memiliki jadwal di jadwal_preventive
         if ($jenisCheckSlug === 'overhaul') {
             $currentMonth = date('Y-m');
-            $checked = $transaksiModel->checkDuplicate((int)$idMesin, $jenisCheck, $currentMonth, $kategori);
+            $checked = $transaksiModel->checkDuplicate((int)$idMesin, $jenisCheck, $currentMonth, $kategori, true);
             
             if (count($checked) > 0) {
                 return $this->response->setJSON([
@@ -489,6 +489,8 @@ class ChecklistController extends BaseController
     private function processChecklistDetails(int $idTransaksi, array $hasilCheck, array $ulasan): void
     {
         $uploadPath = FCPATH . 'uploads/abnormal/';
+        $batchData = [];
+
         foreach ($hasilCheck as $idParameter => $hasil) {
             $fotoAbnormal = null;
             $fotoAbnormal2 = null;
@@ -509,14 +511,18 @@ class ChecklistController extends BaseController
                 }
             }
 
-            $this->detailModel->insert([
+            $batchData[] = [
                 'id_transaksi'    => $idTransaksi,
                 'id_parameter'    => (int) $idParameter,
                 'hasil_check'     => $hasil !== '' ? $hasil : null,
                 'ulasan'          => $ulasan[$idParameter] ?? null,
                 'foto_abnormal'   => $fotoAbnormal,
                 'foto_abnormal_2' => $fotoAbnormal2,
-            ]);
+            ];
+        }
+
+        if (!empty($batchData)) {
+            $this->detailModel->insertBatch($batchData);
         }
     }
 

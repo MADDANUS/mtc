@@ -246,4 +246,104 @@ class DashboardController extends BaseController
             'percentageSummary' => $transaksiModel->getPercentageSummary(['bulan' => $bulan]),
         ]);
     }
+
+    /**
+     * API to get details of checked and unchecked machines
+     */
+    public function detailPencapaian()
+    {
+        $jenis = $this->request->getGet('jenis'); // 'preventive' or 'overhaul'
+        $bulanSekarang = $this->request->getGet('bulan') ?: date('Y-m');
+        $lokasi = $this->request->getGet('lokasi');
+
+        $db = \Config\Database::connect();
+        
+        $tahun = (int) substr($bulanSekarang, 0, 4);
+        $bulanNum = (int) substr($bulanSekarang, 5, 2);
+        
+        $semester = $bulanNum <= 6 ? 1 : 2;
+        $semesterStart = $semester === 1 ? "$tahun-01" : "$tahun-07";
+        $semesterEnd   = $semester === 1 ? "$tahun-06" : "$tahun-12";
+
+        $isOverhaul = (strtolower($jenis) === 'overhaul');
+        $periodeStart = $isOverhaul ? $semesterStart : $bulanSekarang;
+        $periodeEnd   = $isOverhaul ? $semesterEnd : $bulanSekarang;
+        $jenisStr = $isOverhaul ? 'Overhaul' : 'Preventive';
+
+        // 1. Get All Target Machines
+        $mesinBuilder = $db->table('master_mesin m')
+                           ->select('m.id_mesin, m.no_mesin, m.type_mesin, m.lokasi, m.line');
+        
+        if (!empty($lokasi)) {
+            $mesinBuilder->where('m.lokasi', $lokasi);
+        }
+        if ($isOverhaul) {
+            $mesinBuilder->where('m.jenis !=', '-');
+        }
+        $targetMesin = $mesinBuilder->orderBy('m.lokasi', 'ASC')->orderBy('m.line', 'ASC')->orderBy('m.no_mesin', 'ASC')->get()->getResultArray();
+
+        // 2. Get Checked Machines
+        $builder = $db->table('transaksi_check t')
+                      ->select('t.id_mesin, 
+                                (SELECT CASE 
+                                    WHEN SUM(CASE WHEN d.hasil_check = \'Δ\' THEN 1 ELSE 0 END) > 0 THEN \'Δ\' 
+                                    WHEN COUNT(d.id_detail) > 0 AND SUM(CASE WHEN d.hasil_check = \'X\' THEN 1 ELSE 0 END) = COUNT(d.id_detail) THEN \'X\' 
+                                    ELSE \'V\' 
+                                 END 
+                                 FROM transaksi_check_detail d 
+                                 WHERE d.id_transaksi = t.id_transaksi) as kondisi')
+                      ->join('master_mesin m', 'm.id_mesin = t.id_mesin', 'left')
+                      ->where('t.jenis_check', $jenisStr)
+                      ->where('t.status', 'Approved');
+        
+        if (!empty($lokasi)) {
+            $builder->where('m.lokasi', $lokasi);
+        }
+
+        if ($periodeStart === $periodeEnd) {
+            $builder->groupStart()
+                        ->where('t.target_periode', $periodeStart)
+                        ->orGroupStart()
+                            ->where('(t.target_periode IS NULL OR t.target_periode = "")', null, false)
+                            ->like('t.waktu_mulai', $periodeStart, 'after')
+                        ->groupEnd()
+                    ->groupEnd();
+        } else {
+            $builder->groupStart()
+                        ->where("t.target_periode >= '$periodeStart'")
+                        ->where("t.target_periode <= '$periodeEnd'")
+                        ->orGroupStart()
+                            ->where('(t.target_periode IS NULL OR t.target_periode = "")', null, false)
+                            ->where("DATE_FORMAT(t.waktu_mulai, '%Y-%m') >= '$periodeStart'")
+                            ->where("DATE_FORMAT(t.waktu_mulai, '%Y-%m') <= '$periodeEnd'")
+                        ->groupEnd()
+                    ->groupEnd();
+        }
+
+        $checkedRecords = $builder->orderBy('t.id_transaksi', 'ASC')->get()->getResultArray();
+        
+        $checkedMap = [];
+        foreach ($checkedRecords as $row) {
+            $checkedMap[$row['id_mesin']] = $row['kondisi'];
+        }
+
+        $sudahDicek = [];
+        $belumDicek = [];
+
+        foreach ($targetMesin as $m) {
+            if (array_key_exists($m['id_mesin'], $checkedMap)) {
+                $m['kondisi'] = $checkedMap[$m['id_mesin']];
+                $sudahDicek[] = $m;
+            } else {
+                $belumDicek[] = $m;
+            }
+        }
+
+        return $this->response->setJSON([
+            'sudah_dicek' => $sudahDicek,
+            'belum_dicek' => $belumDicek,
+            'jenis'       => $jenisStr,
+            'periode'     => $isOverhaul ? "Semester $semester $tahun" : date('m/Y', strtotime($bulanSekarang . '-01'))
+        ]);
+    }
 }

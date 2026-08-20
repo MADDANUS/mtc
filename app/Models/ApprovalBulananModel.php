@@ -101,7 +101,7 @@ class ApprovalBulananModel extends Model
 
     public function getExistingApprovals(?string $bulan = null): array
     {
-        $builder = $this->select('bulan_tahun, lokasi, line, kategori')
+        $builder = $this->select('bulan_tahun, lokasi, line, kategori, status')
                     ->where('type', 'kontrol');
         
         if ($bulan) {
