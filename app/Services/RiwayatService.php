@@ -174,7 +174,9 @@ class RiwayatService
             'categoryName'      => $header['kategori'],
             'daftarMesin'       => $mesinModel->getByLokasi($header['lokasi_check']),
             'rows'              => $parameterModel->getFormRows($header['lokasi_check'], $header['jenis_check'], $header['kategori']),
+            'masterPic'         => (new \App\Models\UserModel())->whereIn('role', ['member', 'magang'])->orderBy('nama', 'ASC')->findAll(),
             'namaPic'           => $header['nama_pic'],
+            'supportPic'        => $header['support_pic'],
             'namaStaff'         => $header['nama_staff'],
             'waktuMulai'        => $header['waktu_mulai'],
             'waktuMulaiDisplay' => $waktuMulai->format("Y-m-d H:i:s"),
@@ -437,9 +439,9 @@ class RiwayatService
 
         if ($newStatus === 'Approved') {
             if ($jenisSlug === 'overhaul') {
-                return ["status" => true, "message" => 'Laporan berhasil disetujui sepenuhnya. Data kini masuk ke Laporan Abnormal jika ada.'];
+                return ["status" => true, "message" => 'Laporan berhasil disetujui sepenuhnya. Data kini masuk ke Abnormal Report jika ada.'];
             }
-            return ["status" => true, "message" => 'Laporan berhasil disetujui sepenuhnya. Data kini masuk ke Checklist Control dan Laporan Abnormal jika ada.'];
+            return ["status" => true, "message" => 'Laporan berhasil disetujui sepenuhnya. Data kini masuk ke Checklist Control dan Abnormal Report jika ada.'];
         }
         return ["status" => true, "message" => 'Laporan berhasil disetujui (Tahap: ' . $newStatus . '). Menunggu persetujuan selanjutnya.'];
     }

@@ -447,11 +447,10 @@ class KontrolService
                     $badgeClass = 'bg-secondary';
                     $statusText = 'Belum Selesai (' . $percent . '%)';
                     
-                    if ($percent == 100) {
-                        if (empty($status) || $status === 'Pending') {
-                            $badgeClass = 'bg-warning text-dark';
-                            $statusText = 'Menunggu Member (100%)';
-                        } elseif ($status === 'Approved L1') {
+                    // Jika ada status approval di DB, kita timpa statusText-nya sesuai DB
+                    // Ini menangani kasus dimana sudah di-approve tapi kemudian persentase turun (misal mesin ditambah)
+                    if (!empty($status) && $status !== 'Pending') {
+                        if ($status === 'Approved L1') {
                             $badgeClass = 'bg-info text-dark';
                             $statusText = 'Menunggu SHead PRD';
                         } elseif ($status === 'Approved L2') {
@@ -461,14 +460,17 @@ class KontrolService
                             $badgeClass = 'bg-success';
                             $statusText = 'Selesai (Final)';
                         }
+                    } elseif ($percent == 100) {
+                        // Jika 100% tapi belum ada/baru Pending
+                        $badgeClass = 'bg-warning text-dark';
+                        $statusText = 'Menunggu Member (100%)';
                     }
                     
-                    // History hanya menampilkan yang sudah Final untuk role member/admin/leader
-                    // Role approver (sheadprd/sheadmtc) sudah difilter di atas
-                    if (in_array($roleSession, [Role::Member->value, Role::Admin->value, Role::Leader->value], true)) {
-                        if (!in_array($status, ['Final', 'Approved Final'], true)) {
-                            continue; // Belum selesai → tetap di Approval Inbox
-                        }
+                    // Ringkasan/History hanya menampilkan yang sudah Approved Final.
+                    // Sheadprd & Sheadmtc sudah difilter sesuai tahap approval mereka di atas.
+                    // Semua role lainnya (member, admin, leader, magang) hanya bisa lihat Final.
+                    if (!in_array($status, ['Final', 'Approved Final'], true)) {
+                        continue; // Belum selesai → masuk Approval, bukan History
                     }
                     
                     if (!empty($filterStatus) && $statusText !== $filterStatus) continue;

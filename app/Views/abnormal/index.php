@@ -17,7 +17,7 @@
 
 <table class="kop-table text-center shadow-sm">
   <tr>
-    <td colspan="6" class="kop-table-title" style="padding: 10px;">LAPORAN ABNORMAL CONDITION</td>
+    <td colspan="6" class="kop-table-title" style="padding: 10px;">ABNORMAL REPORT CONDITION</td>
   </tr>
   <tr>
     <td class="kop-label text-start">AREA</td>

@@ -2,8 +2,8 @@
 
 <div class="d-flex justify-content-between align-items-end mb-4">
     <div>
-        <h3 class="fw-bold mb-1"><i class="bi bi-table text-primary me-2"></i> Ringkasan Laporan Abnormal</h3>
-        <p class="text-muted mb-0">Pantau laporan abnormal bulanan dan tindakan yang belum diselesaikan per area.</p>
+        <h3 class="fw-bold mb-1"><i class="bi bi-table text-primary me-2"></i> Ringkasan Abnormal Report</h3>
+        <p class="text-muted mb-0">Pantau Abnormal Report bulanan dan tindakan yang belum diselesaikan per area.</p>
     </div>
     
     <div class="d-flex gap-2">

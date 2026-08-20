@@ -101,6 +101,43 @@
       confirmButtonColor: '#f59e0b'
     });
   <?php endif; ?>
+
+  <?php if (session()->getFlashdata('info')): ?>
+    Swal.fire({
+      icon: 'info',
+      title: 'Informasi',
+      text: <?= json_encode(session()->getFlashdata('info')) ?>,
+      showConfirmButton: true,
+      confirmButtonColor: '#0dcaf0',
+      allowOutsideClick: true
+    });
+  <?php endif; ?>
+
+  <?php if (session()->getFlashdata('persistent_success')): ?>
+    let audioPSuccess = new Audio('<?= base_url('audio/success.ogg') ?>');
+    audioPSuccess.play().catch(e => console.log("Audio autoplay prevented"));
+    Swal.fire({
+      icon: 'success',
+      title: 'Berhasil!',
+      html: <?= json_encode(session()->getFlashdata('persistent_success')) ?>,
+      showConfirmButton: true,
+      confirmButtonColor: '#198754',
+      allowOutsideClick: true
+    });
+  <?php endif; ?>
+
+  <?php if (session()->getFlashdata('persistent_error')): ?>
+    let audioPError = new Audio('<?= base_url('audio/error.ogg') ?>');
+    audioPError.play().catch(e => console.log("Audio autoplay prevented"));
+    Swal.fire({
+      icon: 'error',
+      title: 'Oops...',
+      html: <?= json_encode(session()->getFlashdata('persistent_error')) ?>,
+      showConfirmButton: true,
+      confirmButtonColor: '#dc3545',
+      allowOutsideClick: true
+    });
+  <?php endif; ?>
 </script>
 </body>
 </html>

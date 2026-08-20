@@ -150,7 +150,14 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                             <td colspan="7" class="text-center py-4 text-muted">Tidak ada data ditemukan.</td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($summaryRows as $row): ?>
+                        <?php foreach ($summaryRows as $row): 
+                            // Fallback filter jika OPcache di server masih menyimpan file controller lama
+                            $roleSession = session()->get('role');
+                            $isFinal = str_contains($row['statusText'], 'Selesai (Final)');
+                            if (in_array($roleSession, ['member', 'admin', 'leader', 'magang']) && !$isFinal) {
+                                continue;
+                            }
+                        ?>
                             <tr>
                                 <td class="ps-4 fw-bold text-dark"><?= esc($row['lokasi']) ?></td>
                                 <td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25"><?= esc($row['line']) ?></span></td>

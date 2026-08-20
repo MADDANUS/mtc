@@ -115,12 +115,16 @@
                   <option value="all">Semua Lokasi</option>
                   <option value="MFG 1" <?= ($filters['lokasi'] ?? '') === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
                   <option value="MFG 2" <?= ($filters['lokasi'] ?? '') === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
+                  <option value="Plan 2" <?= ($filters['lokasi'] ?? '') === 'Plan 2' ? 'selected' : '' ?>>Plan 2</option>
                 </select>
               <?php endif; ?>
             </td>
             <td>
-              <select name="line" id="filterLine" class="form-select form-select-sm" onchange="this.form.submit()" data-selected="<?= esc($filters['line'] ?? 'all') ?>">
+              <select name="line" id="filterLine" class="form-select form-select-sm" onchange="this.form.submit()">
                 <option value="all">Semua Line</option>
+                <?php foreach ($allLines ?? [] as $ln): ?>
+                  <option value="<?= esc($ln) ?>" <?= ($filters['line'] ?? '') === $ln ? 'selected' : '' ?>><?= esc($ln) ?></option>
+                <?php endforeach; ?>
               </select>
             </td>
             <td></td>
@@ -172,7 +176,8 @@
                           data-id="<?= (int)$m['id_mesin'] ?>"
                           data-no="<?= esc($m['no_mesin']) ?>"
                           data-type="<?= esc($m['type_mesin']) ?>"
-                          data-lokasi="<?= esc($m['lokasi']) ?>">
+                          data-lokasi="<?= esc($m['lokasi']) ?>"
+                          data-serial="<?= esc($m['serial_nomor']) ?>">
                     <i class="bi bi-qr-code"></i> QR
                   </button>
                   <?php if (in_array(session()->get('role'), ['admin', 'member'])): ?>
@@ -213,9 +218,13 @@
         <div class="bg-light p-3 rounded-4 mb-3 d-inline-block">
           <img id="qrImage" src="" alt="QR Code" class="img-fluid" style="width: 200px; height: 200px; display: block; margin: 0 auto; image-rendering: pixelated;">
         </div>
-        <h6 class="fw-bold mb-1" id="qrNoMesin"></h6>
-        <p class="text-muted small mb-2" id="qrTypeMesin"></p>
-        <span class="badge bg-primary" id="qrLokasiMesin" style="background-color: var(--accent) !important;"></span>
+        <div class="mb-1">
+          <h4 class="fw-bold mb-0 text-dark" id="qrNoMesin"></h4>
+        </div>
+        <div class="mb-2">
+          <span class="text-muted" style="font-size:0.75rem;">S/N: </span>
+          <span class="fw-bold mb-0 text-secondary" id="qrSerialNomor" style="font-size:0.9rem;"></span>
+        </div>
       </div>
       <div class="modal-footer border-0 pt-0 justify-content-center">
         <button type="button" class="btn btn-sm btn-primary w-100 py-2 rounded-3" id="printQrBtn">
@@ -272,30 +281,8 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    // Dynamic Filter Line Logic
-    const filterLokasi = document.getElementById('filterLokasi');
-    const filterLine = document.getElementById('filterLine');
-    if (filterLokasi && filterLine) {
-      const linesData = {
-          'MFG 1': ['Line 1', 'Line 2', 'Line 3'],
-          'MFG 2': ['CG', 'Second']
-      };
-      const selectedLokasi = filterLokasi.value;
-      const selectedLine = filterLine.getAttribute('data-selected');
-      
-      filterLine.innerHTML = '<option value="all">Semua Line</option>';
-      if (linesData[selectedLokasi]) {
-          linesData[selectedLokasi].forEach(line => {
-              const option = document.createElement('option');
-              option.value = line;
-              option.textContent = line;
-              if (line === selectedLine) {
-                  option.selected = true;
-              }
-              filterLine.appendChild(option);
-          });
-      }
-    }
+    // Filter Line sekarang dirender server-side oleh PHP dari tabel master_line
+
 
     // Suggestion Logic
     const searchInput = document.getElementById('mesinSearchInput');
@@ -387,15 +374,13 @@
     const qrModal = new bootstrap.Modal(document.getElementById('qrModal'));
     const qrImage = document.getElementById('qrImage');
     const qrNoMesin = document.getElementById('qrNoMesin');
-    const qrTypeMesin = document.getElementById('qrTypeMesin');
-    const qrLokasiMesin = document.getElementById('qrLokasiMesin');
+    const qrSerialNomor = document.getElementById('qrSerialNomor');
 
     document.querySelectorAll('.show-qr-btn').forEach(btn => {
       btn.addEventListener('click', function() {
         const id = this.getAttribute('data-id');
         const no = this.getAttribute('data-no');
-        const type = this.getAttribute('data-type');
-        const lokasi = this.getAttribute('data-lokasi');
+        const serial = this.getAttribute('data-serial');
 
         // URL scan mesin MTCE
         const scanUrl = "<?= site_url('scan/mesin/') ?>" + id;
@@ -403,112 +388,54 @@
         // Load QR Code menggunakan API lokal offline
         qrImage.src = "<?= site_url('admin/mesin/generate-qr?data=') ?>" + encodeURIComponent(scanUrl);
 
+        qrSerialNomor.innerText = serial || no;
         qrNoMesin.innerText = no;
-        qrTypeMesin.innerText = type;
-        qrLokasiMesin.innerText = lokasi;
 
         qrModal.show();
       });
     });
 
     document.getElementById('printQrBtn').addEventListener('click', function() {
+      const serial = qrSerialNomor.innerText;
       const no = qrNoMesin.innerText;
-      const type = qrTypeMesin.innerText;
-      const lokasi = qrLokasiMesin.innerText;
       const qrSrc = qrImage.src;
 
-      // Buka popup window baru khusus cetak
-      const printWin = window.open('', '_blank', 'width=450,height=550');
-      printWin.document.write(`
-        <html>
-        <head>
-          <title>Cetak QR Code - \${no}</title>
-          <style>
-            body {
-              font-family: 'Inter', sans-serif;
-              text-align: center;
-              padding: 20px;
-              margin: 0;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              height: 100vh;
-              box-sizing: border-box;
-              background-color: #ffffff;
-            }
-            .card {
-              border: 3px solid #e5e7eb;
-              border-radius: 24px;
-              padding: 30px;
-              max-width: 320px;
-              background: #ffffff;
-              box-sizing: border-box;
-            }
-            .logo {
-              font-size: 0.75rem;
-              font-weight: 700;
-              letter-spacing: 0.12em;
-              color: #4f46e5;
-              margin-bottom: 25px;
-              text-transform: uppercase;
-            }
-            .qr-wrapper {
-              background: #f9fafb;
-              padding: 15px;
-              border-radius: 16px;
-              display: inline-block;
-              margin-bottom: 25px;
-              border: 1px solid #f3f4f6;
-            }
-            .qr-img {
-              width: 210px;
-              height: 210px;
-              display: block;
-            }
-            h2 {
-              margin: 0 0 6px 0;
-              font-size: 1.6rem;
-              font-weight: 700;
-              color: #111827;
-            }
-            p {
-              margin: 0 0 18px 0;
-              font-size: 0.85rem;
-              color: #6b7280;
-            }
-            .badge {
-              background: #4f46e5;
-              color: #ffffff;
-              padding: 6px 14px;
-              font-size: 0.75rem;
-              font-weight: 600;
-              border-radius: 50px;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="logo">MTCE SYSTEM QR</div>
-            <div class="qr-wrapper">
-              <img class="qr-img" src="\${qrSrc}">
-            </div>
-            <h2>\${no}</h2>
-            <p>\${type}</p>
-            <span class="badge">\${lokasi}</span>
-          </div>
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            };
-          <\/script>
-        </body>
-        </html>
-      `);
-      printWin.document.close();
+      // Gunakan iframe tersembunyi agar lebih cepat
+      let iframe = document.getElementById('printIframe');
+      if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'printIframe';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+      }
+
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(
+        '<html><head><title>QR - ' + serial + '</title>' +
+        '<style>' +
+        '@media print { body { margin: 0; } }' +
+        'body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #fff; }' +
+        '.card { border: 2px solid #e5e7eb; border-radius: 16px; padding: 20px; display: inline-block; }' +
+        'img { width: 180px; height: 180px; display: block; margin: 0 auto 10px; }' +
+        'h2 { margin: 0 0 4px 0; font-size: 1.1rem; font-weight: 700; color: #111827; }' +
+        '</style></head><body>' +
+        '<div class="card">' +
+        '<img src="' + qrSrc + '">' +
+        '<h2>' + no + '</h2>' +
+        '<p style="font-size:0.9rem; margin-top:2px; font-weight:bold; color:#4b5563;">S/N: ' + serial + '</p>' +
+        '</div>' +
+        '</body></html>'
+      );
+      doc.close();
+
+      iframe.onload = function() {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      };
     });
+
+
 
     // --- RIWAYAT MODAL LOGIC ---
     const riwayatModal = new bootstrap.Modal(document.getElementById('riwayatModal'));

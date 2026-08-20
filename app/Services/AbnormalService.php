@@ -35,7 +35,7 @@ class AbnormalService
         }
 
         $data = [
-            'title'          => 'Laporan Abnormal Condition',
+            'title'          => 'Abnormal Report Condition',
             'reports'        => $reports,
             'lokasiFilter'   => $lokasiFilter,
             'searchFilter'   => $searchFilter,
@@ -69,7 +69,7 @@ class AbnormalService
         }
 
         $data = [
-            'title'          => "Laporan Abnormal - Semua Kategori - {$lokasiFilter}",
+            'title'          => "Abnormal Report - Semua Kategori - {$lokasiFilter}",
             'allReportsData' => $allReportsData,
             'lokasiFilter'   => $lokasiFilter,
             'searchFilter'   => $searchFilter,
@@ -115,7 +115,7 @@ class AbnormalService
         }
 
         $data = [
-            'title'          => "Laporan Abnormal - Ringkasan Semua Area",
+            'title'          => "Abnormal Report - Ringkasan Semua Area",
             'allReportsData' => $allReportsData,
             'lokasiFilter'   => 'SEMUA AREA',
             'searchFilter'   => '',
@@ -166,7 +166,7 @@ class AbnormalService
         $masterPic = $this->getFilteredMasterPic();
 
         $responseData = [
-            'title'          => 'Laporan Abnormal Condition',
+            'title'          => 'Abnormal Report Condition',
             'reports'        => $reports,
             'lokasiFilter'   => $lokasiFilter,
             'lineFilter'     => $lineFilter,
@@ -217,7 +217,7 @@ class AbnormalService
 
         return [
             'is_summary'       => true,
-            'title'            => 'Ringkasan Laporan Abnormal',
+            'title'            => 'Ringkasan Abnormal Report',
             'bulan'            => $bulan,
             'bulanList'        => $bulanList,
             'summaryRows'      => $summaryData['summaryRows'],
@@ -237,7 +237,7 @@ class AbnormalService
      */
     public function update($request)
     {
-        return $this->processUpdateAbnormal($request, 'Rencana perbaikan Laporan Abnormal berhasil diperbarui.', 'Gagal memperbarui Laporan Abnormal.');
+        return $this->processUpdateAbnormal($request, 'Rencana perbaikan Abnormal Report berhasil diperbarui.', 'Gagal memperbarui Abnormal Report.');
     }
 
     /**
@@ -267,7 +267,7 @@ class AbnormalService
         $bulanList = $this->buildBulanList();
 
         $data = [
-            'title'          => 'Laporan Abnormal Overhaul',
+            'title'          => 'Abnormal Report Overhaul',
             'reports'        => $reports,
             'lokasiFilter'   => $lokasiFilter,
             'searchFilter'   => $searchFilter,
@@ -396,7 +396,7 @@ class AbnormalService
 
         return [
             'is_summary'       => true,
-            'title'            => 'Ringkasan Laporan Abnormal Overhaul',
+            'title'            => 'Ringkasan Abnormal Report Overhaul',
             'bulan'            => $bulan,
             'bulanList'        => $bulanList,
             'summaryRows'      => $summaryRows,
@@ -447,7 +447,7 @@ class AbnormalService
                            ->getResultArray();
 
         $data = [
-            'title'          => 'Laporan Abnormal Overhaul',
+            'title'          => 'Abnormal Report Overhaul',
             'reports'        => $reports,
             'lokasiFilter'   => $lokasiFilter,
             'searchFilter'   => $searchFilter,
@@ -525,7 +525,7 @@ class AbnormalService
 
     public function updateOverhaul($request)
     {
-        return $this->processUpdateAbnormal($request, 'Rencana perbaikan Laporan Abnormal Overhaul berhasil diperbarui.', 'Gagal memperbarui Laporan Abnormal Overhaul.');
+        return $this->processUpdateAbnormal($request, 'Rencana perbaikan Abnormal Report Overhaul berhasil diperbarui.', 'Gagal memperbarui Abnormal Report Overhaul.');
     }
 
     /**
@@ -768,7 +768,7 @@ class AbnormalService
     {
         $idAbnormal = (int) $request->getPost('id_abnormal');
         if ($idAbnormal <= 0) {
-            return ["status" => false, "message" => 'Laporan Abnormal tidak valid.'];
+            return ["status" => false, "message" => 'Abnormal Report tidak valid.'];
         }
 
         $data = [

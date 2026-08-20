@@ -1,11 +1,18 @@
 <?= view('layout/header', ['title' => $title]) ?>
 
 <?php
-// Helper to build the create form URL preserving the dynamic machine ID
-$getCreateUrl = function(string $categorySlug) use ($lokasiSlug, $jenisSlug, $idMesin) {
+// Helper to build the create form URL preserving the dynamic machine ID and Line
+$getCreateUrl = function(string $categorySlug) use ($lokasiSlug, $jenisSlug, $idMesin, $line) {
     $url = "checklist/{$lokasiSlug}/{$jenisSlug}/create/{$categorySlug}";
+    $params = [];
     if (!empty($idMesin)) {
-        $url .= "?id_mesin=" . (int)$idMesin;
+        $params[] = 'id_mesin=' . (int)$idMesin;
+    }
+    if (!empty($line)) {
+        $params[] = 'line=' . urlencode($line);
+    }
+    if (!empty($params)) {
+        $url .= '?' . implode('&', $params);
     }
     return site_url($url);
 };
@@ -17,6 +24,9 @@ $getCreateUrl = function(string $categorySlug) use ($lokasiSlug, $jenisSlug, $id
     $backUrl = site_url('checklist'); // default
     if (!empty($idMesin)) {
         $backUrl = site_url("scan/mesin/{$idMesin}");
+    } elseif (!empty($line)) {
+        // Kembali ke halaman Pilih Line
+        $backUrl = site_url("checklist/{$lokasiSlug}/{$jenisSlug}");
     }
     ?>
     <a href="<?= $backUrl ?>" class="btn btn-sm btn-outline-secondary mb-2">
@@ -24,6 +34,9 @@ $getCreateUrl = function(string $categorySlug) use ($lokasiSlug, $jenisSlug, $id
     </a>
     <h5 class="mb-0">
       Buat Pengecekan Baru — <span style="color:var(--accent)"><?= esc($jenisName) ?> <?= esc($lokasiName) ?></span>
+      <?php if (!empty($line)): ?>
+        <span class="badge bg-primary ms-2" style="font-size:0.75rem;"><i class="bi bi-diagram-3 me-1"></i><?= esc($line) ?></span>
+      <?php endif; ?>
       <?php if (!empty($idMesin)): ?>
         <span class="badge bg-info ms-2" style="font-size:0.75rem;"><i class="bi bi-qr-code me-1"></i>Mesin Terkunci</span>
       <?php endif; ?>

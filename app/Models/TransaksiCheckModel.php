@@ -93,13 +93,20 @@ class TransaksiCheckModel extends Model
             $builder->where('transaksi_check.kategori', $filters['kategori']);
         }
 
-                if (!empty($filters['status'])) {
+        if (isset($filters['status']) && $filters['status'] !== null) {
             if (is_array($filters['status'])) {
-                $builder->whereIn('transaksi_check.status', $filters['status']);
+                if (!empty($filters['status'])) {
+                    $builder->whereIn('transaksi_check.status', $filters['status']);
+                }
+                // empty array = no status filter (show all) — used for Magang self-view
             } else {
                 $builder->where('transaksi_check.status', $filters['status']);
             }
+        } elseif ($userId === null) {
+            // Default: only show fully approved entries when not scoped to a specific user
+            $builder->whereIn('transaksi_check.status', ['Approved', 'Approved Final']);
         }
+        // If userId is set (Magang): no status restriction — they see all their own submissions
 
         if (!empty($filters['bulan'])) {
             $builder->groupStart()
@@ -428,7 +435,7 @@ class TransaksiCheckModel extends Model
                         ->groupEnd()
                     ->groupEnd();
         } elseif ($role === \App\Enums\Role::Admin->value) {
-            $builder->whereNotIn('transaksi_check.status', ['Approved']);
+            $builder->whereNotIn('transaksi_check.status', ['Approved', 'Approved Final']);
         }
         
         return $builder->orderBy('transaksi_check.waktu_mulai', 'DESC')->findAll();

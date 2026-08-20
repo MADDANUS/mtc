@@ -21,14 +21,15 @@
       <input type="text" name="serial_nomor" class="form-control" required
              value="<?= esc(old('serial_nomor', $mesin['serial_nomor'] ?? '')) ?>">
     </div>
-    <div class="mb-3">
-      <label class="form-label">Lokasi</label>
-      <?php $lokasiVal = old('lokasi', $mesin['lokasi'] ?? 'MFG 1'); ?>
-      <select name="lokasi" class="form-select" required>
-        <option value="MFG 1" <?= $lokasiVal === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
-        <option value="MFG 2" <?= $lokasiVal === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
-      </select>
-    </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Lokasi <span class="text-danger">*</span></label>
+        <?php $lokasiVal = old('lokasi', $mesin['lokasi'] ?? 'MFG 1'); ?>
+        <select name="lokasi" class="form-select" required>
+          <option value="MFG 1" <?= $lokasiVal === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
+          <option value="MFG 2" <?= $lokasiVal === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
+          <option value="Plan 2" <?= $lokasiVal === 'Plan 2' ? 'selected' : '' ?>>Plan 2</option>
+        </select>
+      </div>
     <div class="mb-3">
       <label class="form-label">Line (Opsional)</label>
       <?php $lineVal = strtoupper(old('line', $mesin['line'] ?? '')); ?>
@@ -77,10 +78,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const serialInput = document.querySelector('input[name="serial_nomor"]');
     const lineSelect = document.querySelector('select[name="line"]');
 
-    const lines = {
-        'MFG 1': ['Line 1', 'Line 2', 'Line 3'],
-        'MFG 2': ['CG', 'Second']
-    };
+    // Data lines dari database (dinamis)
+    const lines = <?= json_encode($linesGrouped ?? []) ?>;
 
     function updateLines() {
         const selectedLokasi = lokasiSelect.value;

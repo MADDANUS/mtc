@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\MesinModel;
+use App\Models\LineModel;
 use App\Enums\Role;
 use App\Enums\Lokasi;
 use Dompdf\Dompdf;
@@ -78,10 +79,12 @@ class MesinController extends BaseController
         // Save current url with query params to session so we can return to it after edit/delete
         session()->set('last_mesin_url', (string) current_url(true));
 
+        $lineModel = new LineModel();
         return view('admin/mesin/index', [
             'title'  => 'Master Mesin',
             'daftar' => $builder->findAll(),
             'suggestions' => $suggestionList,
+            'allLines' => $lineModel->getAllLineNames(),
             'filters' => [
                 'q' => $q,
                 'lokasi' => $lokasi,
@@ -93,9 +96,11 @@ class MesinController extends BaseController
 
     public function create()
     {
+        $lineModel = new LineModel();
         return view('admin/mesin/form', [
-            'title' => 'Tambah Mesin',
-            'mesin' => null,
+            'title'        => 'Tambah Mesin',
+            'mesin'        => null,
+            'linesGrouped' => $lineModel->getLinesGroupedByLokasi(),
         ]);
     }
 
@@ -136,7 +141,7 @@ class MesinController extends BaseController
                                         ->first();
                                         
         $tanggalMulai = date('Y-m-d'); // Hari ini
-        if ($approvalTujuan && $approvalTujuan['status_approval'] === 'Approved Final') {
+        if ($approvalTujuan && $approvalTujuan['status'] === 'Approved Final') {
             $tanggalMulai = date('Y-m-01', strtotime('+1 month')); // Lempar ke bulan depan
         }
 
@@ -162,9 +167,11 @@ class MesinController extends BaseController
             return $this->redirectNotFound($redirectUrl, 'Mesin');
         }
 
+        $lineModel = new LineModel();
         return view('admin/mesin/form', [
-            'title' => 'Edit Mesin',
-            'mesin' => $mesin,
+            'title'        => 'Edit Mesin',
+            'mesin'        => $mesin,
+            'linesGrouped' => $lineModel->getLinesGroupedByLokasi(),
         ]);
     }
 
@@ -182,7 +189,7 @@ class MesinController extends BaseController
             return $this->redirectValidationError();
         }
 
-        $this->model->update($id, [
+        $newData = [
             'no_mesin'        => $this->request->getPost('no_mesin'),
             'type_mesin'      => $this->request->getPost('type_mesin'),
             'serial_nomor'    => $this->request->getPost('serial_nomor'),
@@ -190,7 +197,26 @@ class MesinController extends BaseController
             'line'            => $this->request->getPost('line') ?: null,
             'bar_feeder_type' => $this->request->getPost('bar_feeder_type'),
             'jenis'           => $this->request->getPost('jenis') ?: null,
-        ]);
+        ];
+
+        $hasChanged = false;
+        foreach ($newData as $key => $val) {
+            $oldVal = $oldMesin[$key] ?? null;
+            // Normalize null and empty strings for comparison
+            $oldStr = trim(is_null($oldVal) ? '' : (string) $oldVal);
+            $newStr = trim(is_null($val) ? '' : (string) $val);
+            
+            if (strcasecmp($oldStr, $newStr) !== 0) {
+                $hasChanged = true;
+                break;
+            }
+        }
+
+        if (!$hasChanged) {
+            return redirect()->to($redirectUrl)->with('info', 'Tidak ada perubahan pada data mesin.');
+        }
+
+        $this->model->update($id, $newData);
 
         // --- TAHAP 3: PENCATATAN RIWAYAT PINDAH ---
         $lokasiBaru = $this->request->getPost('lokasi');
@@ -400,9 +426,11 @@ class MesinController extends BaseController
             $sheet = $spreadsheet->getActiveSheet();
             $highestRow = $sheet->getHighestDataRow();
             
-            $successInsert = 0;
-            $successUpdate = 0;
+            $successInsert = [];
+            $successUpdate = [];
+            $noChanges = [];
             $errors = [];
+            $serialDalamFile = []; // Untuk deteksi duplikat serial dalam 1 file Excel
             
             for ($row = 2; $row <= $highestRow; $row++) {
                 $noMesin       = trim($sheet->getCell('A' . $row)->getValue() ?? '');
@@ -428,32 +456,64 @@ class MesinController extends BaseController
                     continue;
                 }
                 
-                if (!empty($serialNomor)) {
-                    $existingSerial = $this->model->where('serial_nomor', $serialNomor)->first();
-                    if ($existingSerial && $existingSerial['no_mesin'] !== $noMesin) {
-                        $errors[] = "Baris {$row}: Serial Nomor '{$serialNomor}' sudah digunakan oleh mesin lain.";
-                        continue;
-                    }
-                }
+                // AUTO-CORRECT LOKASI
+                $lokasi = strtoupper($lokasi);
+                if ($lokasi === 'MFG1') $lokasi = 'MFG 1';
+                if ($lokasi === 'MFG2') $lokasi = 'MFG 2';
+                if ($lokasi === 'PLAN2' || $lokasi === 'PLAN 2') $lokasi = 'Plan 2';
                 
-                if (! in_array($lokasi, [Lokasi::MFG1->value, Lokasi::MFG2->value], true)) {
-                    $errors[] = "Baris {$row}: Lokasi '{$lokasi}' tidak valid. Harus Lokasi::MFG1->value atau 'MFG 2'.";
+                if (! in_array($lokasi, [Lokasi::MFG1->value, Lokasi::MFG2->value, Lokasi::PLAN2->value], true)) {
+                    $errors[] = "Baris {$row}: Lokasi '{$lokasi}' tidak valid. Harus 'MFG 1', 'MFG 2', atau 'Plan 2'.";
                     continue;
                 }
+
+                // Jika serial_nomor kosong di Excel, gunakan no_mesin sebagai penggantinya
+                if (empty($serialNomor)) {
+                    $serialNomor = $noMesin;
+                }
+
+                // Cegah duplikat serial_nomor dalam 1 file Excel
+                if (in_array($serialNomor, $serialDalamFile, true)) {
+                    $errors[] = "Baris {$row}: Serial Nomor '{$serialNomor}' muncul lebih dari sekali dalam file Excel ini.";
+                    continue;
+                }
+                $serialDalamFile[] = $serialNomor;
                 
-                $existing = $this->model->where('no_mesin', $noMesin)->first();
+                // --- PATOKAN UTAMA: Cari berdasarkan serial_nomor ---
+                $existing = $this->model->where('serial_nomor', $serialNomor)->first();
                 
                 if ($existing) {
-                    $this->model->update($existing['id_mesin'], [
+                    $newData = [
+                        'no_mesin'        => $noMesin,
                         'type_mesin'      => $typeMesin,
                         'serial_nomor'    => $serialNomor,
                         'lokasi'          => $lokasi,
                         'line'            => empty($line) ? null : $line,
                         'bar_feeder_type' => empty($barFeederType) ? null : $barFeederType,
                         'jenis'           => empty($jenis) ? null : $jenis,
-                    ]);
+                    ];
                     
-                    // --- TAHAP 3: RIWAYAT MESIN OTOMATIS (UPDATE) ---
+                    $hasChanged = false;
+                    foreach ($newData as $key => $val) {
+                        $oldVal = $existing[$key] ?? null;
+                        $oldStr = trim(is_null($oldVal) ? '' : (string) $oldVal);
+                        $newStr = trim(is_null($val) ? '' : (string) $val);
+                        
+                        if (strcasecmp($oldStr, $newStr) !== 0) {
+                            $hasChanged = true;
+                            break;
+                        }
+                    }
+
+                    if (!$hasChanged) {
+                        $noChanges[] = "Baris {$row}: {$noMesin} - Tidak ada perubahan.";
+                        continue;
+                    }
+
+                    // UPDATE: termasuk update no_mesin jika berubah di Excel
+                    $this->model->update($existing['id_mesin'], $newData);
+                    
+                    // --- RIWAYAT MESIN OTOMATIS (UPDATE) ---
                     $lokasiBaru = $lokasi;
                     $lineBaru = empty($line) ? null : $line;
                     if ($existing['lokasi'] !== $lokasiBaru || $existing['line'] !== $lineBaru) {
@@ -468,8 +528,8 @@ class MesinController extends BaseController
                                                       ->where('bulan_tahun', $bulanIni)
                                                       ->first();
                                                       
-                        $isLamaFinal = ($approvalLama && $approvalLama['status_approval'] === 'Approved Final');
-                        $isBaruFinal = ($approvalBaru && $approvalBaru['status_approval'] === 'Approved Final');
+                        $isLamaFinal = ($approvalLama && $approvalLama['status'] === 'Approved Final');
+                        $isBaruFinal = ($approvalBaru && $approvalBaru['status'] === 'Approved Final');
                         
                         if ($isLamaFinal || $isBaruFinal) {
                             $tanggalSelesaiLama = date('Y-m-t');
@@ -499,13 +559,14 @@ class MesinController extends BaseController
                         ]);
                     }
                     
-                    // --- TAHAP 4: AUDIT TRAIL EXCEL ---
+                    // --- AUDIT TRAIL EXCEL ---
                     $logModel = new \App\Models\LogMasterMesinModel();
                     $newData = $this->model->find($existing['id_mesin']);
                     $logModel->logChanges($existing['id_mesin'], $existing, $newData, session()->get('user_id'));
 
-                    $successUpdate++;
+                    $successUpdate[] = "Baris {$row}: {$noMesin} - Berhasil terupdate.";
                 } else {
+                    // INSERT: mesin baru yang belum pernah ada di database
                     $this->model->insert([
                         'no_mesin'        => $noMesin,
                         'type_mesin'      => $typeMesin,
@@ -517,7 +578,7 @@ class MesinController extends BaseController
                     ]);
                     $idMesin = $this->model->getInsertID();
 
-                    // --- TAHAP 3: RIWAYAT MESIN OTOMATIS (INSERT) ---
+                    // --- RIWAYAT MESIN OTOMATIS (INSERT) ---
                     $lokasiTujuan = $lokasi;
                     $lineTujuan = empty($line) ? null : $line;
                     $bulanIni = date('Y-m');
@@ -527,7 +588,7 @@ class MesinController extends BaseController
                                                     ->where('bulan_tahun', $bulanIni)
                                                     ->first();
                     $tanggalMulai = date('Y-m-d');
-                    if ($approvalTujuan && $approvalTujuan['status_approval'] === 'Approved Final') {
+                    if ($approvalTujuan && $approvalTujuan['status'] === 'Approved Final') {
                         $tanggalMulai = date('Y-m-01', strtotime('+1 month'));
                     }
                     $riwayatModel = new \App\Models\RiwayatMesinModel();
@@ -539,19 +600,45 @@ class MesinController extends BaseController
                         'tanggal_selesai' => null
                     ]);
 
-                    $successInsert++;
+                    $successInsert[] = "Baris {$row}: {$noMesin} - Berhasil ditambahkan.";
                 }
             }
             
-            $msg = "Impor selesai. Ditambahkan: {$successInsert}, Diperbarui: {$successUpdate}.";
-            if (! empty($errors)) {
-                $msg .= " Beberapa baris dilewati:\n" . implode("\n", $errors);
-                return redirect()->to('/admin/mesin')->with('error', $msg);
+            $totalSuccess = count($successInsert) + count($successUpdate);
+            $totalNoChanges = count($noChanges);
+            $totalErrors = count($errors);
+
+            $msgHtml = "<strong>Impor Selesai!</strong><br><br>";
+            
+            if ($totalSuccess > 0) {
+                $msgHtml .= "<b>✅ Berhasil ({$totalSuccess}):</b><ul class='text-start mb-2' style='font-size:0.85rem;'>";
+                foreach (array_merge($successInsert, $successUpdate) as $msgLine) {
+                    $msgHtml .= "<li>{$msgLine}</li>";
+                }
+                $msgHtml .= "</ul>";
+            }
+
+            if ($totalNoChanges > 0) {
+                $msgHtml .= "<b>ℹ️ Tidak Ada Perubahan ({$totalNoChanges}):</b><ul class='text-start mb-2' style='font-size:0.85rem;'>";
+                foreach ($noChanges as $msgLine) {
+                    $msgHtml .= "<li>{$msgLine}</li>";
+                }
+                $msgHtml .= "</ul>";
+            }
+
+            if ($totalErrors > 0) {
+                $msgHtml .= "<b>❌ Gagal ({$totalErrors}):</b><ul class='text-start mb-2 text-danger' style='font-size:0.85rem;'>";
+                foreach ($errors as $msgLine) {
+                    $msgHtml .= "<li>{$msgLine}</li>";
+                }
+                $msgHtml .= "</ul>";
+                return redirect()->to('/admin/mesin')->with('persistent_error', $msgHtml);
             }
             
-            return redirect()->to('/admin/mesin')->with('success', $msg);
+            return redirect()->to('/admin/mesin')->with('persistent_success', $msgHtml);
             
         } catch (\Exception $e) {
+
             return redirect()->to('/admin/mesin')->with('error', 'Gagal membaca file Excel: ' . $e->getMessage());
         }
     }
@@ -569,15 +656,17 @@ class MesinController extends BaseController
             $serialNomorRule .= "|is_unique[master_mesin.serial_nomor]";
         }
 
-        return [
+        $rules = [
             'no_mesin'        => $noMesinRule,
-            'type_mesin'      => ($this->request->getPost('lokasi') === Lokasi::MFG2->value ? 'permit_empty|max_length[100]' : 'required|max_length[100]'),
             'serial_nomor'    => $serialNomorRule,
-            'lokasi'          => 'required|in_list[MFG 1,MFG 2]',
-            'line'            => 'permit_empty|string|max_length[50]',
-            'bar_feeder_type' => 'permit_empty|string|max_length[100]',
-            'jenis'           => 'permit_empty|string|max_length[100]',
+            'type_mesin'      => 'permit_empty|max_length[100]',
+            'lokasi'          => 'required|in_list[MFG 1,MFG 2,Plan 2]',
+            'line'            => 'permit_empty|max_length[50]',
+            'bar_feeder_type' => 'permit_empty|max_length[100]',
+            'jenis'           => 'permit_empty|max_length[100]',
         ];
+
+        return $rules;
     }
 
     public function downloadAllQr()

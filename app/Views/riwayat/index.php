@@ -141,6 +141,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
                 <option value="all" <?= $lokasiSlug === 'semua' ? 'selected' : '' ?>>Semua Lokasi</option>
                 <option value="mfg1" <?= $lokasiSlug === 'mfg1' ? 'selected' : '' ?>>MFG 1</option>
                 <option value="mfg2" <?= $lokasiSlug === 'mfg2' ? 'selected' : '' ?>>MFG 2</option>
+                <option value="plan2" <?= $lokasiSlug === 'plan2' ? 'selected' : '' ?>>Plan 2</option>
               </select>
             </th>
             <th class="p-1" style="min-width: 110px;">
@@ -237,7 +238,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
       <form id="deleteForm" method="post" action="">
         <?= csrf_field() ?>
         <div class="modal-body px-4 pt-3 pb-2">
-          <p class="text-muted mb-0" style="font-size:0.88rem;">Apakah Anda yakin ingin menghapus riwayat pengecekan ini? Data detail pengecekan dan laporan abnormal yang terkait juga akan dihapus secara permanen.</p>
+          <p class="text-muted mb-0" style="font-size:0.88rem;">Apakah Anda yakin ingin menghapus riwayat pengecekan ini? Data detail pengecekan dan Abnormal Report yang terkait juga akan dihapus secara permanen.</p>
         </div>
         <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
           <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-3" data-bs-dismiss="modal">Batal</button>

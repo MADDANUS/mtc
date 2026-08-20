@@ -34,6 +34,7 @@ class RiwayatController extends BaseController
         return match (strtolower($slug)) {
             'mfg2'  => Lokasi::MFG2->value,
             'mfg1'  => Lokasi::MFG1->value,
+            'plan2' => Lokasi::PLAN2->value,
             'semua' => null,
             default => Lokasi::MFG1->value,
         };
@@ -79,7 +80,9 @@ class RiwayatController extends BaseController
         $currentPage = (int) ($this->request->getGet('page_riwayat') ?: 1);
 
         // Semua role bisa lihat riwayat yang sudah Approved
-        $riwayat = $transaksiModel->getRiwayatFiltered($filters, null, null, $perPage);
+        // Magang hanya lihat milik mereka sendiri (semua status), role lain hanya lihat Approved
+        $magang_userId = (session()->get('role') === Role::Magang->value) ? (int) session()->get('user_id') : null;
+        $riwayat = $transaksiModel->getRiwayatFiltered($filters, $magang_userId, null, $perPage);
         $pager = $transaksiModel->pager;
         $totalItems = $pager ? $pager->getTotal('riwayat') : 0;
         $totalPages = $pager ? $pager->getPageCount('riwayat') : 1;

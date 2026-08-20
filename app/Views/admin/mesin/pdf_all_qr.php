@@ -60,11 +60,11 @@
                             'outputBase64' => true,
                         ]);
                         $qrcode = new \chillerlan\QRCode\QRCode($options);
-                        
                         $base64Src = $qrcode->render($scanUrl);
                     ?>
                     <img src="<?= $base64Src ?>" class="qr-image" alt="QR Code">
-                    <div class="qr-text"><?= esc($m['no_mesin']) ?></div>
+                    <div class="qr-text" style="font-size: 20px; font-weight: bold; margin-bottom: 2px;"><?= esc($m['no_mesin']) ?></div>
+                    <div class="qr-text" style="font-size: 14px; font-weight: bold; color: #4b5563; margin-top: 0;">S/N: <?= esc(!empty($m['serial_nomor']) ? $m['serial_nomor'] : $m['no_mesin']) ?></div>
                 </div>
             </td>
             <?php endforeach; ?>

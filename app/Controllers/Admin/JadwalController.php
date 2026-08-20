@@ -23,6 +23,21 @@ class JadwalController extends BaseController
     }
 
     /**
+     * Mengembalikan daftar kategori yang sah secara tersentralisasi
+     */
+    private function getValidCategories(): array
+    {
+        return [
+            'Penerangan',
+            'Kabel dan Pipa',
+            'Angin Bocor',
+            'Bearing Cam',
+            'Gearbox',
+            'Belt Cam',
+        ];
+    }
+
+    /**
      * Hitung Bulan dan Pekan berdasarkan Aturan Pekan Transisi
      * (Menjadikan Hari Rabu sebagai patokan bulan)
      */
@@ -49,14 +64,11 @@ class JadwalController extends BaseController
      */
     public function index()
     {
-        $categories = [
-            'Penerangan'     => 'Penerangan',
-            'Kabel dan Pipa' => 'Kabel dan Pipa',
-            'Angin Bocor'    => 'Angin Bocor',
-            'Bearing Cam'    => 'Bearing Cam',
-            'Gearbox'        => 'Gearbox',
-            'Belt Cam'       => 'Belt Cam',
-        ];
+        $validCategoriesList = $this->getValidCategories();
+        $categories = [];
+        foreach ($validCategoriesList as $cat) {
+            $categories[$cat] = $cat;
+        }
 
         // Buat list 12 bulan ke depan untuk dropdown
         $months = [];
@@ -132,9 +144,10 @@ class JadwalController extends BaseController
             return redirect()->back()->with('error', 'Hanya Admin dan Member yang dapat membuat jadwal.');
         }
 
+        $validCats = implode(',', $this->getValidCategories());
         $rules = [
             'lokasi'          => 'required|in_list[MFG 1,MFG 2]',
-            'kategori'        => 'required',
+            'kategori'        => "required|in_list[{$validCats}]",
             'tanggal_rencana' => 'required|valid_date[Y-m-d]',
         ];
 
@@ -335,6 +348,44 @@ class JadwalController extends BaseController
                     $errors[] = "Baris {$rowNumber}: Data tidak lengkap (Lokasi/Kategori/Tanggal ada yang kosong).";
                     $skipCount++;
                 }
+                continue;
+            }
+
+            // --- AUTO-CORRECT LOKASI ---
+            // Ubah menjadi uppercase, lalu jika 'MFG1' jadikan 'MFG 1'
+            $lokasi = strtoupper($lokasi);
+            if ($lokasi === 'MFG1') $lokasi = 'MFG 1';
+            if ($lokasi === 'MFG2') $lokasi = 'MFG 2';
+
+            if (!in_array($lokasi, ['MFG 1', 'MFG 2'], true)) {
+                $errors[] = "Baris {$rowNumber}: Lokasi '<b>{$lokasi}</b>' tidak valid. Harus MFG 1 atau MFG 2.";
+                $skipCount++;
+                continue;
+            }
+
+            // --- AUTO-CORRECT KATEGORI ---
+            // Cek case-insensitive (misal: "penerangan" atau "PENERANGAN" otomatis dibenarkan jadi "Penerangan")
+            $validCategories = $this->getValidCategories();
+            $kategoriDitemukan = false;
+            foreach ($validCategories as $validCat) {
+                if (strcasecmp($kategori, $validCat) === 0) {
+                    $kategori = $validCat; // Ganti dengan huruf besar-kecil yang baku
+                    $kategoriDitemukan = true;
+                    break;
+                }
+            }
+
+            if (!$kategoriDitemukan) {
+                $errors[] = "Baris {$rowNumber}: Kategori '<b>{$kategori}</b>' tidak valid. Kategori harus sesuai template.";
+                $skipCount++;
+                continue;
+            }
+
+            // Validasi Kategori khusus MFG 1 vs MFG 2
+            $isMfg1Only = in_array($kategori, ['Bearing Cam', 'Gearbox', 'Belt Cam'], true);
+            if ($lokasi === 'MFG 2' && $isMfg1Only) {
+                $errors[] = "Baris {$rowNumber}: Kategori '<b>{$kategori}</b>' HANYA BOLEH untuk MFG 1.";
+                $skipCount++;
                 continue;
             }
 

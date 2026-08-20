@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\UserModel;
+use App\Models\LineModel;
 use App\Enums\Role;
 use App\Traits\AdminCrudTrait;
 
@@ -30,9 +31,11 @@ class UserController extends BaseController
 
     public function create()
     {
+        $lineModel = new LineModel();
         return view('admin/user/form', [
-            'title' => 'Tambah User',
-            'user'  => null,
+            'title'        => 'Tambah User',
+            'user'         => null,
+            'linesGrouped' => $lineModel->getLinesGroupedByLokasi(),
         ]);
     }
 
@@ -64,9 +67,11 @@ class UserController extends BaseController
             return $this->redirectNotFound('/admin/user', 'User');
         }
 
+        $lineModel = new LineModel();
         return view('admin/user/form', [
-            'title' => 'Edit User',
-            'user'  => $user,
+            'title'        => 'Edit User',
+            'user'         => $user,
+            'linesGrouped' => $lineModel->getLinesGroupedByLokasi(),
         ]);
     }
 
@@ -253,10 +258,14 @@ class UserController extends BaseController
 
     private function rules(): array
     {
+        // Ambil daftar line yang valid dari database secara dinamis
+        $lineModel = new LineModel();
+        $validLines = implode(',', $lineModel->getAllLineNames());
+
         return [
             'nama'   => 'required|max_length[100]',
             'role'   => 'required|in_list[magang,member,sheadprd,sheadmtc,admin,leader]',
-            'line'   => 'permit_empty|in_list[Line 1,Line 2,Line 3,CG,Second]',
+            'line'   => 'permit_empty|in_list[' . $validLines . ']',
         ];
     }
 }

@@ -105,6 +105,15 @@ class ChecklistController extends BaseController
         $jenisDbName      = $this->resolveJenis($jenisSlug);
         $jenisDisplayName = $this->resolveJenisDisplay($jenisDbName);
         $idMesin          = $this->request->getGet('id_mesin') ?: null;
+        $line             = $this->request->getGet('line') ?: null;
+
+        // Auto-assign line if idMesin is provided (e.g. from QR scan)
+        if (empty($line) && $idMesin) {
+            $mesinForLine = $this->mesinModel->find($idMesin);
+            if ($mesinForLine && !empty($mesinForLine['line'])) {
+                $line = $mesinForLine['line'];
+            }
+        }
 
         // Auto-routing jika id_mesin ada
         if ($idMesin && strtolower($jenisSlug) === 'overhaul') {
@@ -128,9 +137,25 @@ class ChecklistController extends BaseController
                 $redirectUrl .= "?id_mesin=" . $idMesin;
             }
             return redirect()->to($redirectUrl);
-        } else {
-            $categories = $this->resolveCategoriesList($jenisSlug, $lokasiName);
         }
+
+        // --- INTERCEPT: Jika Line belum dipilih, tampilkan halaman Pilih Line ---
+        if (empty($line) && strtolower($jenisSlug) !== 'overhaul') {
+            $lineModel = new \App\Models\LineModel();
+            $linesGrouped = $lineModel->getLinesGroupedByLokasi();
+            $lines = $linesGrouped[$lokasiName] ?? [];
+
+            return view('checklist/pilih_line', [
+                'title'      => "Pilih Line - {$jenisDisplayName} {$lokasiName}",
+                'lokasiSlug' => $lokasiSlug,
+                'lokasiName' => $lokasiName,
+                'jenisSlug'  => $jenisSlug,
+                'jenisName'  => $jenisDisplayName,
+                'lines'      => $lines,
+            ]);
+        }
+
+        $categories = $this->resolveCategoriesList($jenisSlug, $lokasiName);
 
         return view('checklist/index', [
             'title'      => "Pilih Kategori - {$jenisDisplayName} {$lokasiName}",
@@ -140,6 +165,7 @@ class ChecklistController extends BaseController
             'jenisName'  => $jenisDisplayName,
             'categories' => $categories,
             'idMesin'    => $idMesin,
+            'line'       => $line,
         ]);
     }
 
@@ -159,6 +185,7 @@ class ChecklistController extends BaseController
         $categoryName     = $this->categoryMap[$categorySlug];
         $waktuMulai       = Time::now();
         $idMesin          = $this->request->getGet('id_mesin') ?: null;
+        $line             = $this->request->getGet('line') ?: null;
 
         // NEW LOGIC: Block if Jadwal Preventive is not created for this month, location, and category
         if ($jenisDbName === JenisCheck::Preventive->value) {
@@ -197,7 +224,19 @@ class ChecklistController extends BaseController
                                                 ->findAll();
             }
         } else {
-            $daftarMesin = $this->mesinModel->getByLokasi($lokasiName);
+            // Preventive: filter mesin berdasarkan Line yang dipilih jika ada
+            $mesinQuery = $this->mesinModel->where('lokasi', $lokasiName);
+            if ($line) {
+                $mesinQuery->where('line', $line);
+            }
+            $daftarMesin = $mesinQuery->orderBy('no_mesin', 'ASC')->findAll();
+
+            // Jika Line dipilih tapi tidak ada mesin, redirect balik ke Pilih Line dengan SweetAlert
+            if ($line && empty($daftarMesin)) {
+                return redirect()
+                    ->to("/checklist/{$lokasiSlug}/{$jenisSlug}")
+                    ->with('warning', "Tidak ada mesin yang terdaftar di Line <b>\"{$line}\"</b>. Silakan pilih Line lain atau hubungi Admin untuk mendaftarkan mesin.");
+            }
         }
 
         $data = [
@@ -215,6 +254,7 @@ class ChecklistController extends BaseController
             'waktuMulai'        => $waktuMulai->toDateTimeString(),
             'waktuMulaiDisplay' => $waktuMulai->format("d/m/Y H:i:s"),
             'idMesin'           => $idMesin,
+            'line'              => $line,
         ];
 
         return view('checklist/form', $data);
@@ -361,7 +401,8 @@ class ChecklistController extends BaseController
         $db->transStart();
 
         $mesinInfo = $this->mesinModel->find($idMesin);
-        $lineCheck = $mesinInfo['line'] ?? null;
+        // Prioritaskan Line dari request (dipilih user di halaman Pilih Line)
+        $lineCheck = $this->request->getPost('line_check') ?: ($mesinInfo['line'] ?? null);
 
         $idTransaksi = $this->transaksiModel->insert([
             'id_user'       => session()->get('user_id'),

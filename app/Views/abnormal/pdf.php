@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PDF Export - Laporan Abnormal</title>
+  <title>PDF Export - Abnormal Report</title>
   <style>
     * { box-sizing: border-box; }
     body { font-family: 'DejaVu Sans', sans-serif; font-size: 11px; margin: 0; padding: 0; }
@@ -51,7 +51,7 @@
           </tr>
           <tr style="background-color: #f7e600;">
             <th colspan="12" style="text-align: center; border: 1.5pt solid #000; padding: 10px;">
-              <div style="font-size: 16px; font-style: italic; font-weight: bold;">FORMULIR LAPORAN ABNORMAL CONDITION</div>
+              <div style="font-size: 16px; font-style: italic; font-weight: bold;">FORMULIR ABNORMAL REPORT CONDITION</div>
               <div style="font-size: 16px; font-style: italic; font-weight: bold;">PREVENTIVE MAINTENANCE</div>
             </th>
           </tr>

@@ -24,8 +24,13 @@
             <span class="fw-semibold text-dark" style="font-size: 0.875rem;"><?= esc($mesin['serial_nomor']) ?></span>
           </div>
           <div class="col-6">
-            <span class="text-muted small d-block">Area / Lokasi</span>
-            <span class="badge bg-primary"><?= esc($mesin['lokasi']) ?></span>
+            <span class="text-muted small d-block">Lokasi / Line</span>
+            <div class="d-flex align-items-center gap-1 flex-wrap">
+              <span class="badge bg-primary"><?= esc($mesin['lokasi']) ?></span>
+              <?php if (!empty($mesin['line'])): ?>
+                <span class="badge bg-info text-dark"><?= esc($mesin['line']) ?></span>
+              <?php endif; ?>
+            </div>
           </div>
         </div>
       </div>

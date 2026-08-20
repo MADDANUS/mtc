@@ -83,7 +83,7 @@ $routes->group('kontrol', ['filter' => 'auth'], static function ($routes) {
     $routes->post('delete-approval', 'KontrolController::deleteApprovalBulanan');
 });
 
-// Laporan Abnormal Condition (semua role login)
+// Abnormal Report Condition (semua role login)
 $routes->group('abnormal', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/', 'AbnormalController::index');
     $routes->get('pdf', 'AbnormalController::pdf', ['filter' => 'role:member,admin']);

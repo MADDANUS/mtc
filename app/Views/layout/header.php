@@ -650,7 +650,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
       
       <?php if (in_array($role, ['magang', 'member', 'admin'], true)): ?>
         <a href="<?= site_url('checklist') ?>" class="menu-item <?= ($seg1 === 'checklist' || $seg1 === 'scan') ? 'active' : '' ?>">
-          <i class="bi bi-clipboard-check-fill"></i>Pengecekan
+          <i class="bi bi-clipboard-check-fill"></i>Checking
         </a>
       <?php endif; ?>
 
@@ -752,7 +752,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
           <?php endif; ?>
           <?php if (!in_array($role, ['sheadprd', 'sheadmtc', 'leader'])): ?>
           <a href="<?= site_url('abnormal') ?>" class="menu-item <?= ($seg1 === 'abnormal' && $seg2 !== 'overhaul') ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 10px;">
-            <i class="bi bi-exclamation-triangle"></i>Laporan Abnormal
+            <i class="bi bi-exclamation-triangle"></i>Abnormal Report
           </a>
           <?php endif; ?>
           <?php endif; ?>
@@ -763,13 +763,13 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
           </a>
           <?php if (!in_array($role, ['sheadprd', 'sheadmtc', 'leader'])): ?>
           <a href="<?= site_url('abnormal/overhaul') ?>" class="menu-item <?= ($seg1 === 'abnormal' && $seg2 === 'overhaul') ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 10px;">
-            <i class="bi bi-exclamation-triangle"></i>Laporan Abnormal
+            <i class="bi bi-exclamation-triangle"></i>Abnormal Report
           </a>
           <?php endif; ?>
 
           <?php if (in_array($role, ['member', 'admin', 'magang'], true)): ?>
             <a href="<?= site_url('laporan/durasi') ?>" class="menu-item <?= $seg1 === 'laporan' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
-              <i class="bi bi-bar-chart-line"></i>Laporan Durasi
+              <i class="bi bi-bar-chart-line"></i>Duration Report
             </a>
           <?php endif; ?>
         </div>
@@ -778,7 +778,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
 
       
       <a href="<?= site_url('admin/jadwal') ?>" class="menu-item <?= $seg2 === 'jadwal' ? 'active' : '' ?>">
-        <i class="bi bi-calendar-event"></i>Jadwal Preventive
+        <i class="bi bi-calendar-event"></i>Preventive Schedule
       </a>
 
       <?php 
@@ -814,7 +814,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
       <?php endif; ?>
 
       <a href="<?= site_url('ganti-password') ?>" class="menu-item <?= $seg1 === 'ganti-password' ? 'active' : '' ?>">
-        <i class="bi bi-gear"></i>Settings
+        <i class="bi bi-gear"></i>Change Password
       </a>
     </div>
     

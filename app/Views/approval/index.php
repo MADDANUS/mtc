@@ -327,7 +327,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
         <div class="modal-body">
           <p class="mb-1">Anda akan menghapus laporan:</p>
           <p class="fw-bold text-danger" id="namaHapus"></p>
-          <p class="text-muted small">Tindakan ini tidak dapat dibatalkan. Semua data checklist dan laporan abnormal terkait akan ikut terhapus.</p>
+          <p class="text-muted small">Tindakan ini tidak dapat dibatalkan. Semua data checklist dan Abnormal Report terkait akan ikut terhapus.</p>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>

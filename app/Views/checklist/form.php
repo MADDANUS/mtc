@@ -83,6 +83,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
         <!-- waktu_mulai dikirim apa adanya ke Controller store() saat submit -->
         <input type="hidden" name="waktu_mulai" value="<?= esc($waktuMulai) ?>">
         <input type="hidden" name="kategori" value="<?= esc($categoryName) ?>">
+        <input type="hidden" name="line_check" value="<?= esc($line ?? '') ?>">
       </div>
       
       <?php if (strtolower($jenisSlug) === 'overhaul'): ?>
@@ -142,6 +143,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
       }
 
       function checkDuplicateOnChange() {
+          <?php if (!($isEdit ?? false)): ?>
           const idMesin = selectMesin.value;
           if (!idMesin) return;
 
@@ -281,6 +283,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
           .catch(function(err) {
               console.error('Duplicate check error:', err);
           });
+          <?php endif; ?>
       }
 
       // TomSelect menggantikan <select> asli — event change biasa tidak aktif.

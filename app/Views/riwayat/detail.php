@@ -563,7 +563,7 @@
   <div class="card-body d-flex justify-content-between align-items-center p-3">
     <div>
       <h6 class="mb-1 text-danger fw-bold"><i class="bi bi-trash"></i> Hapus Approval Laporan</h6>
-      <p class="text-muted small mb-0">Hapus approval ini agar statusnya kembali ke "Pending". Data checklist tidak akan hilang, namun data laporan abnormal dan sinkronisasi ke ceklis kontrol akan dibatalkan.</p>
+      <p class="text-muted small mb-0">Hapus approval ini agar statusnya kembali ke "Pending". Data checklist tidak akan hilang, namun data Abnormal Report dan sinkronisasi ke ceklis kontrol akan dibatalkan.</p>
     </div>
     <form action="<?= site_url('riwayat/delete-approval/' . (int) $header['id_transaksi']) ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menghapus approval ini? Status akan kembali ke Pending.');">
       <?= csrf_field() ?>
