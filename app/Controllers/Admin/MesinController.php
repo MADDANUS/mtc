@@ -80,11 +80,26 @@ class MesinController extends BaseController
         session()->set('last_mesin_url', (string) current_url(true));
 
         $lineModel = new LineModel();
+        $groupedLines = $lineModel->getLinesGroupedByLokasi();
+        $filteredLines = [];
+        if (!empty($lokasi) && $lokasi !== 'all') {
+            $filteredLines = $groupedLines[$lokasi] ?? [];
+        } else if ($role === \App\Enums\Role::Leader->value && $lokasiUser) {
+            $filteredLines = $groupedLines[$lokasiUser] ?? [];
+        } else {
+            $filteredLines = $lineModel->getAllLineNames();
+        }
+
+        // Auto-reset line filter if the selected line doesn't belong to the selected lokasi
+        if (!empty($line) && $line !== 'all' && !in_array($line, $filteredLines)) {
+            $line = 'all';
+        }
+
         return view('admin/mesin/index', [
             'title'  => 'Master Mesin',
             'daftar' => $builder->findAll(),
             'suggestions' => $suggestionList,
-            'allLines' => $lineModel->getAllLineNames(),
+            'allLines' => $filteredLines,
             'filters' => [
                 'q' => $q,
                 'lokasi' => $lokasi,

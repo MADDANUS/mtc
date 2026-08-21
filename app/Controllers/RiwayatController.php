@@ -391,18 +391,9 @@ class RiwayatController extends BaseController
         } elseif ($rawStatus && $rawStatus !== 'all') {
             $statusFilter = $rawStatus;
         } else {
-            $role = session()->get('role');
-            if ($role === Role::Leader->value) {
-                $statusFilter = ['Approved L1', 'Approved L2', 'Approved', 'Approved Final'];
-            } elseif ($role === Role::Sheadprd->value) {
-                $statusFilter = ['Approved L2', 'Approved', 'Approved Final'];
-            } elseif ($role === Role::Sheadmtc->value) { 
-                $statusFilter = ['Approved', 'Approved Final'];
-            } elseif ($role === Role::Magang->value) { 
-                $statusFilter = null; 
-            } else { 
-                $statusFilter = ['Approved', 'Approved Final']; 
-            }
+            // Sesuai permintaan, Riwayat secara default HANYA menampilkan yang sudah selesai (Approved / Approved Final)
+            // Laporan yang masih setengah jalan (Pending, Approved L1, Approved L2) akan tetap ada di halaman Approval.
+            $statusFilter = ['Approved', 'Approved Final'];
         }
         
         return [

@@ -111,7 +111,7 @@
                 <input type="text" class="form-control form-control-sm" value="<?= esc(session()->get('lokasi')) ?>" readonly>
                 <input type="hidden" id="filterLokasi" name="lokasi" value="<?= esc(session()->get('lokasi')) ?>">
               <?php else: ?>
-                <select name="lokasi" id="filterLokasi" class="form-select form-select-sm" onchange="this.form.submit()">
+                <select name="lokasi" id="filterLokasi" class="form-select form-select-sm" onchange="document.getElementById('filterLine').value = 'all'; this.form.submit();">
                   <option value="all">Semua Lokasi</option>
                   <option value="MFG 1" <?= ($filters['lokasi'] ?? '') === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
                   <option value="MFG 2" <?= ($filters['lokasi'] ?? '') === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
