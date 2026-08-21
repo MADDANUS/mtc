@@ -28,7 +28,7 @@ class LogMasterMesinModel extends Model
      */
     public function logChanges(int $idMesin, array $oldData, array $newData, ?int $idAdmin)
     {
-        $fieldsToCheck = ['no_mesin', 'type_mesin', 'serial_nomor', 'bar_feeder_type', 'lokasi', 'line', 'jenis'];
+        $fieldsToCheck = ['no_mesin', 'type_mesin', 'serial_nomor', 'bar_feeder_type', 'departemen', 'line', 'jenis'];
 
         foreach ($fieldsToCheck as $field) {
             $oldValue = $oldData[$field] ?? null;

@@ -8,7 +8,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Traits\AdminCrudTrait;
-use App\Enums\Lokasi;
+use App\Enums\Departemen;
 use App\Enums\Role;
 use App\Enums\JenisCheck;
 
@@ -107,11 +107,11 @@ class JadwalController extends BaseController
             $endDate   = date('Y-m-d', $saturdayTs); // FullCalendar end exclusive = Sabtu → bar sampai Jumat
 
             // Warna penanda mfg
-            $color = $s['lokasi'] === Lokasi::MFG1->value ? '#0d6efd' : '#198754'; // Biru mfg 1, hijau mfg 2
+            $color = $s['departemen'] === Departemen::MFG1->value ? '#0d6efd' : '#198754'; // Biru mfg 1, hijau mfg 2
 
             // Label: tampilkan rentang tanggal Senin-Jumat di judul
             $fridayTs = strtotime('+4 days', $mondayTs);
-            $label = esc($s['lokasi'] . ' - ' . $s['kategori'] . ' (' . date('d', $mondayTs) . '-' . date('d', $fridayTs) . '/' . date('m', $mondayTs) . ')');
+            $label = esc($s['departemen'] . ' - ' . $s['kategori'] . ' (' . date('d', $mondayTs) . '-' . date('d', $fridayTs) . '/' . date('m', $mondayTs) . ')');
 
             $events[] = [
                 'id'              => (int) $s['id_jadwal'],
@@ -123,7 +123,7 @@ class JadwalController extends BaseController
                 'borderColor'     => $color,
                 'textColor'       => '#ffffff',
                 'extendedProps'   => [
-                    'lokasi'          => $s['lokasi'],
+                    'departemen'          => $s['departemen'],
                     'kategori'        => $s['kategori'],
                     'bulanTahun'      => $s['bulan_tahun'],
                     'periodeKe'       => $s['periode_ke'],
@@ -140,13 +140,13 @@ class JadwalController extends BaseController
      */
     public function store()
     {
-        if (!in_array(session()->get('role'), [Role::Admin->value, Role::Member->value], true)) {
-            return redirect()->back()->with('error', 'Hanya Admin dan Member yang dapat membuat jadwal.');
+        if (!has_any_role([Role::Admin->value, Role::Member->value])) {
+            return $this->redirectError('/admin/jadwal', 'Anda tidak berhak menambah jadwal.');
         }
 
         $validCats = implode(',', $this->getValidCategories());
         $rules = [
-            'lokasi'          => 'required|in_list[MFG 1,MFG 2]',
+            'departemen'          => 'required|in_list[MFG 1,MFG 2]',
             'kategori'        => "required|in_list[{$validCats}]",
             'tanggal_rencana' => 'required|valid_date[Y-m-d]',
         ];
@@ -155,26 +155,26 @@ class JadwalController extends BaseController
             return $this->redirectValidationError();
         }
 
-        $lokasi         = $this->request->getPost('lokasi');
+        $departemen         = $this->request->getPost('departemen');
         $kategori       = $this->request->getPost('kategori');
         $tanggalRencana = $this->request->getPost('tanggal_rencana');
 
         // Hitung bulan_tahun dan periode_ke menggunakan fungsi tersentralisasi
         list($bulanTahun, $periodeKe) = $this->hitungBulanDanPekan($tanggalRencana);
 
-        // Cek duplikasi bulanan: Kategori per lokasi hanya boleh dijadwalkan SATU kali per bulan
-        $exist = $this->jadwalModel->where('lokasi', $lokasi)
+        // Cek duplikasi bulanan: Kategori per departemen hanya boleh dijadwalkan SATU kali per bulan
+        $exist = $this->jadwalModel->where('departemen', $departemen)
                                    ->where('kategori', $kategori)
                                    ->where('bulan_tahun', $bulanTahun)
                                    ->first();
 
         if ($exist) {
             $existDate = date('d/m/Y', strtotime($exist['tanggal_rencana']));
-            return redirect()->back()->withInput()->with('error', "Jadwal untuk {$lokasi} - {$kategori} pada bulan ini sudah terdaftar (tanggal {$existDate}, Pekan ke-{$exist['periode_ke']}). Hapus jadwal lama terlebih dahulu jika ingin mengubah.");
+            return redirect()->back()->withInput()->with('error', "Jadwal untuk {$departemen} - {$kategori} pada bulan ini sudah terdaftar (tanggal {$existDate}, Pekan ke-{$exist['periode_ke']}). Hapus jadwal lama terlebih dahulu jika ingin mengubah.");
         }
 
         $this->jadwalModel->insert([
-            'lokasi'          => $lokasi,
+            'departemen'          => $departemen,
             'kategori'        => $kategori,
             'bulan_tahun'     => $bulanTahun,
             'periode_ke'      => $periodeKe,
@@ -189,8 +189,8 @@ class JadwalController extends BaseController
      */
     public function delete(int $id)
     {
-        if (!in_array(session()->get('role'), [Role::Admin->value, Role::Member->value], true)) {
-            return redirect()->back()->with('error', 'Hanya Admin dan Member yang dapat menghapus jadwal.');
+        if (!has_any_role([Role::Admin->value, Role::Member->value])) {
+            return $this->redirectError('/admin/jadwal', 'Anda tidak berhak menghapus jadwal.');
         }
 
         $schedule = $this->jadwalModel->find($id);
@@ -204,7 +204,7 @@ class JadwalController extends BaseController
         $bulanTahun = $schedule['bulan_tahun']; // e.g., '2026-07'
         
         $cekTransaksi = $transaksiModel->where('jenis_check', JenisCheck::Preventive->value)
-                                       ->where('lokasi_check', $schedule['lokasi'])
+                                       ->where('departemen_check', $schedule['departemen'])
                                        ->where('kategori', $schedule['kategori'])
                                        ->groupStart()
                                            ->where('target_periode', $bulanTahun)
@@ -235,7 +235,7 @@ class JadwalController extends BaseController
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         
-        $sheet->setCellValue('A1', 'Lokasi (MFG 1 / MFG 2)');
+        $sheet->setCellValue('A1', 'Departemen (MFG 1 / MFG 2)');
         $sheet->setCellValue('B1', 'Kategori (Cth: Penerangan)');
         $sheet->setCellValue('C1', 'Rentang Tanggal (Cth: 27/07/2026-31/07/2026)');
 
@@ -263,7 +263,7 @@ class JadwalController extends BaseController
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
-        $sheet->setCellValue('A1', 'Lokasi');
+        $sheet->setCellValue('A1', 'Departemen');
         $sheet->setCellValue('B1', 'Kategori');
         $sheet->setCellValue('C1', 'Rentang Tanggal');
         $sheet->setCellValue('D1', 'Bulan Tahun');
@@ -279,7 +279,7 @@ class JadwalController extends BaseController
 
             $rentang = date('d/m/Y', $mondayTs) . '-' . date('d/m/Y', $fridayTs);
 
-            $sheet->setCellValue('A' . $row, $s['lokasi']);
+            $sheet->setCellValue('A' . $row, $s['departemen']);
             $sheet->setCellValue('B' . $row, $s['kategori']);
             $sheet->setCellValue('C' . $row, $rentang);
             $sheet->setCellValue('D' . $row, $s['bulan_tahun']);
@@ -308,8 +308,8 @@ class JadwalController extends BaseController
      */
     public function import()
     {
-        if (!in_array(session()->get('role'), [Role::Admin->value, Role::Member->value], true)) {
-            return redirect()->back()->with('error', 'Hanya Admin dan Member yang dapat mengimpor jadwal.');
+        if (!has_any_role([Role::Admin->value, Role::Member->value])) {
+            return $this->redirectError('/admin/jadwal', 'Anda tidak berhak memproses impor.');
         }
 
         $file = $this->request->getFile('file_excel');
@@ -338,14 +338,14 @@ class JadwalController extends BaseController
             $rowNumber = $i + 1; // Untuk referensi user
             $row = $sheetData[$i];
             
-            $lokasi = trim($row[0] ?? '');
+            $departemen = trim($row[0] ?? '');
             $kategori = trim($row[1] ?? '');
             $rentangTanggal = trim($row[2] ?? '');
 
-            if (empty($lokasi) || empty($kategori) || empty($rentangTanggal)) {
+            if (empty($departemen) || empty($kategori) || empty($rentangTanggal)) {
                 // Jika baris benar-benar kosong semua, kita abaikan saja diam-diam (bukan error).
-                if (!empty($lokasi) || !empty($kategori) || !empty($rentangTanggal)) {
-                    $errors[] = "Baris {$rowNumber}: Data tidak lengkap (Lokasi/Kategori/Tanggal ada yang kosong).";
+                if (!empty($departemen) || !empty($kategori) || !empty($rentangTanggal)) {
+                    $errors[] = "Baris {$rowNumber}: Data tidak lengkap (Departemen/Kategori/Tanggal ada yang kosong).";
                     $skipCount++;
                 }
                 continue;
@@ -353,12 +353,12 @@ class JadwalController extends BaseController
 
             // --- AUTO-CORRECT LOKASI ---
             // Ubah menjadi uppercase, lalu jika 'MFG1' jadikan 'MFG 1'
-            $lokasi = strtoupper($lokasi);
-            if ($lokasi === 'MFG1') $lokasi = 'MFG 1';
-            if ($lokasi === 'MFG2') $lokasi = 'MFG 2';
+            $departemen = strtoupper($departemen);
+            if ($departemen === 'MFG1') $departemen = 'MFG 1';
+            if ($departemen === 'MFG2') $departemen = 'MFG 2';
 
-            if (!in_array($lokasi, ['MFG 1', 'MFG 2'], true)) {
-                $errors[] = "Baris {$rowNumber}: Lokasi '<b>{$lokasi}</b>' tidak valid. Harus MFG 1 atau MFG 2.";
+            if (!in_array($departemen, ['MFG 1', 'MFG 2'], true)) {
+                $errors[] = "Baris {$rowNumber}: Departemen '<b>{$departemen}</b>' tidak valid. Harus MFG 1 atau MFG 2.";
                 $skipCount++;
                 continue;
             }
@@ -383,7 +383,7 @@ class JadwalController extends BaseController
 
             // Validasi Kategori khusus MFG 1 vs MFG 2
             $isMfg1Only = in_array($kategori, ['Bearing Cam', 'Gearbox', 'Belt Cam'], true);
-            if ($lokasi === 'MFG 2' && $isMfg1Only) {
+            if ($departemen === 'MFG 2' && $isMfg1Only) {
                 $errors[] = "Baris {$rowNumber}: Kategori '<b>{$kategori}</b>' HANYA BOLEH untuk MFG 1.";
                 $skipCount++;
                 continue;
@@ -412,20 +412,20 @@ class JadwalController extends BaseController
             list($bulanTahun, $periodeKe) = $this->hitungBulanDanPekan($tanggalRencana);
 
             // Cek duplikasi bulanan
-            $exist = $this->jadwalModel->where('lokasi', $lokasi)
+            $exist = $this->jadwalModel->where('departemen', $departemen)
                                        ->where('kategori', $kategori)
                                        ->where('bulan_tahun', $bulanTahun)
                                        ->first();
 
             if ($exist) {
                 $bulanStr = format_bulan_indo($bulanTahun);
-                $errors[] = "Baris {$rowNumber}: Jadwal <b>{$lokasi} - {$kategori}</b> sudah ada di bulan {$bulanStr} (Pekan ke-{$exist['periode_ke']}).";
+                $errors[] = "Baris {$rowNumber}: Jadwal <b>{$departemen} - {$kategori}</b> sudah ada di bulan {$bulanStr} (Pekan ke-{$exist['periode_ke']}).";
                 $skipCount++;
                 continue;
             }
 
             $this->jadwalModel->insert([
-                'lokasi'          => $lokasi,
+                'departemen'          => $departemen,
                 'kategori'        => $kategori,
                 'bulan_tahun'     => $bulanTahun,
                 'periode_ke'      => $periodeKe,

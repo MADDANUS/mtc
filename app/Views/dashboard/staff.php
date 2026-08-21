@@ -46,7 +46,7 @@
 <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
   <div class="card-header bg-white border-bottom-0 pt-4 pb-3 px-4 d-flex justify-content-between align-items-center">
     <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-journal-text text-primary me-2"></i>Riwayat Pengecekan Saya</h5>
-    <a href="<?= site_url('riwayat/lokasi/semua?jenis_check=Preventive') ?>" class="btn btn-sm btn-outline-secondary fw-bold rounded-pill px-3">Lihat Semua Riwayat</a>
+    <a href="<?= site_url('riwayat/departemen/semua?jenis_check=Preventive') ?>" class="btn btn-sm btn-outline-secondary fw-bold rounded-pill px-3">Lihat Semua Riwayat</a>
   </div>
   <div class="card-body px-0 pt-0 pb-2">
     <?php if (empty($riwayatTerbaru)): ?>

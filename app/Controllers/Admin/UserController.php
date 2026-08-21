@@ -23,7 +23,7 @@ class UserController extends BaseController
         return view('admin/user/index', [
             'title'  => 'Master User',
             'daftar' => $this->model
-                ->orderBy("FIELD(role, 'admin', 'sheadmtc', 'sheadprd', 'leader', 'member', 'magang')")
+                ->orderBy("FIELD(role, 'admin', 'sheadmtc', 'sheadprd', 'leader', 'leader_member', 'member', 'magang')")
                 ->orderBy('nama', 'ASC')
                 ->findAll(),
         ]);
@@ -35,7 +35,7 @@ class UserController extends BaseController
         return view('admin/user/form', [
             'title'        => 'Tambah User',
             'user'         => null,
-            'linesGrouped' => $lineModel->getLinesGroupedByLokasi(),
+            'linesGrouped' => $lineModel->getLinesGroupedByDepartemen(),
         ]);
     }
 
@@ -49,12 +49,44 @@ class UserController extends BaseController
             return $this->redirectValidationError();
         }
 
+        $rolePost = $this->request->getPost('role');
+        $roleStr = is_array($rolePost) ? implode(',', $rolePost) : ($rolePost ?: 'magang');
+        
+        $noAssignmentRoles = ['admin', 'member', 'magang', 'leader_member'];
+        
+        // If ALL selected roles are in noAssignmentRoles, then no assignment needed
+        $requiresAssignment = false;
+        $rolesArray = is_array($rolePost) ? $rolePost : explode(',', $roleStr);
+        foreach ($rolesArray as $r) {
+            if (!in_array(trim($r), $noAssignmentRoles)) {
+                $requiresAssignment = true;
+                break;
+            }
+        }
+
+        if (!$requiresAssignment) {
+            $planStr = '-';
+            $departemen = '-';
+            $lineStr = '-';
+        } else {
+            $planPost = $this->request->getPost('plan');
+            $planStr = is_array($planPost) ? implode(', ', $planPost) : ($planPost ?: '-');
+            
+            $linePost = $this->request->getPost('line');
+            $lineStr = is_array($linePost) ? implode(', ', $linePost) : ($linePost ?: '-');
+            
+            $departemenPost = $this->request->getPost('departemen');
+            $departemen = is_array($departemenPost) ? implode(', ', $departemenPost) : ($departemenPost ?: '-');
+        }
+
         $this->model->insert([
-            'nama'     => $this->request->getPost('nama'),
-            'username' => $this->request->getPost('username'),
-            'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-            'role'     => $this->request->getPost('role'),
-            'line'     => $this->request->getPost('line') ?: null,
+            'nama'       => $this->request->getPost('nama'),
+            'username'   => $this->request->getPost('username'),
+            'password'   => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
+            'role'       => $roleStr,
+            'plan'       => $planStr,
+            'departemen' => $departemen,
+            'line'       => $lineStr,
         ]);
 
         return $this->redirectSuccess('/admin/user', 'User berhasil ditambahkan.');
@@ -71,7 +103,7 @@ class UserController extends BaseController
         return view('admin/user/form', [
             'title'        => 'Edit User',
             'user'         => $user,
-            'linesGrouped' => $lineModel->getLinesGroupedByLokasi(),
+            'linesGrouped' => $lineModel->getLinesGroupedByDepartemen(),
         ]);
     }
 
@@ -93,11 +125,43 @@ class UserController extends BaseController
             return $this->redirectValidationError();
         }
 
+        $rolePost = $this->request->getPost('role');
+        $roleStr = is_array($rolePost) ? implode(',', $rolePost) : ($rolePost ?: 'magang');
+        
+        $noAssignmentRoles = ['admin', 'member', 'magang', 'leader_member'];
+
+        // If ALL selected roles are in noAssignmentRoles, then no assignment needed
+        $requiresAssignment = false;
+        $rolesArray = is_array($rolePost) ? $rolePost : explode(',', $roleStr);
+        foreach ($rolesArray as $r) {
+            if (!in_array(trim($r), $noAssignmentRoles)) {
+                $requiresAssignment = true;
+                break;
+            }
+        }
+
+        if (!$requiresAssignment) {
+            $planStr = '-';
+            $departemen = '-';
+            $lineStr = '-';
+        } else {
+            $planPost = $this->request->getPost('plan');
+            $planStr = is_array($planPost) ? implode(', ', $planPost) : ($planPost ?: '-');
+            
+            $linePost = $this->request->getPost('line');
+            $lineStr = is_array($linePost) ? implode(', ', $linePost) : ($linePost ?: '-');
+            
+            $departemenPost = $this->request->getPost('departemen');
+            $departemen = is_array($departemenPost) ? implode(', ', $departemenPost) : ($departemenPost ?: '-');
+        }
+
         $data = [
-            'nama'     => $this->request->getPost('nama'),
-            'username' => $this->request->getPost('username'),
-            'role'     => $this->request->getPost('role'),
-            'line'     => $this->request->getPost('line') ?: null,
+            'nama'       => $this->request->getPost('nama'),
+            'username'   => $this->request->getPost('username'),
+            'role'       => $roleStr,
+            'plan'       => $planStr,
+            'departemen' => $departemen,
+            'line'       => $lineStr,
         ];
 
         if ($this->request->getPost('password') !== '') {
@@ -148,7 +212,7 @@ class UserController extends BaseController
     public function export()
     {
         $users = $this->model
-            ->orderBy("FIELD(role, 'admin', 'sheadmtc', 'sheadprd', 'leader', 'member', 'magang')")
+            ->orderBy("FIELD(role, 'admin', 'sheadmtc', 'sheadprd', 'leader', 'leader_member', 'member', 'magang')")
             ->orderBy('nama', 'ASC')
             ->findAll();
         
@@ -160,13 +224,15 @@ class UserController extends BaseController
         $output = fopen('php://output', 'w');
         
         // Header CSV
-        fputcsv($output, ['Nama', 'Username', 'Role', 'Line', 'Password']);
+        fputcsv($output, ['Nama', 'Username', 'Role', 'Plan', 'Departemen', 'Line', 'Password']);
         
         foreach ($users as $u) {
             fputcsv($output, [
                 $u['nama'],
                 $u['username'],
                 $u['role'],
+                $u['plan'] ?? '',
+                $u['departemen'] ?? '',
                 $u['line'] ?? '',
                 '' // Password dikosongkan saat ekspor demi keamanan
             ]);
@@ -200,19 +266,21 @@ class UserController extends BaseController
                     continue;
                 }
                 
-                $nama     = trim($row[0]);
-                $username = trim($row[1]);
-                $role     = strtolower(trim($row[2]));
-                $line     = isset($row[3]) ? trim($row[3]) : '';
-                $password = isset($row[4]) ? trim($row[4]) : '';
+                $nama       = trim($row[0]);
+                $username   = trim($row[1]);
+                $role       = strtolower(trim($row[2]));
+                $plan       = isset($row[3]) ? trim($row[3]) : '';
+                $departemen = isset($row[4]) ? trim($row[4]) : '';
+                $line       = isset($row[5]) ? trim($row[5]) : '';
+                $password   = isset($row[6]) ? trim($row[6]) : '';
                 
                 if (empty($nama) || empty($username) || empty($role)) {
                     $errors[] = "Baris {$rowNum}: Kolom Nama, Username, dan Role tidak boleh kosong.";
                     continue;
                 }
                 
-                if (! in_array($role, [Role::Magang->value, Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, Role::Leader->value], true)) {
-                    $errors[] = "Baris {$rowNum}: Role '{$role}' tidak valid. Harus Role::Magang->value, Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, atau 'leader'.";
+                if (! in_array($role, [Role::Magang->value, Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, Role::Leader->value, Role::LeaderMember->value], true)) {
+                    $errors[] = "Baris {$rowNum}: Role '{$role}' tidak valid. Harus Role::Magang->value, Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, 'leader', atau 'leader_member'.";
                     continue;
                 }
                 
@@ -220,9 +288,11 @@ class UserController extends BaseController
                 
                 if ($existing) {
                     $updateData = [
-                        'nama'   => $nama,
-                        'role'   => $role,
-                        'line'   => empty($line) ? null : $line,
+                        'nama'       => $nama,
+                        'role'       => $role,
+                        'plan'       => empty($plan) ? null : $plan,
+                        'departemen' => empty($departemen) ? null : $departemen,
+                        'line'       => empty($line) ? null : $line,
                     ];
                     if (! empty($password)) {
                         $updateData['password'] = password_hash($password, PASSWORD_DEFAULT);
@@ -232,11 +302,13 @@ class UserController extends BaseController
                 } else {
                     $passToSave = ! empty($password) ? $password : 'password123';
                     $this->model->insert([
-                        'nama'     => $nama,
-                        'username' => $username,
-                        'role'     => $role,
-                        'line'     => empty($line) ? null : $line,
-                        'password' => password_hash($passToSave, PASSWORD_DEFAULT),
+                        'nama'       => $nama,
+                        'username'   => $username,
+                        'role'       => $role,
+                        'plan'       => empty($plan) ? null : $plan,
+                        'departemen' => empty($departemen) ? null : $departemen,
+                        'line'       => empty($line) ? null : $line,
+                        'password'   => password_hash($passToSave, PASSWORD_DEFAULT),
                     ]);
                     $successInsert++;
                 }
@@ -264,7 +336,7 @@ class UserController extends BaseController
 
         return [
             'nama'   => 'required|max_length[100]',
-            'role'   => 'required|in_list[magang,member,sheadprd,sheadmtc,admin,leader]',
+            'role'   => 'required|in_list[magang,member,sheadprd,sheadmtc,admin,leader,leader_member]',
             'line'   => 'permit_empty|in_list[' . $validLines . ']',
         ];
     }

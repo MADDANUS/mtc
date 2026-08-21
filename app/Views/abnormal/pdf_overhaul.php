@@ -57,7 +57,7 @@
           </tr>
           <tr style="background-color: #f2f2f2;">
             <th colspan="7" style="text-align: left; border: 1.5pt solid #000; padding: 4px; font-style: italic; font-size: 11px;">
-              AREA : <?= strtoupper($lokasiFilter) ?>
+              AREA : <?= strtoupper($departemenFilter) ?>
             </th>
             <th colspan="4" style="text-align: right; border: 1.5pt solid #000; padding: 4px; font-style: italic; font-size: 11px;">
               Rev.:0/2911/24
@@ -105,7 +105,7 @@
               <tr class="<?= $rowClass ?>" 
                   style="<?= $canEdit ? 'cursor: pointer;' : '' ?> transition: background-color 0.15s;"
                   data-id-abnormal="<?= $r['id_abnormal'] ?>"
-                  data-mesin="<?= esc($r['no_mesin'] . ' - ' . $r['type_mesin'] . ' (' . $r['lokasi'] . ')') ?>"
+                  data-mesin="<?= esc($r['no_mesin'] . ' - ' . $r['type_mesin'] . ' (' . $r['departemen'] . ')') ?>"
                   <?php 
                     $pointCheckDisplay = esc($r['point_check']);
                     if (!empty($r['bagian_check'])) {

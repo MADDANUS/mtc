@@ -13,3 +13,21 @@
  *
  * @see: https://codeigniter.com/user_guide/extending/common.html
  */
+
+if (!function_exists('has_role')) {
+    function has_role(string $roleCheck): bool {
+        $roleSession = session()->get('role');
+        if (!$roleSession) return false;
+        $roles = array_map('trim', explode(',', $roleSession));
+        return in_array($roleCheck, $roles, true);
+    }
+}
+
+if (!function_exists('has_any_role')) {
+    function has_any_role(array $rolesCheck): bool {
+        $roleSession = session()->get('role');
+        if (!$roleSession) return false;
+        $roles = array_map('trim', explode(',', $roleSession));
+        return count(array_intersect($rolesCheck, $roles)) > 0;
+    }
+}

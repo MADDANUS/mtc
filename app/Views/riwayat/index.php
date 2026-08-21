@@ -2,9 +2,9 @@
 
 <?php
 // Helper functions for column sorting
-$getSortUrl = function(string $column) use ($selectedFilters, $lokasiSlug) {
+$getSortUrl = function(string $column) use ($selectedFilters, $departemenSlug) {
     $params = $selectedFilters;
-    unset($params['lokasi']); // Remove lokasi from query parameters as it's part of the route URL
+    unset($params['departemen']); // Remove departemen from query parameters as it's part of the route URL
 
     $currentSort = $selectedFilters['sort_by'] ?? 'id_transaksi';
     $currentOrder = $selectedFilters['order'] ?? 'desc';
@@ -16,7 +16,7 @@ $getSortUrl = function(string $column) use ($selectedFilters, $lokasiSlug) {
         $params['order'] = 'asc';
     }
 
-    return site_url("riwayat/lokasi/{$lokasiSlug}") . '?' . http_build_query($params);
+    return site_url("riwayat/departemen/{$departemenSlug}") . '?' . http_build_query($params);
 };
 
 $getSortIcon = function(string $column) use ($selectedFilters) {
@@ -41,10 +41,10 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
     <?php 
       // Buat URL download dengan filter saat ini
       $pdfParams = $selectedFilters ?? [];
-      // Hapus filter lokasi dari parameter GET karena sudah ada di URL segment
-      unset($pdfParams['lokasi']);
-      $downloadUrl = site_url("riwayat/download-pdf-all/{$lokasiSlug}") . '?' . http_build_query($pdfParams);
-      $excelUrl = site_url("riwayat/export-excel/{$lokasiSlug}") . '?' . http_build_query($pdfParams);
+      // Hapus filter departemen dari parameter GET karena sudah ada di URL segment
+      unset($pdfParams['departemen']);
+      $downloadUrl = site_url("riwayat/download-pdf-all/{$departemenSlug}") . '?' . http_build_query($pdfParams);
+      $excelUrl = site_url("riwayat/export-excel/{$departemenSlug}") . '?' . http_build_query($pdfParams);
     ?>
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
     <a href="<?= $excelUrl ?>" class="btn btn-sm btn-outline-success shadow-sm" target="_blank">
@@ -64,7 +64,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
 
 
 <!-- KARTU TABEL DAFTAR RIWAYAT -->
-<form action="<?= site_url("riwayat/lokasi/{$lokasiSlug}") ?>" method="get" id="filterForm">
+<form action="<?= site_url("riwayat/departemen/{$departemenSlug}") ?>" method="get" id="filterForm">
   <!-- Keep sorting parameters when changing filters -->
   <input type="hidden" name="sort_by" value="<?= esc($selectedFilters['sort_by'] ?? 'id_transaksi') ?>">
   <input type="hidden" name="order" value="<?= esc($selectedFilters['order'] ?? 'desc') ?>">
@@ -87,8 +87,13 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
               </a>
             </th>
             <th style="width: 8%;" class="align-middle">
-              <a href="<?= $getSortUrl('lokasi_check') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
-                LOKASI <?= $getSortIcon('lokasi_check') ?>
+              <a href="#" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em; cursor: default;" onclick="return false;">
+                PLAN
+              </a>
+            </th>
+            <th style="width: 8%;" class="align-middle">
+              <a href="<?= $getSortUrl('departemen_check') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                DEPARTEMEN <?= $getSortIcon('departemen_check') ?>
               </a>
             </th>
             <th style="width: 13%;" class="align-middle">
@@ -135,13 +140,21 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
                 <?php endforeach; ?>
               </select>
             </th>
-            <th class="p-1" style="min-width: 130px;">
-              <select class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Lokasi..." onchange="window.location.href='<?= site_url('riwayat/lokasi/') ?>' + (this.value === 'all' ? 'semua' : this.value) + '?jenis_check=<?= urlencode($selectedFilters['jenis_check'] ?? '') ?>'" style="font-size: 0.75rem;">
+            <th class="p-1" style="min-width: 100px;">
+              <select name="plan" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Plan..." onchange="this.form.submit()" style="font-size: 0.75rem;">
                 <option value=""></option>
-                <option value="all" <?= $lokasiSlug === 'semua' ? 'selected' : '' ?>>Semua Lokasi</option>
-                <option value="mfg1" <?= $lokasiSlug === 'mfg1' ? 'selected' : '' ?>>MFG 1</option>
-                <option value="mfg2" <?= $lokasiSlug === 'mfg2' ? 'selected' : '' ?>>MFG 2</option>
-                <option value="plan2" <?= $lokasiSlug === 'plan2' ? 'selected' : '' ?>>Plan 2</option>
+                <option value="all">Semua Plan</option>
+                <?php if (!empty($availablePlans)) foreach ($availablePlans as $pl): ?>
+                  <option value="<?= esc($pl) ?>" <?= isset($selectedFilters['plan']) && $selectedFilters['plan'] === $pl ? 'selected' : '' ?>><?= esc($pl) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </th>
+            <th class="p-1" style="min-width: 130px;">
+              <select class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Departemen..." onchange="window.location.href='<?= site_url('riwayat/departemen/') ?>' + (this.value === 'all' ? 'semua' : this.value) + '?jenis_check=<?= urlencode($selectedFilters['jenis_check'] ?? '') ?>'" style="font-size: 0.75rem;">
+                <option value=""></option>
+                <option value="all" <?= $departemenSlug === 'semua' ? 'selected' : '' ?>>Semua Departemen</option>
+                <option value="mfg1" <?= $departemenSlug === 'mfg1' ? 'selected' : '' ?>>MFG 1</option>
+                <option value="mfg2" <?= $departemenSlug === 'mfg2' ? 'selected' : '' ?>>MFG 2</option>
               </select>
             </th>
             <th class="p-1" style="min-width: 110px;">
@@ -203,7 +216,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
             </th>
             <th class="p-1 text-center align-middle">
                 <?php 
-                  $resetUrl = site_url("riwayat/lokasi/{$lokasiSlug}");
+                  $resetUrl = site_url("riwayat/departemen/{$departemenSlug}");
                   if (!empty($selectedFilters['jenis_check'])) {
                       $resetUrl .= '?jenis_check=' . urlencode($selectedFilters['jenis_check']);
                   }
@@ -218,7 +231,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
           <?= view('riwayat/_rows', [
               'riwayat' => $riwayat,
               'startNo' => $startNo ?? 1,
-              'lokasiSlug' => $lokasiSlug
+              'departemenSlug' => $departemenSlug
           ]) ?>
         </tbody>
       </table>

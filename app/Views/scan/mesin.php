@@ -24,9 +24,9 @@
             <span class="fw-semibold text-dark" style="font-size: 0.875rem;"><?= esc($mesin['serial_nomor']) ?></span>
           </div>
           <div class="col-6">
-            <span class="text-muted small d-block">Lokasi / Line</span>
+            <span class="text-muted small d-block">Departemen / Line</span>
             <div class="d-flex align-items-center gap-1 flex-wrap">
-              <span class="badge bg-primary"><?= esc($mesin['lokasi']) ?></span>
+              <span class="badge bg-primary"><?= esc($mesin['departemen']) ?></span>
               <?php if (!empty($mesin['line'])): ?>
                 <span class="badge bg-info text-dark"><?= esc($mesin['line']) ?></span>
               <?php endif; ?>
@@ -42,7 +42,7 @@
       
       <!-- Opsi 1: Checklist Report -->
       <div class="col-12">
-        <a href="<?= site_url("checklist/{$lokasiSlug}/checklist-report?id_mesin=" . (int)$mesin['id_mesin']) ?>" 
+        <a href="<?= site_url("checklist/plan/{$planSlug}/{$departemenSlug}/checklist-report?id_mesin=" . (int)$mesin['id_mesin']) ?>" 
            class="card card-hover text-decoration-none border-0 shadow-sm bg-white">
           <div class="card-body p-4 d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-3">
@@ -61,7 +61,7 @@
 
       <!-- Opsi 2: Overhaul -->
       <div class="col-12">
-        <a href="<?= $hasJenis ? site_url("checklist/{$lokasiSlug}/overhaul?id_mesin=" . (int)$mesin['id_mesin']) : '#' ?>" 
+        <a href="<?= $hasJenis ? site_url("checklist/plan/{$planSlug}/{$departemenSlug}/overhaul?id_mesin=" . (int)$mesin['id_mesin']) : '#' ?>" 
            <?= !$hasJenis ? 'onclick="return blockEmptyJenis()"' : '' ?>
            class="card card-hover text-decoration-none border-0 shadow-sm bg-white">
           <div class="card-body p-4 d-flex align-items-center justify-content-between">

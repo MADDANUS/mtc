@@ -134,7 +134,7 @@
                                 <tr>
                                     <th class="ps-3 py-2">No Mesin</th>
                                     <th>Type</th>
-                                    <th>Lokasi</th>
+                                    <th>Departemen</th>
                                     <th>Line</th>
                                     <th class="text-center pe-3">Status</th>
                                 </tr>
@@ -150,7 +150,7 @@
                                 <tr>
                                     <th class="ps-3 py-2">No Mesin</th>
                                     <th>Type</th>
-                                    <th>Lokasi</th>
+                                    <th>Departemen</th>
                                     <th>Line</th>
                                 </tr>
                             </thead>
@@ -183,8 +183,8 @@ function showDetailPencapaian(jenis, bulan) {
     
     // Fetch data
     let url = `<?= site_url('dashboard/detail-pencapaian') ?>?jenis=${jenis}&bulan=${bulan}`;
-    <?php if(service('request')->getGet('lokasi')): ?>
-    url += `&lokasi=<?= service('request')->getGet('lokasi') ?>`;
+    <?php if(service('request')->getGet('departemen')): ?>
+    url += `&departemen=<?= service('request')->getGet('departemen') ?>`;
     <?php endif; ?>
 
     fetch(url)
@@ -234,7 +234,7 @@ function renderTables(checked, unchecked) {
                 <tr>
                     <td class="ps-3 fw-bold">${m.no_mesin}</td>
                     <td>${m.type_mesin || '-'}</td>
-                    <td><span class="badge bg-secondary">${m.lokasi}</span></td>
+                    <td><span class="badge bg-secondary">${m.departemen}</span></td>
                     <td>${m.line || '-'}</td>
                     <td class="text-center pe-3">${statusBadge}</td>
                 </tr>
@@ -251,7 +251,7 @@ function renderTables(checked, unchecked) {
                 <tr>
                     <td class="ps-3 fw-bold">${m.no_mesin}</td>
                     <td>${m.type_mesin || '-'}</td>
-                    <td><span class="badge bg-secondary">${m.lokasi}</span></td>
+                    <td><span class="badge bg-secondary">${m.departemen}</span></td>
                     <td>${m.line || '-'}</td>
                 </tr>
             `;

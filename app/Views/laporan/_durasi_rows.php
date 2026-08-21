@@ -39,7 +39,7 @@ if (!function_exists('formatDurasiText')) {
     ?>
     <td><?= esc($namaDurasiOnly) ?></td>
     <td><?= esc($l['no_mesin']) ?></td>
-    <td><?= esc($l['lokasi_check']) ?> / <?= esc($l['line'] ?? '-') ?></td>
+    <td><?= esc($l['departemen_check']) ?> / <?= esc($l['line'] ?? '-') ?></td>
     <td>
       <?php if (strtolower($l['jenis_check']) === 'overhaul'): ?>
         <span class="badge bg-primary">Inspection Report</span>

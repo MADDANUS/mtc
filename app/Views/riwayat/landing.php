@@ -10,7 +10,7 @@
 <div class="row justify-content-center g-4">
   <!-- Card Preventive -->
   <div class="col-md-5">
-    <a href="<?= site_url('riwayat/lokasi/mfg1?jenis_check=Preventive') ?>" class="text-decoration-none">
+    <a href="<?= site_url('riwayat/departemen/mfg1?jenis_check=Preventive') ?>" class="text-decoration-none">
       <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden card-hover transition" style="transition: transform 0.2s, box-shadow 0.2s;">
         <div class="card-body p-5 d-flex flex-column text-center" style="background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); border-top: 5px solid var(--primary);">
           <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary p-4 rounded-circle mb-4 mx-auto" style="width: 80px; height: 80px;">
@@ -25,7 +25,7 @@
 
   <!-- Card Overhaul -->
   <div class="col-md-5">
-    <a href="<?= site_url('riwayat/lokasi/mfg1?jenis_check=Overhaul') ?>" class="text-decoration-none">
+    <a href="<?= site_url('riwayat/departemen/mfg1?jenis_check=Overhaul') ?>" class="text-decoration-none">
       <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden card-hover transition" style="transition: transform 0.2s, box-shadow 0.2s;">
         <div class="card-body p-5 d-flex flex-column text-center" style="background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); border-top: 5px solid #f43f5e;">
           <div class="d-inline-flex align-items-center justify-content-center bg-opacity-10 p-4 rounded-circle mb-4 mx-auto" style="width: 80px; height: 80px; background-color: rgba(244, 63, 94, 0.1); color: #f43f5e;">

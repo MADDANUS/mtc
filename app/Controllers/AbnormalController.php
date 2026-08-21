@@ -83,7 +83,7 @@ class AbnormalController extends BaseController
             ]
         ];
 
-        $headers = ['No', 'Lokasi', 'Kategori', 'Mesin', 'Point Check', 'Abnormal Condition', 'Type Sparepart', 'Tgl Pengecekan', 'PIC Cek', 'Progres', 'Tgl Progres', 'Action', 'PIC Action', 'Keterangan'];
+        $headers = ['No', 'Departemen', 'Kategori', 'Mesin', 'Point Check', 'Abnormal Condition', 'Type Sparepart', 'Tgl Pengecekan', 'PIC Cek', 'Progres', 'Tgl Progres', 'Action', 'PIC Action', 'Keterangan'];
         $col = 'A';
         foreach ($headers as $header) {
             $sheet->setCellValue($col . '1', $header);
@@ -99,7 +99,7 @@ class AbnormalController extends BaseController
         ];
 
         foreach ($data['allReportsData'] as $item) {
-            $lokasi = $item['lokasi'];
+            $departemen = $item['departemen'];
             $kategori = $item['kategori'];
             foreach ($item['reports'] as $r) {
                 $pointCheckDisplay = $r['point_check'];
@@ -111,7 +111,7 @@ class AbnormalController extends BaseController
                 }
 
                 $sheet->setCellValue('A' . $rowNum, $no++);
-                $sheet->setCellValue('B' . $rowNum, $lokasi);
+                $sheet->setCellValue('B' . $rowNum, $departemen);
                 $sheet->setCellValue('C' . $rowNum, $kategori);
                 $sheet->setCellValue('D' . $rowNum, $r['no_mesin']);
                 $sheet->setCellValue('E' . $rowNum, $pointCheckDisplay);

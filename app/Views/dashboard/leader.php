@@ -175,7 +175,7 @@
       <table class="table table-hover align-middle mb-0 border rounded-3 overflow-hidden">
         <thead class="table-success">
           <tr>
-            <th class="ps-3">Lokasi</th>
+            <th class="ps-3">Departemen</th>
             <th>Line</th>
             <th>Kategori</th>
             <th>Bulan</th>
@@ -186,7 +186,7 @@
         <tbody>
           <?php foreach ($pendingKontrol as $pk): ?>
           <tr>
-            <td class="ps-3 fw-semibold"><?= esc($pk['lokasi'] ?? '-') ?></td>
+            <td class="ps-3 fw-semibold"><?= esc($pk['departemen'] ?? '-') ?></td>
             <td><?= esc($pk['line'] ?? '-') ?></td>
             <td><?= esc($pk['kategori'] ?? '-') ?></td>
                         <?php 
@@ -227,7 +227,7 @@
             </td>
             <td class="text-end pe-3">
               <?php
-                $kontrolUrl = site_url('kontrol') . '?lokasi=' . urlencode($pk['lokasi'] ?? '') . '&line=' . urlencode($pk['line'] ?? '') . '&kategori=' . urlencode($pk['kategori'] ?? '') . '&bulan=' . urlencode($pk['bulan_tahun'] ?? '') . '&from=approval';
+                $kontrolUrl = site_url('kontrol') . '?departemen=' . urlencode($pk['departemen'] ?? '') . '&line=' . urlencode($pk['line'] ?? '') . '&kategori=' . urlencode($pk['kategori'] ?? '') . '&bulan=' . urlencode($pk['bulan_tahun'] ?? '') . '&from=approval';
               ?>
               <a href="<?= $kontrolUrl ?>" class="btn btn-sm btn-success fw-bold rounded-pill px-3">
                 <i class="bi bi-check-circle me-1"></i> Review & Approve

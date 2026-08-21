@@ -9,7 +9,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
         'jenis'    => $filterJenis,
         'bulan'    => $filterBulan,
         'status'   => $filterStatus,
-        'lokasi'   => $filterLokasi,
+        'departemen'   => $filterLokasi,
         'kategori' => $filterKategori,
         'mesin'    => $filterMesin,
         'per_page' => $perPage ?? 15,
@@ -41,7 +41,8 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
             <th style="width:12%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Tipe Dokumen</th>
             <th style="width:12%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Kategori</th>
             <th style="width:16%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">No Mesin</th>
-            <th style="width:11%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Lokasi / Line</th>
+            <th style="width:11%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Plan</th>
+            <th style="width:11%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Departemen / Line</th>
             <th style="width:12%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Dibuat Oleh</th>
             <th style="width:12%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Tanggal / Bulan</th>
             <th style="width:11%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Status</th>
@@ -87,11 +88,21 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                 <?php endforeach; ?>
               </select>
             </th>
-            <!-- Filter Lokasi -->
+            <!-- Filter Plan -->
             <th class="p-1" style="min-width:130px;">
-              <select name="lokasi" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Lokasi/Line..." onchange="this.form.submit()" style="font-size:0.75rem;">
+              <select name="plan" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Plan..." onchange="this.form.submit()" style="font-size:0.75rem;">
                 <option value=""></option>
-                <option value="all" <?= ($filterLokasi === 'all') ? 'selected' : '' ?>>Semua Lokasi</option>
+                <option value="all" <?= ($filterPlan === 'all') ? 'selected' : '' ?>>Semua Plan</option>
+                <?php foreach ($uniquePlan as $pl): ?>
+                  <option value="<?= esc($pl) ?>" <?= ($filterPlan === $pl) ? 'selected' : '' ?>><?= esc($pl) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </th>
+            <!-- Filter Departemen -->
+            <th class="p-1" style="min-width:130px;">
+              <select name="departemen" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Departemen..." onchange="this.form.submit()" style="font-size:0.75rem;">
+                <option value=""></option>
+                <option value="all" <?= ($filterLokasi === 'all') ? 'selected' : '' ?>>Semua Departemen</option>
                 <?php foreach ($uniqueLokasi as $loc): ?>
                   <option value="<?= esc($loc) ?>" <?= ($filterLokasi === $loc) ? 'selected' : '' ?>><?= esc($loc) ?></option>
                 <?php endforeach; ?>
@@ -168,7 +179,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                     $keterangan = esc($doc['kategori']); // Tetap untuk JS
                     $tdKategori = esc($doc['kategori']);
                     $tdMesin    = '-';
-                    $lokasiLine = esc($doc['lokasi'] ?? '-') . ($doc['line'] ? ' / ' . esc($doc['line']) : '');
+                    $departemenLine = esc($doc['departemen'] ?? '-') . ($doc['line'] ? ' / ' . esc($doc['line']) : '');
                     $dibuatOleh = '-';
                     $blnArr = explode('-', $doc['doc_date']);
                     $namaBulan = ['01'=>'Juli', '02'=>'Februari', '03'=>'Maret', '04'=>'April', '05'=>'Mei', '06'=>'Juni', '07'=>'Juli', '08'=>'Agustus', '09'=>'September', '10'=>'Oktober', '11'=>'November', '12'=>'Desember'];
@@ -180,7 +191,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                         $tanggal = esc($doc['doc_date']);
                     }
                     $linkDetail = site_url('kontrol')
-                        . '?lokasi='   . urlencode($doc['lokasi']    ?? '')
+                        . '?departemen='   . urlencode($doc['departemen']    ?? '')
                         . '&kategori=' . urlencode($doc['kategori']  ?? '')
                         . '&bulan='    . urlencode(substr($doc['doc_date'] ?? '', 0, 7))
                         . (!empty($doc['line']) ? '&line=' . urlencode($doc['line']) : '')
@@ -190,7 +201,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                     $keterangan = esc($doc['no_mesin'] ?? '') . ' — ' . esc($doc['type_mesin'] ?? '') . ' (' . esc($doc['kategori'] ?? '') . ')'; // Tetap untuk JS
                     $tdKategori = esc($doc['kategori'] ?? '-');
                     $tdMesin    = esc($doc['no_mesin'] ?? '');
-                    $lokasiLine = esc($doc['lokasi_check'] ?? '-') . ($doc['line'] ? ' / ' . esc($doc['line']) : '');
+                    $departemenLine = esc($doc['departemen_check'] ?? '-') . ($doc['line'] ? ' / ' . esc($doc['line']) : '');
                     $rawPic = $doc['nama_pic'] ?: $doc['nama_staff'];
                     $parts = explode(' - ', $rawPic ?? '');
                     $dibuatOleh = esc(end($parts));
@@ -226,8 +237,12 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                 <td class="fw-semibold text-muted text-center"><?= $no++ ?></td>
                 <td><?= $tipeBadge ?></td>
                 <td style="font-size:0.85rem; white-space:normal; font-weight:600;"><?= $tdKategori ?></td>
-                <td style="font-size:0.85rem; white-space:normal; color:var(--text-secondary);"><?= $tdMesin ?></td>
-                <td style="font-size:0.82rem; color:var(--text-secondary);"><?= $lokasiLine ?></td>
+                <td>
+                  <div class="fw-semibold text-dark" style="font-size:0.85rem;"><?= $tdMesin ?></div>
+                  <div class="text-muted small" style="font-size:0.75rem;"><?= !$isKontrol ? esc($doc['type_mesin'] ?? '-') : '-' ?></div>
+                </td>
+                <td class="fw-medium text-dark" style="font-size:0.85rem; text-center"><?= esc($doc['plan'] ?? '-') ?></td>
+                <td style="font-size:0.82rem; color:var(--text-secondary);"><?= $departemenLine ?></td>
                 <td style="font-size:0.85rem;"><?= $dibuatOleh ?></td>
                 <td style="font-size:0.8rem; color:var(--text-secondary);"><?= $tanggal ?></td>
                 <td><?= $statusBadge ?></td>
@@ -259,7 +274,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                         class="btn btn-sm btn-outline-danger py-1 px-2"
                         style="font-size:0.8rem;"
                         title="Hapus Approval"
-                        onclick="konfirmasiHapusKontrol('<?= esc($doc['lokasi'], 'js') ?>', '<?= esc($doc['line'], 'js') ?>', '<?= esc($doc['kategori'], 'js') ?>', '<?= esc(substr($doc['doc_date'] ?? '', 0, 7), 'js') ?>', '<?= esc($keterangan, 'js') ?>')">
+                        onclick="konfirmasiHapusKontrol('<?= esc($doc['departemen'], 'js') ?>', '<?= esc($doc['line'], 'js') ?>', '<?= esc($doc['kategori'], 'js') ?>', '<?= esc(substr($doc['doc_date'] ?? '', 0, 7), 'js') ?>', '<?= esc($keterangan, 'js') ?>')">
                         <i class="bi bi-trash"></i>
                       </button>
                     <?php endif; ?>
@@ -358,7 +373,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
           <form id="formHapusKontrol" action="<?= site_url('kontrol/delete-approval') ?>" method="POST" class="d-inline">
             <?= csrf_field() ?>
-            <input type="hidden" name="lokasi" id="del_lokasi">
+            <input type="hidden" name="departemen" id="del_lokasi">
             <input type="hidden" name="line" id="del_line">
             <input type="hidden" name="kategori" id="del_kategori">
             <input type="hidden" name="bulan_tahun" id="del_bulan">
@@ -378,9 +393,9 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
     new bootstrap.Modal(document.getElementById('modalHapus')).show();
   }
   
-  function konfirmasiHapusKontrol(lokasi, line, kategori, bulan, nama) {
+  function konfirmasiHapusKontrol(departemen, line, kategori, bulan, nama) {
     document.getElementById('namaHapusKontrol').textContent = 'Checklist Control: ' + nama;
-    document.getElementById('del_lokasi').value = lokasi;
+    document.getElementById('del_lokasi').value = departemen;
     document.getElementById('del_line').value = line;
     document.getElementById('del_kategori').value = kategori;
     document.getElementById('del_bulan').value = bulan;

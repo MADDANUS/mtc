@@ -186,8 +186,8 @@
         <input type="hidden" name="periode_ke" id="inputPeriodeKe">
 
         <div class="mb-3">
-          <label class="form-label small fw-semibold text-muted mb-1">Lokasi MFG</label>
-          <select name="lokasi" id="lokasiSelect" class="form-select rounded-3" required>
+          <label class="form-label small fw-semibold text-muted mb-1">Departemen MFG</label>
+          <select name="departemen" id="lokasiSelect" class="form-select rounded-3" required>
             <option value="MFG 1">MFG 1</option>
             <option value="MFG 2">MFG 2</option>
           </select>
@@ -398,7 +398,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const addEventForm = document.getElementById('addEventForm');
   if (addEventForm) {
       addEventForm.addEventListener('submit', function(e) {
-          const lokasi = document.getElementById('lokasiSelect').value;
+          const departemen = document.getElementById('lokasiSelect').value;
           const kategori = document.getElementById('kategoriSelect').value;
           const tanggalVal = document.getElementById('inputTanggalRencana').value;
           
@@ -421,7 +421,7 @@ document.addEventListener('DOMContentLoaded', function() {
               if (!ev.start) continue;
               const evDate = new Date(ev.start);
               if (evDate.getFullYear() === mY && evDate.getMonth() === mM && evDate.getDate() === mD) {
-                  if (ev.extendedProps && ev.extendedProps.lokasi === lokasi && ev.extendedProps.kategori !== kategori) {
+                  if (ev.extendedProps && ev.extendedProps.departemen === departemen && ev.extendedProps.kategori !== kategori) {
                       otherCat = ev.extendedProps.kategori;
                       break;
                   }
@@ -429,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
           
           if (otherCat !== '') {
-              const msg = `Apakah Anda ingin menambahkan?\n\nSudah ada jadwal ${lokasi} kategori ${otherCat} pada pekan yang sama.`;
+              const msg = `Apakah Anda ingin menambahkan?\n\nSudah ada jadwal ${departemen} kategori ${otherCat} pada pekan yang sama.`;
               if (!confirm(msg)) {
                   e.preventDefault();
               }
@@ -439,7 +439,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-// Filter Kategori berdasarkan Lokasi secara Robust
+// Filter Kategori berdasarkan Departemen secara Robust
 document.addEventListener('DOMContentLoaded', function() {
     const lokasiSelect = document.getElementById('lokasiSelect');
     const kategoriSelect = document.getElementById('kategoriSelect');
@@ -453,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }));
         
         function filterKategori() {
-            const lokasi = lokasiSelect.value;
+            const departemen = lokasiSelect.value;
             const currentSelected = kategoriSelect.value;
             
             // Kosongkan select
@@ -464,8 +464,8 @@ document.addEventListener('DOMContentLoaded', function() {
             allOptions.forEach(optData => {
                 const isMfg1Only = ['Bearing Cam', 'Gearbox', 'Belt Cam'].includes(optData.value);
                 
-                // Jika lokasi MFG 2 dan kategori adalah milik MFG 1, jangan di-render
-                if (lokasi === 'MFG 2' && isMfg1Only) {
+                // Jika departemen MFG 2 dan kategori adalah milik MFG 1, jangan di-render
+                if (departemen === 'MFG 2' && isMfg1Only) {
                     return; 
                 }
                 

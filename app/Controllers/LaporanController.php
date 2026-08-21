@@ -3,7 +3,7 @@
 namespace App\Controllers;
 
 use App\Enums\Role;
-use App\Enums\Lokasi;
+use App\Enums\Departemen;
 
 use App\Models\TransaksiCheckModel;
 
@@ -11,12 +11,11 @@ class LaporanController extends BaseController
 {
     public function durasi()
     {
-        $role = session()->get('role');
-        $lokasiName = ($role === Role::Leader->value) ? session()->get('lokasi') : ($this->request->getGet('lokasi') === 'all' ? null : ($this->request->getGet('lokasi') ?: null));
-        $userLine = ($role === Role::Leader->value) ? session()->get('line') : null;
+        $departemenName = has_role(Role::Leader->value) ? session()->get('departemen') : ($this->request->getGet('departemen') === 'all' ? null : ($this->request->getGet('departemen') ?: null));
+        $userLine = has_role(Role::Leader->value) ? session()->get('line') : null;
 
         $filters = [
-            'lokasi'      => $lokasiName,
+            'departemen'      => $departemenName,
             'id_mesin'    => $this->request->getGet('id_mesin') === 'all' ? null : ($this->request->getGet('id_mesin') ?: null),
             'line'        => $userLine ?: ($this->request->getGet('line') === 'all' ? null : ($this->request->getGet('line') ?: null)),
             'jenis_check' => $this->request->getGet('jenis_check') === 'all' ? null : ($this->request->getGet('jenis_check') ?: null),
@@ -56,17 +55,17 @@ class LaporanController extends BaseController
         
         // Fetch dropdown options
         $mesinModel = new \App\Models\MesinModel();
-        $daftarMesin = $mesinModel->getByLokasi($lokasiName);
+        $daftarMesin = $mesinModel->getByDepartemen($departemenName);
 
         $availableLines = [];
-        if ($lokasiName === Lokasi::MFG1->value) {
+        if ($departemenName === Departemen::MFG1->value) {
             $availableLines = ['Line 1', 'Line 2', 'Line 3'];
-        } elseif ($lokasiName === Lokasi::MFG2->value) {
+        } elseif ($departemenName === Departemen::MFG2->value) {
             $availableLines = ['CG', 'Second'];
         }
 
         $transaksiModel = new \App\Models\TransaksiCheckModel();
-        $rawPics = $transaksiModel->getAvailablePics($lokasiName ?: null);
+        $rawPics = $transaksiModel->getAvailablePics($departemenName ?: null);
         $availablePics = [];
         foreach ($rawPics as $row) {
             $raw = $row['nama_pic'] ?: $row['nama_staff'];
@@ -107,12 +106,11 @@ class LaporanController extends BaseController
 
     public function durasiPdf()
     {
-        $role = session()->get('role');
-        $lokasiName = ($role === Role::Leader->value) ? session()->get('lokasi') : ($this->request->getGet('lokasi') === 'all' ? null : ($this->request->getGet('lokasi') ?: null));
-        $userLine = ($role === Role::Leader->value) ? session()->get('line') : null;
+        $departemenName = has_role(Role::Leader->value) ? session()->get('departemen') : ($this->request->getGet('departemen') === 'all' ? null : ($this->request->getGet('departemen') ?: null));
+        $userLine = has_role(Role::Leader->value) ? session()->get('line') : null;
 
         $filters = [
-            'lokasi'      => $lokasiName,
+            'departemen'      => $departemenName,
             'id_mesin'    => $this->request->getGet('id_mesin') === 'all' ? null : ($this->request->getGet('id_mesin') ?: null),
             'line'        => $userLine ?: ($this->request->getGet('line') === 'all' ? null : ($this->request->getGet('line') ?: null)),
             'jenis_check' => $this->request->getGet('jenis_check') === 'all' ? null : ($this->request->getGet('jenis_check') ?: null),

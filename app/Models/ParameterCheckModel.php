@@ -9,21 +9,21 @@ class ParameterCheckModel extends Model
     protected $table         = 'master_parameter_check';
     protected $primaryKey    = 'id_parameter';
     protected $allowedFields = [
-        'lokasi', 'jenis_check', 'kategori', 'section_check',
+        'departemen', 'jenis_check', 'kategori', 'section_check',
         'bagian_check', 'point_check', 'standard_check', 'urutan',
     ];
     protected $useTimestamps = true;
     protected $returnType    = 'array';
 
     /**
-     * Ambil semua baris parameter untuk kombinasi lokasi + jenis_check,
+     * Ambil semua baris parameter untuk kombinasi departemen + jenis_check,
      * lalu tambahkan info rowspan untuk kolom BAGIAN CHECK dan POINT CHECK
      * supaya tabel di View bisa persis meniru layout form kertas
      * (BAGIAN CHECK dan POINT CHECK yang sama digabung vertikal).
      */
-    public function getFormRows(string $lokasi, string $jenisCheck, ?string $kategori = null): array
+    public function getFormRows(string $departemen, string $jenisCheck, ?string $kategori = null): array
     {
-        $builder = $this->where('lokasi', $lokasi)
+        $builder = $this->where('departemen', $departemen)
                         ->where('jenis_check', $jenisCheck);
 
         if ($kategori !== null) {
@@ -267,14 +267,14 @@ class ParameterCheckModel extends Model
 
     public function getKombinasiKategori(): array
     {
-        return $this->select('lokasi, jenis_check, kategori')
-                    ->groupBy('lokasi, jenis_check, kategori')
+        return $this->select('departemen, jenis_check, kategori')
+                    ->groupBy('departemen, jenis_check, kategori')
                     ->findAll();
     }
 
-    public function getParamsByKombinasi(string $lokasi, string $jenisCheck, string $kategori): array
+    public function getParamsByKombinasi(string $departemen, string $jenisCheck, string $kategori): array
     {
-        return $this->where('lokasi', $lokasi)
+        return $this->where('departemen', $departemen)
                     ->where('jenis_check', $jenisCheck)
                     ->where('kategori', $kategori)
                     ->orderBy('urutan', 'ASC')

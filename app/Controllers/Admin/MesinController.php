@@ -6,7 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\MesinModel;
 use App\Models\LineModel;
 use App\Enums\Role;
-use App\Enums\Lokasi;
+use App\Enums\Departemen;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use App\Traits\AdminCrudTrait;
@@ -23,18 +23,18 @@ class MesinController extends BaseController
 
     public function index()
     {
-        $role = session()->get('role');
-        $lokasiUser = session()->get('lokasi');
-        $builder = $this->model->orderBy('lokasi', 'ASC')->orderBy('no_mesin', 'ASC');
+        $departemenUser = session()->get('departemen');
+        $builder = $this->model->orderBy('departemen', 'ASC')->orderBy('no_mesin', 'ASC');
         
         // Filter by user role (Leader only sees their own location)
-        if ($role === Role::Leader->value && $lokasiUser) {
-            $builder->where('lokasi', $lokasiUser);
+        if (has_role(Role::Leader->value) && $departemenUser) {
+            $builder->where('departemen', $departemenUser);
         }
 
         // Get filter inputs
         $q = $this->request->getGet('q');
-        $lokasi = $this->request->getGet('lokasi');
+        $departemen = $this->request->getGet('departemen');
+        $plan = $this->request->getGet('plan');
         $line = $this->request->getGet('line');
         $jenis = $this->request->getGet('jenis');
 
@@ -46,10 +46,14 @@ class MesinController extends BaseController
                     ->groupEnd();
         }
 
-        if (!empty($lokasi) && $lokasi !== 'all') {
+        if (!empty($plan) && $plan !== 'all') {
+            $builder->where('plan', $plan);
+        }
+
+        if (!empty($departemen) && $departemen !== 'all') {
             // Ensure leader cannot override their own location restriction
-            if ($role !== Role::Leader->value || ($role === Role::Leader->value && $lokasi === $lokasiUser)) {
-                $builder->where('lokasi', $lokasi);
+            if (!has_role(Role::Leader->value) || (has_role(Role::Leader->value) && $departemen === $departemenUser)) {
+                $builder->where('departemen', $departemen);
             }
         }
 
@@ -70,8 +74,8 @@ class MesinController extends BaseController
 
         // Fetch suggestions for no_mesin using a fresh model instance to avoid consuming the builder
         $mesinSuggestions = (new \App\Models\MesinModel())->select('no_mesin');
-        if ($role === \App\Enums\Role::Leader->value && $lokasiUser) {
-            $mesinSuggestions->where('lokasi', $lokasiUser);
+        if (has_role(Role::Leader->value) && $departemenUser) {
+            $mesinSuggestions->where('departemen', $departemenUser);
         }
         $suggestions = $mesinSuggestions->groupBy('no_mesin')->orderBy('no_mesin', 'ASC')->findAll();
         $suggestionList = array_column($suggestions, 'no_mesin');
@@ -80,17 +84,21 @@ class MesinController extends BaseController
         session()->set('last_mesin_url', (string) current_url(true));
 
         $lineModel = new LineModel();
-        $groupedLines = $lineModel->getLinesGroupedByLokasi();
-        $filteredLines = [];
-        if (!empty($lokasi) && $lokasi !== 'all') {
-            $filteredLines = $groupedLines[$lokasi] ?? [];
-        } else if ($role === \App\Enums\Role::Leader->value && $lokasiUser) {
-            $filteredLines = $groupedLines[$lokasiUser] ?? [];
-        } else {
-            $filteredLines = $lineModel->getAllLineNames();
+        
+        $lineQuery = $lineModel->select('nama_line');
+        if (!empty($plan) && $plan !== 'all') {
+            $lineQuery->where('plan', $plan);
         }
+        if (!empty($departemen) && $departemen !== 'all') {
+            $lineQuery->where('departemen', $departemen);
+        } else if (has_role(Role::Leader->value) && $departemenUser) {
+            $lineQuery->where('departemen', $departemenUser);
+        }
+        
+        $filteredLinesRows = $lineQuery->groupBy('nama_line')->orderBy('nama_line')->findAll();
+        $filteredLines = array_column($filteredLinesRows, 'nama_line');
 
-        // Auto-reset line filter if the selected line doesn't belong to the selected lokasi
+        // Auto-reset line filter if the selected line doesn't belong to the selected departemen
         if (!empty($line) && $line !== 'all' && !in_array($line, $filteredLines)) {
             $line = 'all';
         }
@@ -102,7 +110,8 @@ class MesinController extends BaseController
             'allLines' => $filteredLines,
             'filters' => [
                 'q' => $q,
-                'lokasi' => $lokasi,
+                'plan' => $plan,
+                'departemen' => $departemen,
                 'line' => $line,
                 'jenis' => $jenis
             ]
@@ -115,7 +124,7 @@ class MesinController extends BaseController
         return view('admin/mesin/form', [
             'title'        => 'Tambah Mesin',
             'mesin'        => null,
-            'linesGrouped' => $lineModel->getLinesGroupedByLokasi(),
+            'linesGrouped' => $lineModel->getLinesGroupedByDepartemen(),
         ]);
     }
 
@@ -136,7 +145,8 @@ class MesinController extends BaseController
             'no_mesin'        => $this->request->getPost('no_mesin'),
             'type_mesin'      => $this->request->getPost('type_mesin'),
             'serial_nomor'    => $this->request->getPost('serial_nomor'),
-            'lokasi'          => $this->request->getPost('lokasi'),
+            'plan'            => $this->request->getPost('plan'),
+            'departemen'      => $this->request->getPost('departemen'),
             'line'            => $this->request->getPost('line') ?: null,
             'bar_feeder_type' => $this->request->getPost('bar_feeder_type'),
             'jenis'           => $this->request->getPost('jenis') ?: null,
@@ -145,12 +155,12 @@ class MesinController extends BaseController
         $idMesin = $this->model->getInsertID();
 
         // --- TAHAP 3: RIWAYAT MESIN OTOMATIS ---
-        $lokasiTujuan = $this->request->getPost('lokasi');
+        $departemenTujuan = $this->request->getPost('departemen');
         $lineTujuan = $this->request->getPost('line');
         $bulanIni = date('Y-m');
         $approvalModel = new \App\Models\ApprovalBulananModel();
         
-        $approvalTujuan = $approvalModel->where('lokasi', $lokasiTujuan)
+        $approvalTujuan = $approvalModel->where('departemen', $departemenTujuan)
                                         ->where('line', $lineTujuan)
                                         ->where('bulan_tahun', $bulanIni)
                                         ->first();
@@ -163,7 +173,7 @@ class MesinController extends BaseController
         $riwayatModel = new \App\Models\RiwayatMesinModel();
         $riwayatModel->insert([
             'id_mesin' => $idMesin,
-            'lokasi' => $lokasiTujuan,
+            'departemen' => $departemenTujuan,
             'line' => $lineTujuan,
             'tanggal_mulai' => $tanggalMulai,
             'tanggal_selesai' => null
@@ -186,7 +196,7 @@ class MesinController extends BaseController
         return view('admin/mesin/form', [
             'title'        => 'Edit Mesin',
             'mesin'        => $mesin,
-            'linesGrouped' => $lineModel->getLinesGroupedByLokasi(),
+            'linesGrouped' => $lineModel->getLinesGroupedByDepartemen(),
         ]);
     }
 
@@ -208,7 +218,8 @@ class MesinController extends BaseController
             'no_mesin'        => $this->request->getPost('no_mesin'),
             'type_mesin'      => $this->request->getPost('type_mesin'),
             'serial_nomor'    => $this->request->getPost('serial_nomor'),
-            'lokasi'          => $this->request->getPost('lokasi'),
+            'plan'            => $this->request->getPost('plan'),
+            'departemen'      => $this->request->getPost('departemen'),
             'line'            => $this->request->getPost('line') ?: null,
             'bar_feeder_type' => $this->request->getPost('bar_feeder_type'),
             'jenis'           => $this->request->getPost('jenis') ?: null,
@@ -234,19 +245,19 @@ class MesinController extends BaseController
         $this->model->update($id, $newData);
 
         // --- TAHAP 3: PENCATATAN RIWAYAT PINDAH ---
-        $lokasiBaru = $this->request->getPost('lokasi');
+        $departemenBaru = $this->request->getPost('departemen');
         $lineBaru = $this->request->getPost('line') ?: null;
 
-        if ($oldMesin['lokasi'] !== $lokasiBaru || $oldMesin['line'] !== $lineBaru) {
+        if ($oldMesin['departemen'] !== $departemenBaru || $oldMesin['line'] !== $lineBaru) {
             $bulanIni = date('Y-m');
             $approvalModel = new \App\Models\ApprovalBulananModel();
             
-            $approvalLama = $approvalModel->where('lokasi', $oldMesin['lokasi'])
+            $approvalLama = $approvalModel->where('departemen', $oldMesin['departemen'])
                                           ->where('line', $oldMesin['line'])
                                           ->where('bulan_tahun', $bulanIni)
                                           ->first();
                                           
-            $approvalBaru = $approvalModel->where('lokasi', $lokasiBaru)
+            $approvalBaru = $approvalModel->where('departemen', $departemenBaru)
                                           ->where('line', $lineBaru)
                                           ->where('bulan_tahun', $bulanIni)
                                           ->first();
@@ -283,7 +294,7 @@ class MesinController extends BaseController
             // Buka riwayat baru
             $riwayatModel->insert([
                 'id_mesin' => $id,
-                'lokasi' => $lokasiBaru,
+                'departemen' => $departemenBaru,
                 'line' => $lineBaru,
                 'tanggal_mulai' => $tanggalMulaiBaru,
                 'tanggal_selesai' => null
@@ -314,16 +325,15 @@ class MesinController extends BaseController
 
     public function export()
     {
-        $role = session()->get('role');
-        $lokasiUser = session()->get('lokasi');
-        $builder = $this->model->orderBy('lokasi', 'ASC')->orderBy('no_mesin', 'ASC');
+        $departemenUser = session()->get('departemen');
+        $builder = $this->model->orderBy('departemen', 'ASC')->orderBy('no_mesin', 'ASC');
         
-        if ($role === Role::Leader->value && $lokasiUser) {
-            $builder->where('lokasi', $lokasiUser);
+        if (has_role(Role::Leader->value) && $departemenUser) {
+            $builder->where('departemen', $departemenUser);
         }
 
         $q = $this->request->getGet('q');
-        $lokasi = $this->request->getGet('lokasi');
+        $departemen = $this->request->getGet('departemen');
         $line = $this->request->getGet('line');
         $jenis = $this->request->getGet('jenis');
 
@@ -335,8 +345,8 @@ class MesinController extends BaseController
                     ->groupEnd();
         }
 
-        if (!empty($lokasi) && $lokasi !== 'all') {
-            $builder->where('lokasi', $lokasi);
+        if (!empty($departemen) && $departemen !== 'all') {
+            $builder->where('departemen', $departemen);
         }
 
         if (!empty($line) && $line !== 'all') {
@@ -356,10 +366,11 @@ class MesinController extends BaseController
         $sheet->setCellValue('A1', 'No Mesin');
         $sheet->setCellValue('B1', 'Type Mesin');
         $sheet->setCellValue('C1', 'Serial Nomor');
-        $sheet->setCellValue('D1', 'Lokasi');
-        $sheet->setCellValue('E1', 'Line');
-        $sheet->setCellValue('F1', 'Bar Feeder Type');
-        $sheet->setCellValue('G1', 'Jenis');
+        $sheet->setCellValue('D1', 'Plan');
+        $sheet->setCellValue('E1', 'Departemen');
+        $sheet->setCellValue('F1', 'Line');
+        $sheet->setCellValue('G1', 'Bar Feeder Type');
+        $sheet->setCellValue('H1', 'Jenis');
         
         // Data
         $row = 2;
@@ -367,10 +378,11 @@ class MesinController extends BaseController
             $sheet->setCellValue('A' . $row, $m['no_mesin']);
             $sheet->setCellValue('B' . $row, $m['type_mesin']);
             $sheet->setCellValue('C' . $row, $m['serial_nomor']);
-            $sheet->setCellValue('D' . $row, $m['lokasi']);
-            $sheet->setCellValue('E' . $row, $m['line']);
-            $sheet->setCellValue('F' . $row, $m['bar_feeder_type']);
-            $sheet->setCellValue('G' . $row, isset($m['jenis']) ? $m['jenis'] : '');
+            $sheet->setCellValue('D' . $row, $m['plan'] ?? 'Plan 1');
+            $sheet->setCellValue('E' . $row, $m['departemen']);
+            $sheet->setCellValue('F' . $row, $m['line']);
+            $sheet->setCellValue('G' . $row, $m['bar_feeder_type']);
+            $sheet->setCellValue('H' . $row, isset($m['jenis']) ? $m['jenis'] : '');
             $row++;
         }
         
@@ -394,10 +406,11 @@ class MesinController extends BaseController
         $sheet->setCellValue('A1', 'No Mesin');
         $sheet->setCellValue('B1', 'Type Mesin');
         $sheet->setCellValue('C1', 'Serial Nomor');
-        $sheet->setCellValue('D1', 'Lokasi');
-        $sheet->setCellValue('E1', 'Line');
-        $sheet->setCellValue('F1', 'Bar Feeder Type');
-        $sheet->setCellValue('G1', 'Jenis');
+        $sheet->setCellValue('D1', 'Plan');
+        $sheet->setCellValue('E1', 'Departemen');
+        $sheet->setCellValue('F1', 'Line');
+        $sheet->setCellValue('G1', 'Bar Feeder Type');
+        $sheet->setCellValue('H1', 'Jenis');
         
         // Header styling
         $headerStyle = [
@@ -406,10 +419,10 @@ class MesinController extends BaseController
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
             'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
         ];
-        $sheet->getStyle('A1:G1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:H1')->applyFromArray($headerStyle);
         
         // Auto-size columns
-        foreach (range('A', 'G') as $col) {
+        foreach (range('A', 'H') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
         
@@ -451,34 +464,38 @@ class MesinController extends BaseController
                 $noMesin       = trim($sheet->getCell('A' . $row)->getValue() ?? '');
                 $typeMesin     = trim($sheet->getCell('B' . $row)->getValue() ?? '');
                 $serialNomor   = trim($sheet->getCell('C' . $row)->getValue() ?? '');
-                $lokasi        = trim($sheet->getCell('D' . $row)->getValue() ?? '');
-                $line          = trim($sheet->getCell('E' . $row)->getValue() ?? '');
-                $barFeederType = trim($sheet->getCell('F' . $row)->getValue() ?? '');
-                $jenis         = trim($sheet->getCell('G' . $row)->getValue() ?? '');
+                $plan          = trim($sheet->getCell('D' . $row)->getValue() ?? '');
+                $departemen    = trim($sheet->getCell('E' . $row)->getValue() ?? '');
+                $line          = trim($sheet->getCell('F' . $row)->getValue() ?? '');
+                $barFeederType = trim($sheet->getCell('G' . $row)->getValue() ?? '');
+                $jenis         = trim($sheet->getCell('H' . $row)->getValue() ?? '');
                 
                 // Lewati baris kosong
-                if (empty($noMesin) && empty($typeMesin) && empty($serialNomor) && empty($lokasi)) {
+                if (empty($noMesin) && empty($typeMesin) && empty($serialNomor) && empty($departemen)) {
                     continue;
                 }
                 
-                if (empty($noMesin) || empty($lokasi)) {
-                    $errors[] = "Baris {$row}: No Mesin dan Lokasi wajib diisi.";
+                if (empty($noMesin) || empty($departemen)) {
+                    $errors[] = "Baris {$row}: No Mesin dan Departemen wajib diisi.";
                     continue;
                 }
                 
-                if ($lokasi !== Lokasi::MFG2->value && empty($typeMesin)) {
-                    $errors[] = "Baris {$row}: Type Mesin wajib diisi untuk lokasi selain MFG 2.";
+                if ($departemen !== Departemen::MFG2->value && empty($typeMesin)) {
+                    $errors[] = "Baris {$row}: Type Mesin wajib diisi untuk departemen selain MFG 2.";
                     continue;
                 }
                 
+                if (empty($plan)) {
+                    $plan = 'Plan 1'; // Default plan
+                }
+
                 // AUTO-CORRECT LOKASI
-                $lokasi = strtoupper($lokasi);
-                if ($lokasi === 'MFG1') $lokasi = 'MFG 1';
-                if ($lokasi === 'MFG2') $lokasi = 'MFG 2';
-                if ($lokasi === 'PLAN2' || $lokasi === 'PLAN 2') $lokasi = 'Plan 2';
+                $departemen = strtoupper($departemen);
+                if ($departemen === 'MFG1') $departemen = 'MFG 1';
+                if ($departemen === 'MFG2') $departemen = 'MFG 2';
                 
-                if (! in_array($lokasi, [Lokasi::MFG1->value, Lokasi::MFG2->value, Lokasi::PLAN2->value], true)) {
-                    $errors[] = "Baris {$row}: Lokasi '{$lokasi}' tidak valid. Harus 'MFG 1', 'MFG 2', atau 'Plan 2'.";
+                if (! in_array($departemen, [Departemen::MFG1->value, Departemen::MFG2->value], true)) {
+                    $errors[] = "Baris {$row}: Departemen '{$departemen}' tidak valid. Harus 'MFG 1' atau 'MFG 2'.";
                     continue;
                 }
 
@@ -502,7 +519,8 @@ class MesinController extends BaseController
                         'no_mesin'        => $noMesin,
                         'type_mesin'      => $typeMesin,
                         'serial_nomor'    => $serialNomor,
-                        'lokasi'          => $lokasi,
+                        'plan'            => $plan,
+                        'departemen'      => $departemen,
                         'line'            => empty($line) ? null : $line,
                         'bar_feeder_type' => empty($barFeederType) ? null : $barFeederType,
                         'jenis'           => empty($jenis) ? null : $jenis,
@@ -529,16 +547,16 @@ class MesinController extends BaseController
                     $this->model->update($existing['id_mesin'], $newData);
                     
                     // --- RIWAYAT MESIN OTOMATIS (UPDATE) ---
-                    $lokasiBaru = $lokasi;
+                    $departemenBaru = $departemen;
                     $lineBaru = empty($line) ? null : $line;
-                    if ($existing['lokasi'] !== $lokasiBaru || $existing['line'] !== $lineBaru) {
+                    if ($existing['departemen'] !== $departemenBaru || $existing['line'] !== $lineBaru) {
                         $bulanIni = date('Y-m');
                         $approvalModel = new \App\Models\ApprovalBulananModel();
-                        $approvalLama = $approvalModel->where('lokasi', $existing['lokasi'])
+                        $approvalLama = $approvalModel->where('departemen', $existing['departemen'])
                                                       ->where('line', $existing['line'])
                                                       ->where('bulan_tahun', $bulanIni)
                                                       ->first();
-                        $approvalBaru = $approvalModel->where('lokasi', $lokasiBaru)
+                        $approvalBaru = $approvalModel->where('departemen', $departemenBaru)
                                                       ->where('line', $lineBaru)
                                                       ->where('bulan_tahun', $bulanIni)
                                                       ->first();
@@ -567,7 +585,7 @@ class MesinController extends BaseController
                                      ->update();
                         $riwayatModel->insert([
                             'id_mesin' => $existing['id_mesin'],
-                            'lokasi' => $lokasiBaru,
+                            'departemen' => $departemenBaru,
                             'line' => $lineBaru,
                             'tanggal_mulai' => $tanggalMulaiBaru,
                             'tanggal_selesai' => null
@@ -586,7 +604,8 @@ class MesinController extends BaseController
                         'no_mesin'        => $noMesin,
                         'type_mesin'      => $typeMesin,
                         'serial_nomor'    => $serialNomor,
-                        'lokasi'          => $lokasi,
+                        'plan'            => $plan,
+                        'departemen'      => $departemen,
                         'line'            => empty($line) ? null : $line,
                         'bar_feeder_type' => empty($barFeederType) ? null : $barFeederType,
                         'jenis'           => empty($jenis) ? null : $jenis,
@@ -594,11 +613,11 @@ class MesinController extends BaseController
                     $idMesin = $this->model->getInsertID();
 
                     // --- RIWAYAT MESIN OTOMATIS (INSERT) ---
-                    $lokasiTujuan = $lokasi;
+                    $departemenTujuan = $departemen;
                     $lineTujuan = empty($line) ? null : $line;
                     $bulanIni = date('Y-m');
                     $approvalModel = new \App\Models\ApprovalBulananModel();
-                    $approvalTujuan = $approvalModel->where('lokasi', $lokasiTujuan)
+                    $approvalTujuan = $approvalModel->where('departemen', $departemenTujuan)
                                                     ->where('line', $lineTujuan)
                                                     ->where('bulan_tahun', $bulanIni)
                                                     ->first();
@@ -609,7 +628,7 @@ class MesinController extends BaseController
                     $riwayatModel = new \App\Models\RiwayatMesinModel();
                     $riwayatModel->insert([
                         'id_mesin' => $idMesin,
-                        'lokasi' => $lokasiTujuan,
+                        'departemen' => $departemenTujuan,
                         'line' => $lineTujuan,
                         'tanggal_mulai' => $tanggalMulai,
                         'tanggal_selesai' => null
@@ -675,7 +694,8 @@ class MesinController extends BaseController
             'no_mesin'        => $noMesinRule,
             'serial_nomor'    => $serialNomorRule,
             'type_mesin'      => 'permit_empty|max_length[100]',
-            'lokasi'          => 'required|in_list[MFG 1,MFG 2,Plan 2]',
+            'plan'            => 'required|in_list[Plan 1,Plan 2]',
+            'departemen'      => 'required|in_list[MFG 1,MFG 2]',
             'line'            => 'permit_empty|max_length[50]',
             'bar_feeder_type' => 'permit_empty|max_length[100]',
             'jenis'           => 'permit_empty|max_length[100]',
@@ -689,12 +709,11 @@ class MesinController extends BaseController
         ini_set('memory_limit', '512M');
         ini_set('max_execution_time', '300'); // allow more time for downloading many QRs
 
-        $role = session()->get('role');
-        $lokasi = session()->get('lokasi');
-        $builder = $this->model->orderBy('lokasi', 'ASC')->orderBy('no_mesin', 'ASC');
+        $departemen = session()->get('departemen');
+        $builder = $this->model->orderBy('departemen', 'ASC')->orderBy('no_mesin', 'ASC');
         
-        if ($role === Role::Leader->value && $lokasi) {
-            $builder->where('lokasi', $lokasi);
+        if (has_role(Role::Leader->value) && $departemen) {
+            $builder->where('departemen', $departemen);
         }
 
         $mesin = $builder->findAll();
@@ -747,7 +766,7 @@ class MesinController extends BaseController
     public function deleteRiwayat()
     {
         // Hanya admin yang boleh hapus
-        if (session()->get('role') !== \App\Enums\Role::Admin->value) {
+        if (!has_role(Role::Admin->value)) {
             return $this->response->setJSON(['status' => false, 'message' => 'Akses ditolak.']);
         }
 
@@ -768,5 +787,25 @@ class MesinController extends BaseController
         $logModel->whereIn('id_log', $ids)->delete();
 
         return $this->response->setJSON(['status' => true, 'message' => 'Riwayat berhasil dihapus.']);
+    }
+
+    public function formHistory()
+    {
+        if (!has_role(Role::Admin->value)) {
+            return $this->redirectError('/admin/mesin', 'Hanya Admin yang dapat mengakses form update riwayat mesin massal.');
+        }
+        
+        $months = [];
+        for ($i = -2; $i <= 6; $i++) {
+            $time = \CodeIgniter\I18n\Time::now()->addMonths($i);
+            $val  = $time->format('Y-m');
+            $label = format_bulan_indo($val);
+            $months[$val] = $label;
+        }
+
+        return view('admin/mesin/form_history', [
+            'title' => 'Update Riwayat Lokasi & Line Mesin (Bulanan)',
+            'months' => $months
+        ]);
     }
 }

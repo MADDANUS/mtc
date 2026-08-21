@@ -9,25 +9,33 @@ class LineModel extends Model
     protected $table      = 'master_line';
     protected $primaryKey = 'id_line';
     protected $returnType = 'array';
-    protected $allowedFields = ['nama_line', 'lokasi'];
+    protected $allowedFields = ['plan', 'nama_line', 'departemen'];
 
     /**
-     * Mengembalikan array lines dikelompokkan per lokasi.
+     * Mengembalikan array lines dikelompokkan per departemen.
      * Contoh: ['MFG 1' => ['Line 1', 'Line 2'], 'MFG 2' => ['CG', 'Second']]
      */
-    public function getLinesGroupedByLokasi(): array
+    public function getLinesGroupedByDepartemen(): array
     {
-        $rows = $this->orderBy('lokasi')->orderBy('nama_line')->findAll();
+        $rows = $this->orderBy('plan')->orderBy('departemen')->orderBy('nama_line')->findAll();
         $grouped = [];
         foreach ($rows as $row) {
-            $lokasi = $row['lokasi'];
-            // Normalisasi huruf besar/kecil agar selalu cocok dengan key JavaScript di frontend
-            if (strcasecmp($lokasi, 'mfg 1') === 0) $lokasi = 'MFG 1';
-            if (strcasecmp($lokasi, 'mfg 2') === 0) $lokasi = 'MFG 2';
-            if (strcasecmp($lokasi, 'plan 2') === 0) $lokasi = 'Plan 2';
+            $plan = $row['plan'] ?? 'Plan 1';
+            $departemen = $row['departemen'];
+            // Normalisasi
+            if (strcasecmp($departemen, 'mfg 1') === 0) $departemen = 'MFG 1';
+            if (strcasecmp($departemen, 'mfg 2') === 0) $departemen = 'MFG 2';
             
-            $grouped[$lokasi][] = $row['nama_line'];
+            $grouped[$plan][$departemen][] = $row['nama_line'];
         }
+        
+        // Ensure uniqueness
+        foreach ($grouped as $plan => $departemens) {
+            foreach ($departemens as $dept => $lines) {
+                $grouped[$plan][$dept] = array_values(array_unique($lines));
+            }
+        }
+        
         return $grouped;
     }
 
@@ -36,7 +44,7 @@ class LineModel extends Model
      */
     public function getAllLineNames(): array
     {
-        $rows = $this->orderBy('lokasi')->orderBy('nama_line')->findAll();
+        $rows = $this->orderBy('departemen')->orderBy('nama_line')->findAll();
         return array_column($rows, 'nama_line');
     }
 }

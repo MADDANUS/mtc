@@ -2,7 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Enums\Lokasi;
+use App\Enums\Departemen;
 
 use App\Models\MesinModel;
 
@@ -38,13 +38,15 @@ class ScanController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Mesin tidak ditemukan.');
         }
 
-        // Ubah lokasi ke format slug, misal Lokasi::MFG1->value -> 'mfg1'
-        $lokasiSlug = strtolower(str_replace(' ', '', $mesin['lokasi']));
+        // Ubah departemen dan plan ke format slug
+        $departemenSlug = strtolower(str_replace(' ', '-', $mesin['departemen']));
+        $planSlug = strtolower(str_replace(' ', '-', $mesin['plan'] ?? 'Plan 1'));
 
         return view('scan/mesin', [
-            'title'      => 'Mesin Terdeteksi',
-            'mesin'      => $mesin,
-            'lokasiSlug' => $lokasiSlug,
+            'title'          => 'Mesin Terdeteksi',
+            'mesin'          => $mesin,
+            'planSlug'       => $planSlug,
+            'departemenSlug' => $departemenSlug,
         ]);
     }
 }

@@ -73,8 +73,8 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                     <!-- Baris Kolom dan Sorting -->
                     <tr>
                         <th class="ps-4" style="width: 20%;">
-                            <a href="<?= $getSortUrl('lokasi') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
-                                LOKASI <?= $getSortIcon('lokasi') ?>
+                            <a href="<?= $getSortUrl('departemen') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                                DEPARTEMEN <?= $getSortIcon('departemen') ?>
                             </a>
                         </th>
                         <th style="width: 20%;">
@@ -102,9 +102,9 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                     <!-- NEW FILTER ROW -->
                     <tr class="bg-white">
                         <th class="ps-4 py-2">
-                            <select name="filter_lokasi" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Lokasi..." onchange="document.getElementById('filterForm').submit();">
+                            <select name="filter_lokasi" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Departemen..." onchange="document.getElementById('filterForm').submit();">
                                 <option value=""></option>
-                                <option value="all" <?= ($filterLokasi ?? '') === 'all' ? 'selected' : '' ?>>Semua Lokasi</option>
+                                <option value="all" <?= ($filterLokasi ?? '') === 'all' ? 'selected' : '' ?>>Semua Departemen</option>
                                 <option value="MFG 1" <?= ($filterLokasi ?? '') === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
                                 <option value="MFG 2" <?= ($filterLokasi ?? '') === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
                             </select>
@@ -157,7 +157,7 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                     <?php else: ?>
                         <?php foreach ($summaryRows as $row): ?>
                             <tr>
-                                <td class="ps-4 fw-bold text-dark"><?= esc($row['lokasi']) ?></td>
+                                <td class="ps-4 fw-bold text-dark"><?= esc($row['departemen']) ?></td>
                                 <td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25"><?= esc($row['line']) ?></span></td>
                                 <td class="fw-medium text-dark"><?= esc($row['kategori']) ?></td>
                                 <td>
@@ -172,7 +172,7 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                                 </td>
                                 <td class="fw-bold text-dark" style="font-size: 0.85rem;"><?= $bulanList[$bulan] ?? $bulan ?></td>
                                 <td class="pe-4 text-end">
-                                    <a href="<?= site_url('abnormal?lokasi=' . urlencode($row['lokasi']) . '&line=' . urlencode($row['line']) . '&kategori=' . urlencode($row['kategori']) . '&bulan=' . urlencode($bulan)) ?>" class="btn btn-sm btn-outline-danger fw-bold rounded-pill px-3">
+                                    <a href="<?= site_url('abnormal?departemen=' . urlencode($row['departemen']) . '&line=' . urlencode($row['line']) . '&kategori=' . urlencode($row['kategori']) . '&bulan=' . urlencode($bulan)) ?>" class="btn btn-sm btn-outline-danger fw-bold rounded-pill px-3">
                                         Lihat Data
                                     </a>
                                 </td>

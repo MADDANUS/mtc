@@ -24,7 +24,7 @@
         </svg>
         Ekspor
     </a>
-    <a href="<?= site_url('admin/parameter/create?lokasi=' . urlencode($lokasi) . '&jenis_check=' . urlencode($jenisCheck)) ?>" class="btn btn-sm btn-primary py-2">
+    <a href="<?= site_url('admin/parameter/create?departemen=' . urlencode($departemen) . '&jenis_check=' . urlencode($jenisCheck)) ?>" class="btn btn-sm btn-primary py-2">
       <i class="bi bi-plus-lg"></i> Tambah Parameter
     </a>
   </div>
@@ -42,10 +42,10 @@
   ?>
   <?php foreach ($tabs as $t): ?>
     <?php
-      $isActive = ($lokasi === $t[0] && $jenisCheck === $t[1]);
+      $isActive = ($departemen === $t[0] && $jenisCheck === $t[1]);
       $btnClass = $isActive ? 'btn-primary' : 'btn-outline-secondary';
     ?>
-    <a href="<?= site_url("admin/parameter?lokasi=" . urlencode($t[0]) . "&jenis_check=" . urlencode($t[1])) ?>" class="btn btn-sm <?= $btnClass ?> d-flex align-items-center gap-1.5 px-3 py-2 fw-semibold rounded-3 shadow-none">
+    <a href="<?= site_url("admin/parameter?departemen=" . urlencode($t[0]) . "&jenis_check=" . urlencode($t[1])) ?>" class="btn btn-sm <?= $btnClass ?> d-flex align-items-center gap-1.5 px-3 py-2 fw-semibold rounded-3 shadow-none">
       <i class="bi <?= $t[3] ?>"></i> <?= $t[2] ?>
     </a>
   <?php endforeach; ?>
@@ -56,7 +56,7 @@
   <div class="card p-5 border-0 shadow-sm bg-white text-center">
     <i class="bi bi-clipboard-minus text-muted" style="font-size: 3rem; display: block; margin-bottom: 0.5rem;"></i>
     <h6 class="fw-bold mb-1">Belum ada parameter check</h6>
-    <p class="text-muted small mb-0">Belum ada parameter yang didefinisikan untuk <strong><?= esc($lokasi) ?> (<?= esc($jenisCheck) ?>)</strong>.</p>
+    <p class="text-muted small mb-0">Belum ada parameter yang didefinisikan untuk <strong><?= esc($departemen) ?> (<?= esc($jenisCheck) ?>)</strong>.</p>
   </div>
 <?php else: ?>
   <?php 
@@ -70,7 +70,7 @@
         $isKatActive = ($activeKategori === $katName);
         $katBtnClass = $isKatActive ? 'btn-primary' : 'btn-light text-dark';
       ?>
-      <a href="<?= site_url("admin/parameter?lokasi=" . urlencode($lokasi) . "&jenis_check=" . urlencode($jenisCheck) . "&kategori=" . urlencode($katName)) ?>" class="btn btn-sm <?= $katBtnClass ?> px-3 py-2.5 fw-semibold rounded-3 shadow-none">
+      <a href="<?= site_url("admin/parameter?departemen=" . urlencode($departemen) . "&jenis_check=" . urlencode($jenisCheck) . "&kategori=" . urlencode($katName)) ?>" class="btn btn-sm <?= $katBtnClass ?> px-3 py-2.5 fw-semibold rounded-3 shadow-none">
         <i class="bi bi-folder2-open me-1"></i> <?= esc($katName) ?>
       </a>
     <?php endforeach; ?>
@@ -85,7 +85,7 @@
           <i class="bi bi-folder-fill text-warning"></i> <?= esc($activeKategori) ?>
           <span class="badge bg-secondary font-monospace" style="font-size: 0.65rem;"><?= count($params) ?> Baris</span>
         </h6>
-        <a href="<?= site_url('admin/parameter/create?lokasi=' . urlencode($lokasi) . '&jenis_check=' . urlencode($jenisCheck) . '&kategori=' . urlencode($activeKategori)) ?>" class="btn btn-xs btn-outline-primary py-1.5 px-2.5 fw-semibold" style="font-size: 0.72rem;">
+        <a href="<?= site_url('admin/parameter/create?departemen=' . urlencode($departemen) . '&jenis_check=' . urlencode($jenisCheck) . '&kategori=' . urlencode($activeKategori)) ?>" class="btn btn-xs btn-outline-primary py-1.5 px-2.5 fw-semibold" style="font-size: 0.72rem;">
           <i class="bi bi-plus-lg"></i> Tambah Item ke Kategori ini
         </a>
       </div>
@@ -102,7 +102,7 @@
                   <th style="width: 15%;" class="fw-bold text-uppercase text-secondary">Section</th>
                   <th colspan="2" style="width: 38%;" class="fw-bold text-uppercase text-secondary">Item Check</th>
                   <th style="width: 17%;" class="fw-bold text-uppercase text-secondary">Point Check</th>
-                  <?php if (!($lokasi === 'MFG 2' && strtolower($jenisCheck) === 'overhaul')): ?>
+                  <?php if (!($departemen === 'MFG 2' && strtolower($jenisCheck) === 'overhaul')): ?>
                   <th style="width: 12%;" class="fw-bold text-uppercase text-secondary">Standar Item</th>
                   <?php endif; ?>
                   <th style="width: 5%;" class="fw-bold text-uppercase text-secondary text-center">Urut</th>
@@ -113,7 +113,7 @@
                 <?php foreach ($params as $p): ?>
                   <?php if (isset($p['is_section_start']) && $p['is_section_start']): ?>
                     <tr style="background-color: #f8fafc; font-weight: 700; border-left: 4px solid var(--accent);">
-                      <?php $colSpan = ($lokasi === 'MFG 2' && strtolower($jenisCheck) === 'overhaul') ? 7 : 8; ?>
+                      <?php $colSpan = ($departemen === 'MFG 2' && strtolower($jenisCheck) === 'overhaul') ? 7 : 8; ?>
                       <td colspan="<?= $colSpan ?>" class="ps-4 text-primary font-monospace py-2" style="font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase;">
                         [SECTION] <?= esc($p['section_check']) ?>
                       </td>
@@ -145,7 +145,7 @@
                       <td rowspan="<?= (int) $p['point_rowspan'] ?>"><?= esc($p['point_check']) ?></td>
                     <?php endif; ?>
 
-                    <?php if (!($lokasi === 'MFG 2' && strtolower($jenisCheck) === 'overhaul')): ?>
+                    <?php if (!($departemen === 'MFG 2' && strtolower($jenisCheck) === 'overhaul')): ?>
                     <?php if ($p['show_standard']): ?>
                       <td rowspan="<?= (int) $p['standard_rowspan'] ?>"><?= nl2br(esc($p['standard_check'])) ?></td>
                     <?php endif; ?>

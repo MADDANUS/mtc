@@ -17,20 +17,23 @@
               $backUrl = site_url('approval');
           } else {
               $qs = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '?jenis_check=' . urlencode($jenisName);
-              $realLokSlug = isset($_GET['from_lokasi']) ? $_GET['from_lokasi'] : $lokasiSlug;
-              $backUrl = site_url('riwayat/lokasi/' . $realLokSlug . $qs);
+              $realLokSlug = isset($_GET['from_lokasi']) ? $_GET['from_lokasi'] : $departemenSlug;
+              $backUrl = site_url('riwayat/departemen/' . $realLokSlug . $qs);
           }
       } else {
           if (!empty($idMesin)) {
               if (strtolower($jenisSlug) === 'overhaul') {
                   $backUrl = site_url("scan/mesin/{$idMesin}");
               } else {
-                  $backUrl = site_url("checklist/{$lokasiSlug}/{$jenisSlug}?id_mesin={$idMesin}");
+                  $backUrl = site_url("checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}?id_mesin={$idMesin}");
               }
           } else {
-              $backUrl = strtolower($jenisSlug) === 'overhaul' 
-                  ? site_url("checklist") 
-                  : site_url("checklist/{$lokasiSlug}/{$jenisSlug}");
+              $backUrl = site_url("checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}");
+              if (!empty($line)) {
+                  if (!(strtolower($jenisSlug) === 'overhaul' && trim(strtoupper($departemenName)) === 'MFG 1')) {
+                      $backUrl .= "?line=" . urlencode($line);
+                  }
+              }
           }
       }
     ?>
@@ -38,14 +41,14 @@
       <i class="bi bi-arrow-left"></i> Kembali
     </a>
     <h5 class="mb-0">
-      <i class="bi bi-clipboard-check me-2" style="color:var(--accent);"></i>Pengecekan <?= esc($jenisName) ?> — <strong><?= esc($categoryName) ?></strong> <span class="badge bg-secondary ms-1" style="font-size:0.7rem;"><?= esc($lokasiName) ?></span>
+      <i class="bi bi-clipboard-check me-2" style="color:var(--accent);"></i>Pengecekan <?= esc($jenisName) ?> — <strong><?= esc($categoryName) ?></strong> <span class="badge bg-secondary ms-1" style="font-size:0.7rem;"><?= esc($departemenName) ?></span>
     </h5>
   </div>
 </div>
 
 <?php
 $isEdit = $isEdit ?? false;
-$editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("checklist/{$lokasiSlug}/{$jenisSlug}/store");
+$editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("checklist/{$departemenSlug}/{$jenisSlug}/store");
 ?>
 
 <form id="checklistForm" action="<?= $editUrl ?>" method="post" enctype="multipart/form-data" novalidate>
@@ -59,7 +62,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
          <span id="periode_badge" class="badge bg-secondary d-none px-3 py-2" style="font-size: 0.9rem;"></span>
       </div>
       <div class="col-md-6 mt-2">
-        <label class="form-label fw-semibold">No Mesin (<?= esc($lokasiName) ?>)</label>
+        <label class="form-label fw-semibold">No Mesin (<?= esc($departemenName) ?>)</label>
         <select name="id_mesin" id="id_mesin" class="form-select searchable-select" required <?= !empty($idMesin) ? 'disabled' : '' ?>>
           <option value="">-- Cari Mesin --</option>
           <?php foreach ($daftarMesin as $m): ?>
@@ -89,13 +92,13 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
       <?php if (strtolower($jenisSlug) === 'overhaul'): ?>
         <div id="overhaulAdditionalFields" class="col-12 p-0 m-0 d-none mt-3">
           <div class="row g-3 mt-0">
-            <?php if (strtolower($lokasiSlug) === 'mfg1'): ?>
+            <?php if (strtolower($departemenSlug) === 'mfg1'): ?>
               <div class="col-md-6">
                 <label class="form-label fw-semibold text-primary">Bar Feeder Type</label>
                 <input type="text" name="bar_feeder_type" id="barFeederInput" class="form-control border-primary bg-primary bg-opacity-10" placeholder="Otomatis terisi dari master mesin..." value="<?= esc($barFeederType ?? '') ?>" readonly>
               </div>
             <?php endif; ?>
-            <div class="col-md-<?= strtolower($lokasiSlug) === 'mfg1' ? '6' : '12' ?>">
+            <div class="col-md-<?= strtolower($departemenSlug) === 'mfg1' ? '6' : '12' ?>">
               <label class="form-label fw-semibold text-primary">Support PIC (Maksimal 4 Orang)</label>
               <?php 
                 $arrSupport = array_filter(array_map('trim', explode(',', $supportPic ?? '')));
@@ -326,7 +329,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
               if (!selectMesin.value) {
                   // Coba pulihkan mesin dari draf setelah TomSelect siap
                   const currentUserId = "<?= session()->get('id_user') ?? session()->get('id') ?? 'guest' ?>";
-                  const _draftKey = `autosave_mtce_<?= esc($lokasiSlug ?? '') ?>_<?= esc($jenisSlug ?? '') ?>_<?= esc($categorySlug ?? '') ?>_${currentUserId}`;
+                  const _draftKey = `autosave_mtce_<?= esc($departemenSlug ?? '') ?>_<?= esc($jenisSlug ?? '') ?>_<?= esc($categorySlug ?? '') ?>_${currentUserId}`;
                   try {
                       const _saved = localStorage.getItem(_draftKey);
                       if (_saved) {
@@ -374,11 +377,11 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                   <th style="width:5%;">NO</th>
                   <th colspan="2" style="width:30%;">ITEM CHECK</th>
                   <th style="width:20%;">POINT CHECK</th>
-                  <?php if (strtolower($lokasiSlug) !== 'mfg2'): ?>
+                  <?php if (strtolower($departemenSlug) !== 'mfg2'): ?>
                     <th style="width:15%;">STANDAR ITEM</th>
                   <?php endif; ?>
                   <th style="width:12%;">CHECK LIST</th>
-                  <th style="<?= strtolower($lokasiSlug) === 'mfg2' ? 'width:33%;' : 'width:18%;' ?>">REMARK</th>
+                  <th style="<?= strtolower($departemenSlug) === 'mfg2' ? 'width:33%;' : 'width:18%;' ?>">REMARK</th>
                 </tr>
               </thead>
               <tbody>
@@ -429,7 +432,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                       <td rowspan="<?= (int) $r['point_rowspan'] ?>"><?= esc($r['point_check']) ?></td>
                     <?php endif; ?>
 
-                    <?php if (strtolower($lokasiSlug) !== 'mfg2'): ?>
+                    <?php if (strtolower($departemenSlug) !== 'mfg2'): ?>
                       <?php if ($r['show_standard']): ?>
                         <td rowspan="<?= (int) $r['standard_rowspan'] ?>"><?= nl2br(esc($r['standard_check'])) ?></td>
                       <?php endif; ?>
@@ -713,7 +716,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
         </table>
       </div>
       
-      <?php if (strtolower($jenisSlug) === 'overhaul' && strtolower($lokasiSlug) === 'mfg2' && $itemIndex > $perPage): ?>
+      <?php if (strtolower($jenisSlug) === 'overhaul' && strtolower($departemenSlug) === 'mfg2' && $itemIndex > $perPage): ?>
         <?php 
           if (strtolower($categorySlug) === 'double-milling') {
               $totalPages = 2;
@@ -743,7 +746,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
 
   <?php if (!empty($rows)): ?>
     <div class="d-flex justify-content-end mt-4 mb-5 gap-3">
-      <?php if (strtolower($jenisSlug) === 'overhaul' && strtolower($lokasiSlug) === 'mfg1'): ?>
+      <?php if (strtolower($jenisSlug) === 'overhaul' && strtolower($departemenSlug) === 'mfg1'): ?>
         <button type="button" id="btnNext" class="btn btn-primary px-5 py-2 fw-semibold shadow-sm">Lanjut ke Bar Feeder <i class="bi bi-arrow-right ms-2"></i></button>
         <button type="button" id="btnPrev" class="btn btn-secondary px-4 py-2 fw-semibold shadow-sm" style="display:none;"><i class="bi bi-arrow-left me-2"></i> Kembali</button>
         <button type="submit" id="btnSubmit" class="btn btn-success px-5 py-2 fw-semibold shadow-sm" style="display:none;">Submit Pengecekan</button>
@@ -921,7 +924,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
             }
         });
         </script>
-      <?php elseif (strtolower($jenisSlug) === 'overhaul' && strtolower($lokasiSlug) === 'mfg2' && $itemIndex > $perPage): ?>
+      <?php elseif (strtolower($jenisSlug) === 'overhaul' && strtolower($departemenSlug) === 'mfg2' && $itemIndex > $perPage): ?>
         <button type="button" id="btnPrevPage" class="btn btn-secondary px-4 py-2 fw-semibold shadow-sm" style="display:none;"><i class="bi bi-arrow-left me-2"></i> Halaman Sebelumnya</button>
         <button type="button" id="btnNextPage" class="btn btn-primary px-5 py-2 fw-semibold shadow-sm">Halaman Selanjutnya <i class="bi bi-arrow-right ms-2"></i></button>
         <button type="submit" id="btnSubmitPage" class="btn btn-success px-5 py-2 fw-semibold shadow-sm" style="display:none;">Submit Pengecekan</button>
@@ -1698,7 +1701,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isEdit) return;
 
     const jenisSlug = "<?= esc($jenisSlug ?? '') ?>";
-    const lokasiSlug = "<?= esc($lokasiSlug ?? '') ?>";
+    const departemenSlug = "<?= esc($departemenSlug ?? '') ?>";
     const categorySlug = "<?= esc($categorySlug ?? '') ?>";
     const currentUserId = "<?= session()->get('id_user') ?? session()->get('id') ?? 'guest' ?>";
 
@@ -1723,7 +1726,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const inputs = form.querySelectorAll('input, textarea');
         inputs.forEach(input => {
             if (input.hasAttribute('readonly') || !input.name) return;
-            if (['id_mesin', 'nama_pic', 'waktu_mulai', 'target_periode', 'csrf_test_name', 'kategori', 'bar_feeder_type', 'lokasi'].includes(input.name)) return;
+            if (['id_mesin', 'nama_pic', 'waktu_mulai', 'target_periode', 'csrf_test_name', 'kategori', 'bar_feeder_type', 'departemen'].includes(input.name)) return;
             
             if (input.type === 'radio' || input.type === 'checkbox') {
                 if (input.checked) hasFilledData = true;
@@ -1740,7 +1743,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset input form secara efisien (hanya jika ada nilainya, meski seharusnya kosong karena lolos cek di atas)
         inputs.forEach(input => {
             if (input.hasAttribute('readonly') || !input.name) return;
-            if (['id_mesin', 'nama_pic', 'waktu_mulai', 'target_periode', 'csrf_test_name', 'kategori', 'bar_feeder_type', 'lokasi'].includes(input.name)) return;
+            if (['id_mesin', 'nama_pic', 'waktu_mulai', 'target_periode', 'csrf_test_name', 'kategori', 'bar_feeder_type', 'departemen'].includes(input.name)) return;
             
             if (input.type === 'radio' || input.type === 'checkbox') {
                 if (input.checked) {
@@ -1771,7 +1774,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     function getStorageKey() {
-        return `autosave_mtce_${lokasiSlug}_${jenisSlug}_${categorySlug}_${currentUserId}`;
+        return `autosave_mtce_${departemenSlug}_${jenisSlug}_${categorySlug}_${currentUserId}`;
     }
 
     function saveFormData() {

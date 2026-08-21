@@ -105,7 +105,7 @@
               <tr class="<?= $rowClass ?>" 
                   style="<?= $canEdit ? 'cursor: pointer;' : '' ?> transition: background-color 0.15s;"
                   data-id-abnormal="<?= $r['id_abnormal'] ?>"
-                  data-mesin="<?= esc($r['no_mesin'] . ' - ' . $r['type_mesin'] . ' (' . $r['lokasi'] . ')') ?>"
+                  data-mesin="<?= esc($r['no_mesin'] . ' - ' . $r['type_mesin'] . ' (' . $r['departemen'] . ')') ?>"
                   <?php 
                     $pointCheckDisplay = esc($r['point_check']);
                     if (!empty($r['bagian_check'])) {

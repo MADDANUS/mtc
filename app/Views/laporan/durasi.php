@@ -46,7 +46,7 @@ function formatDurasiText($detik) {
 </div>
 
 <div class="card-stat p-3">
-  <?php if (empty($laporan) && empty($selectedFilters['lokasi']) && empty($selectedFilters['line']) && empty($selectedFilters['id_mesin']) && empty($selectedFilters['jenis_check']) && empty($selectedFilters['pic']) && empty($selectedFilters['bulan'])): ?>
+  <?php if (empty($laporan) && empty($selectedFilters['departemen']) && empty($selectedFilters['line']) && empty($selectedFilters['id_mesin']) && empty($selectedFilters['jenis_check']) && empty($selectedFilters['pic']) && empty($selectedFilters['bulan'])): ?>
     <p class="text-muted mb-0">Belum ada data transaksi.</p>
   <?php else: ?>
     <div class="table-responsive text-nowrap">
@@ -57,7 +57,7 @@ function formatDurasiText($detik) {
               <th class="text-center">NO</th>
               <th>PIC</th>
               <th>Mesin</th>
-              <th>Lokasi / Line</th>
+              <th>Departemen / Line</th>
               <th>Jenis Pengecekan</th>
               <th>Waktu Mulai</th>
               <th>Waktu Selesai</th>
@@ -87,11 +87,11 @@ function formatDurasiText($detik) {
               </th>
               <th class="p-1">
                 <div class="d-flex gap-1">
-                  <select name="lokasi" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Lokasi..." onchange="this.form.submit()" style="font-size: 0.75rem;">
+                  <select name="departemen" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Departemen..." onchange="this.form.submit()" style="font-size: 0.75rem;">
                     <option value=""></option>
                     <option value="all">Semua</option>
-                    <option value="MFG 1" <?= isset($selectedFilters['lokasi']) && $selectedFilters['lokasi'] === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
-                    <option value="MFG 2" <?= isset($selectedFilters['lokasi']) && $selectedFilters['lokasi'] === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
+                    <option value="MFG 1" <?= isset($selectedFilters['departemen']) && $selectedFilters['departemen'] === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
+                    <option value="MFG 2" <?= isset($selectedFilters['departemen']) && $selectedFilters['departemen'] === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
                   </select>
                   <select name="line" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Line..." onchange="this.form.submit()" style="font-size: 0.75rem;">
                     <option value=""></option>

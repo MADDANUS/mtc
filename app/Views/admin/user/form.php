@@ -39,31 +39,92 @@
       <input type="password" name="password" class="form-control" <?= $user ? '' : 'required' ?>>
     </div>
     <div class="mb-3">
-      <label class="form-label">Role</label>
-      <?php $roleVal = old('role', $user['role'] ?? 'magang'); ?>
-      <select name="role" class="form-select" required>
-        <option value="magang" <?= $roleVal === 'magang' ? 'selected' : '' ?>>PIC (Magang)</option>
-        <option value="member" <?= $roleVal === 'member' ? 'selected' : '' ?>>PIC MTC (Member)</option>
-        <option value="sheadprd" <?= $roleVal === 'sheadprd' ? 'selected' : '' ?>>Section Head Produksi</option>
-        <option value="leader" <?= $roleVal === 'leader' ? 'selected' : '' ?>>Leader Produksi</option>
-        <option value="sheadmtc" <?= $roleVal === 'sheadmtc' ? 'selected' : '' ?>>Section Head MTC</option>
-        <option value="admin" <?= $roleVal === 'admin' ? 'selected' : '' ?>>Admin</option>
-      </select>
-    <div class="mb-4">
-      <label class="form-label">Line <span class="text-muted small">(khusus Leader)</span></label>
-      <?php $lineVal = old('line', $user['line'] ?? ''); ?>
-      <select name="line" class="form-select">
-        <option value="">-- Semua Line --</option>
-        <?php foreach ($linesGrouped ?? [] as $lokasi => $lines): ?>
-          <optgroup label="<?= esc($lokasi) ?>">
-            <?php foreach ($lines as $line): ?>
-              <option value="<?= esc($line) ?>" <?= $lineVal === $line ? 'selected' : '' ?>><?= esc($line) ?></option>
-            <?php endforeach; ?>
-          </optgroup>
+      <label class="form-label">Role <span class="text-muted small">(Bisa pilih lebih dari 1)</span></label>
+      <?php 
+        $roleVal = old('role', isset($user['role']) ? explode(',', $user['role']) : ['magang']); 
+        if (!is_array($roleVal)) $roleVal = [$roleVal];
+      ?>
+      <div class="border rounded p-2" id="roleCheckboxes">
+        <?php
+          $availableRoles = [
+            'magang' => 'PIC (Magang)',
+            'member' => 'PIC MTC (Member)',
+            'leader_member' => 'Leader Member (MTC)',
+            'sheadprd' => 'Section Head Produksi',
+            'leader' => 'Leader Produksi',
+            'sheadmtc' => 'Section Head MTC',
+            'admin' => 'Admin'
+          ];
+          foreach ($availableRoles as $rv => $rl):
+        ?>
+        <div class="form-check">
+          <input class="form-check-input role-checkbox" type="checkbox" name="role[]" id="role_<?= $rv ?>" value="<?= $rv ?>" <?= in_array($rv, $roleVal) ? 'checked' : '' ?>>
+          <label class="form-check-label" for="role_<?= $rv ?>"><?= $rl ?></label>
+        </div>
         <?php endforeach; ?>
-      </select>
+      </div>
     </div>
 
+    <div id="assignmentFields">
+
+    <div class="mb-3">
+      <label class="form-label">Plan <span class="text-muted small">(Bisa pilih lebih dari 1)</span></label>
+      <?php 
+        $planVal = old('plan', isset($user['plan']) ? explode(', ', $user['plan']) : []); 
+        if (!is_array($planVal)) $planVal = [$planVal];
+      ?>
+      <div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" name="plan[]" id="plan1" value="Plan 1" <?= in_array('Plan 1', $planVal) ? 'checked' : '' ?>>
+          <label class="form-check-label" for="plan1">Plan 1</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" name="plan[]" id="plan2" value="Plan 2" <?= in_array('Plan 2', $planVal) ? 'checked' : '' ?>>
+          <label class="form-check-label" for="plan2">Plan 2</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Departemen <span class="text-muted small">(Bisa pilih lebih dari 1)</span></label>
+      <?php 
+        $departemenVal = old('departemen', isset($user['departemen']) ? explode(', ', $user['departemen']) : []); 
+        if (!is_array($departemenVal)) $departemenVal = [$departemenVal];
+      ?>
+      <div class="border rounded p-2">
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" name="departemen[]" id="dept_mfg1" value="MFG 1" <?= in_array('MFG 1', $departemenVal) ? 'checked' : '' ?>>
+          <label class="form-check-label" for="dept_mfg1">MFG 1</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" name="departemen[]" id="dept_mfg2" value="MFG 2" <?= in_array('MFG 2', $departemenVal) ? 'checked' : '' ?>>
+          <label class="form-check-label" for="dept_mfg2">MFG 2</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label">Line <span class="text-muted small">(Bisa pilih lebih dari 1)</span></label>
+      <?php 
+        $lineVal = old('line', isset($user['line']) ? explode(', ', $user['line']) : []);
+        if (!is_array($lineVal)) $lineVal = [$lineVal];
+      ?>
+      <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
+        <?php foreach ($linesGrouped ?? [] as $plan => $departemens): ?>
+          <?php foreach ($departemens as $departemen => $lines): ?>
+            <div class="fw-bold small text-muted mt-2 mb-1"><?= esc($plan) ?> - <?= esc($departemen) ?></div>
+            <?php foreach ($lines as $line): ?>
+              <div class="form-check form-check-inline ms-2">
+                <input class="form-check-input" type="checkbox" name="line[]" id="line_<?= md5($line) ?>" value="<?= esc($line) ?>" <?= in_array($line, $lineVal) ? 'checked' : '' ?>>
+                <label class="form-check-label" for="line_<?= md5($line) ?>"><?= esc($line) ?></label>
+              </div>
+            <?php endforeach; ?>
+          <?php endforeach; ?>
+        <?php endforeach; ?>
+      </div>
+    </div>
+
+    </div>
 
     <button type="submit" class="btn btn-primary">Simpan</button>
     <a href="<?= site_url('admin/user') ?>" class="btn btn-outline-secondary">Batal</a>
@@ -71,3 +132,31 @@
 </div>
 
 <?= view('layout/footer') ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roleCheckboxes = document.querySelectorAll('.role-checkbox');
+    const assignmentFields = document.getElementById('assignmentFields');
+    const noAssignmentRoles = ['admin', 'member', 'magang', 'leader_member'];
+
+    function toggleAssignmentFields() {
+        let requiresAssignment = false;
+        roleCheckboxes.forEach(cb => {
+            if (cb.checked && !noAssignmentRoles.includes(cb.value)) {
+                requiresAssignment = true;
+            }
+        });
+
+        if (!requiresAssignment) {
+            assignmentFields.style.display = 'none';
+        } else {
+            assignmentFields.style.display = 'block';
+        }
+    }
+
+    roleCheckboxes.forEach(cb => {
+        cb.addEventListener('change', toggleAssignmentFields);
+    });
+    toggleAssignmentFields(); // initial call
+});
+</script>

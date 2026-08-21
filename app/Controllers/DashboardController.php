@@ -14,14 +14,14 @@ class DashboardController extends BaseController
 {
     public function index()
     {
-        return match (session()->get('role')) {
-            Role::Admin->value    => $this->admin(),
-            Role::Sheadmtc->value => $this->sheadmtc(),
-            Role::Sheadprd->value => $this->sheadprd(),
-            Role::Member->value   => $this->member(),
-            Role::Leader->value   => $this->leader(),
-            default    => $this->magang(),   // magang & fallback
-        };
+        if (has_role(Role::Admin->value)) {
+            return $this->admin();
+        }
+        if (has_any_role([Role::Sheadmtc->value, Role::Sheadprd->value, Role::Leader->value, Role::Member->value])) {
+            return $this->leaderStyleDashboard('Dashboard Master');
+        }
+        
+        return $this->magang();
     }
 
     /**
@@ -49,124 +49,14 @@ class DashboardController extends BaseController
         }
 
         $bulan = $this->request->getGet('bulan') ?: date('Y-m');
-        $lokasiUser = session()->get('lokasi');
+        $departemenUser = session()->get('departemen');
 
         return view('dashboard/staff', [
             'title'         => 'Dashboard Magang',
             'hariIni'       => $hariIni,
             'minggu'        => $minggu,
             'riwayatTerbaru' => array_slice($riwayat, 0, 5),
-            'percentageSummary' => $transaksiModel->getPercentageSummary(['bulan' => $bulan, 'lokasi' => $lokasiUser]),
-        ]);
-    }
-
-    /**
-     * Dashboard Member (PIC MTC) — lihat semua data, scope MTC.
-     */
-    private function member()
-    {
-        return $this->leaderStyleDashboard('Dashboard Member — PIC MTC');
-    }
-
-    /**
-     * Dashboard SHead Produksi — lihat data scope produksi.
-     */
-    private function sheadprd()
-    {
-        return $this->leaderStyleDashboard('Dashboard Section Head Produksi');
-    }
-
-    /**
-     * Dashboard SHead MTC — lihat data scope global MTC.
-     */
-    /**
-     * Dashboard SHead MTC — lihat data scope global MTC.
-     */
-    private function sheadmtc()
-    {
-        return $this->leaderStyleDashboard('Dashboard Section Head MTC');
-    }
-
-    /**
-     * Dashboard Khusus Leader Line — Filter berdasarkan Line masing-masing.
-     */
-    private function leader()
-    {
-        $role = session()->get('role');
-        $lokasiLine = session()->get('line') ?: session()->get('lokasi'); // Menyimpan data Line (contoh: 'Line 1')
-
-        $transaksiModel = new TransaksiCheckModel();
-        $laporan        = $transaksiModel->getLaporanDurasi();
-        
-        // Filter Laporan (hanya Overhaul dan sesuai Line)
-        $laporan = array_filter($laporan, function($l) use ($lokasiLine) {
-            $isOverhaul = (strtolower($l['jenis_check']) === 'overhaul');
-            // getLaporanDurasi tidak mengambil 'line' secara default di beberapa versi,
-            // kita harus memastikan mesin tersebut berada di Line yang sesuai.
-            // Namun untuk amannya, kita load detail mesin jika tidak ada 'line'.
-            // Lebih baik kita asumsikan 'line' ada, atau join jika perlu.
-            // Karena kita belum yakin getLaporanDurasi ada 'line', kita cek:
-            $isSameLine = true;
-            if ($lokasiLine) {
-                // Asumsi: kita periksa jika ada field line atau kita dapat mengambilnya
-                $isSameLine = (isset($l['line']) && $l['line'] === $lokasiLine);
-                // Jika $l['line'] tidak ada, kita lewati filter ini sementara di array_filter
-                // dan akan kita ubah querynya nanti jika diperlukan, tapi mari kita filter sebisa mungkin.
-            }
-            return $isOverhaul;
-        });
-        
-        // Ambil riwayat terbaru khusus line ini
-        $terbaru = $transaksiModel->getTerbaruKhususLine($lokasiLine);
-
-        $totalTransaksi = count($terbaru);
-        $totalDurasi    = 0;
-        
-        $findings = 0;
-        // Hitung total durasi dan temuan
-        if ($totalTransaksi > 0) {
-            $transaksiIds = array_column($terbaru, 'id_transaksi');
-            
-            $abnormalModel = new \App\Models\LaporanAbnormalModel();
-            $findings = $abnormalModel->whereIn('id_transaksi', $transaksiIds)
-                                      ->groupStart()
-                                          ->where('action IS NULL', null, false)
-                                          ->orWhere('action', '')
-                                      ->groupEnd()
-                                      ->countAllResults();
-                                    
-            foreach ($terbaru as $t) {
-                if ($t['durasi_detik'] !== null) {
-                    $totalDurasi += (int) $t['durasi_detik'];
-                }
-            }
-        }
-        $rataDetik = $totalTransaksi > 0 ? intdiv($totalDurasi, $totalTransaksi) : 0;
-
-        // Fetch pending overhaul
-        $pendingOverhaul = $transaksiModel->getPendingOverhaulLeader($lokasiLine);
-
-        // Fetch pending kontrol for leader
-        $pendingKontrol = [];
-        if ($lokasiLine) {
-            $mesinModel = new \App\Models\MesinModel();
-            $lokasiMesin = $mesinModel->getLokasiByLine($lokasiLine);
-            if ($lokasiMesin) {
-                $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
-                $pendingKontrol = $ceklisKontrolModel->getPendingApprovalsForLeader($lokasiMesin['lokasi'], $lokasiLine, date('Y-m'));
-            }
-        }
-
-        $bulan = $this->request->getGet('bulan') ?: date('Y-m');
-        return view('dashboard/leader', [
-            'title'          => 'Dashboard Leader Line ' . ($lokasiLine ?: ''),
-            'totalTransaksi' => $totalTransaksi,
-            'rataDetik'      => $rataDetik,
-            'perluTindakan'  => $findings,
-            'terbaru'        => array_slice($terbaru, 0, 8),
-            'pendingKontrol' => $pendingKontrol,
-            'pendingOverhaul'=> $pendingOverhaul,
-            'percentageSummary' => $transaksiModel->getPercentageSummary(['bulan' => $bulan, 'line' => $lokasiLine]),
+            'percentageSummary' => $transaksiModel->getPercentageSummary(['bulan' => $bulan, 'departemen' => $departemenUser]),
         ]);
     }
 
@@ -177,13 +67,9 @@ class DashboardController extends BaseController
     {
         $transaksiModel = new TransaksiCheckModel();
         $laporan        = $transaksiModel->getLaporanDurasi();
-        $role           = session()->get('role');
 
-        if (in_array($role, [Role::Sheadprd->value, Role::Sheadmtc->value, Role::Leader->value], true)) {
-            $laporan = array_filter($laporan, fn($l) => strtolower($l['jenis_check']) === 'overhaul');
-            // If leader, maybe filter by location if needed, but for now we just show all overhaul
-            $laporan = array_values($laporan);
-        }
+        $laporan = array_filter($laporan, fn($l) => strtolower($l['jenis_check']) === 'overhaul');
+        $laporan = array_values($laporan);
 
         $totalTransaksi = count($laporan);
         $totalDurasi    = 0;
@@ -195,9 +81,9 @@ class DashboardController extends BaseController
                                            ->orWhere('laporan_abnormal.action', '')
                                        ->groupEnd();
                                        
-        if ($role === \App\Enums\Role::Sheadprd->value) {
+        if (!has_any_role([Role::Leader->value, Role::Sheadmtc->value, Role::Admin->value, Role::Member->value]) && has_role(Role::Sheadprd->value)) {
             $findingsQuery->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin', 'left')
-                          ->where('master_mesin.lokasi', \App\Enums\Lokasi::MFG1->value);
+                          ->where('master_mesin.departemen', \App\Enums\Departemen::MFG1->value);
         }
         $findings = $findingsQuery->countAllResults();
 
@@ -209,14 +95,14 @@ class DashboardController extends BaseController
         $rataDetik = $totalTransaksi > 0 ? intdiv($totalDurasi, $totalTransaksi) : 0;
 
         $approvalModel = new \App\Models\ApprovalBulananModel();
-        $pendingKontrol = $approvalModel->getPendingKontrolByRole($role);
+        $pendingKontrol = $approvalModel->getPendingKontrolByRole();
 
         // Fetch pending overhaul
-        $sessionLine = session()->get('line') ?: session()->get('lokasi');
-        $pendingOverhaul = $transaksiModel->getPendingOverhaulByRole($role, $sessionLine);
+        $sessionLine = session()->get('line') ?: session()->get('departemen');
+        $pendingOverhaul = $transaksiModel->getPendingOverhaulByRole($sessionLine);
 
         $bulan = $this->request->getGet('bulan') ?: date('Y-m');
-        $sessionLokasi = session()->get('lokasi');
+        $sessionLokasi = session()->get('departemen');
 
         return view('dashboard/leader', [
             'title'          => $title,
@@ -226,7 +112,7 @@ class DashboardController extends BaseController
             'terbaru'        => array_slice($laporan, 0, 8),
             'pendingKontrol' => $pendingKontrol,
             'pendingOverhaul'=> $pendingOverhaul,
-            'percentageSummary' => $transaksiModel->getPercentageSummary(['bulan' => $bulan, 'lokasi' => $sessionLokasi]),
+            'percentageSummary' => $transaksiModel->getPercentageSummary(['bulan' => $bulan, 'departemen' => $sessionLokasi]),
         ]);
     }
 
@@ -254,7 +140,7 @@ class DashboardController extends BaseController
     {
         $jenis = $this->request->getGet('jenis'); // 'preventive' or 'overhaul'
         $bulanSekarang = $this->request->getGet('bulan') ?: date('Y-m');
-        $lokasi = $this->request->getGet('lokasi');
+        $departemen = $this->request->getGet('departemen');
 
         $db = \Config\Database::connect();
         
@@ -272,15 +158,15 @@ class DashboardController extends BaseController
 
         // 1. Get All Target Machines
         $mesinBuilder = $db->table('master_mesin m')
-                           ->select('m.id_mesin, m.no_mesin, m.type_mesin, m.lokasi, m.line');
+                           ->select('m.id_mesin, m.no_mesin, m.type_mesin, m.departemen, m.line');
         
-        if (!empty($lokasi)) {
-            $mesinBuilder->where('m.lokasi', $lokasi);
+        if (!empty($departemen)) {
+            $mesinBuilder->where('m.departemen', $departemen);
         }
         if ($isOverhaul) {
             $mesinBuilder->where('m.jenis !=', '-');
         }
-        $targetMesin = $mesinBuilder->orderBy('m.lokasi', 'ASC')->orderBy('m.line', 'ASC')->orderBy('m.no_mesin', 'ASC')->get()->getResultArray();
+        $targetMesin = $mesinBuilder->orderBy('m.departemen', 'ASC')->orderBy('m.line', 'ASC')->orderBy('m.no_mesin', 'ASC')->get()->getResultArray();
 
         // 2. Get Checked Machines
         $builder = $db->table('transaksi_check t')
@@ -296,8 +182,8 @@ class DashboardController extends BaseController
                       ->where('t.jenis_check', $jenisStr)
                       ->where('t.status', 'Approved');
         
-        if (!empty($lokasi)) {
-            $builder->where('m.lokasi', $lokasi);
+        if (!empty($departemen)) {
+            $builder->where('m.departemen', $departemen);
         }
 
         if ($periodeStart === $periodeEnd) {

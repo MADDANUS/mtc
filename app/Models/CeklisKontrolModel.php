@@ -23,19 +23,20 @@ class CeklisKontrolModel extends Model
     protected $returnType    = 'array';
 
     /**
-     * Mengambil data Checklist Control untuk lokasi, kategori, dan bulan tertentu.
+     * Mengambil data Checklist Control untuk departemen, kategori, dan bulan tertentu.
      * Mengembalikan data yang distrukturkan per mesin lengkap dengan data periode 1-5.
      */
-    public function getGridData(string $lokasi, string $kategori, string $bulanTahun, ?string $line = null): array
+    public function getGridData(string $departemen, string $kategori, string $bulanTahun, ?string $line = null): array
     {
-        // 1. Ambil semua mesin untuk lokasi dan bulan ini dari tabel riwayat_mesin
+        // 1. Ambil semua mesin untuk departemen dan bulan ini dari tabel riwayat_mesin
         $mesinModel = new MesinModel();
-        $builder = $mesinModel->select('master_mesin.*, riwayat_mesin.lokasi as r_lokasi, riwayat_mesin.line as r_line')
+        $builder = $mesinModel->select('master_mesin.*, riwayat_mesin.departemen as r_lokasi, riwayat_mesin.line as r_line')
                               ->join('riwayat_mesin', 'master_mesin.id_mesin = riwayat_mesin.id_mesin')
-                              ->where('riwayat_mesin.lokasi', $lokasi);
+                              ->where('riwayat_mesin.departemen', $departemen);
         
         if ($line) {
-            $builder->where('riwayat_mesin.line', $line);
+            $linesArray = array_map('trim', explode(',', $line));
+            $builder->whereIn('riwayat_mesin.line', $linesArray);
         }
 
         $firstDayOfMonth = $bulanTahun . '-01';
@@ -51,9 +52,9 @@ class CeklisKontrolModel extends Model
 
         $daftarMesin = $builder->orderBy('master_mesin.no_mesin', 'ASC')->findAll();
 
-        // Timpa field lokasi dan line dengan lokasi historisnya agar display grid akurat
+        // Timpa field departemen dan line dengan departemen historisnya agar display grid akurat
         foreach ($daftarMesin as &$m) {
-            $m['lokasi'] = $m['r_lokasi'];
+            $m['departemen'] = $m['r_lokasi'];
             $m['line'] = $m['r_line'];
         }
         unset($m); // Mencegah bug pass-by-reference pada foreach berikutnya
@@ -144,54 +145,57 @@ class CeklisKontrolModel extends Model
     /**
      * Get Checklist Control ready for Leader approval (100% checked, but not approved yet)
      */
-    public function getPendingApprovalsForLeader(string $lokasi, string $line, string $bulanTahun): array
+    public function getPendingApprovalsForLeader(string $departemen, string $linesStr, string $bulanTahun): array
     {
         $db = \Config\Database::connect();
         
-        // Define categories based on lokasi (same logic as in KontrolController)
+        // Define categories based on departemen
         $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
-        if ($lokasi !== 'MFG 2') {
+        if ($departemen !== 'MFG 2') {
             $categories = array_merge($categories, ['Bearing Cam', 'Gearbox', 'Belt Cam']);
         }
 
         $pendingList = [];
+        $lines = array_map('trim', explode(',', $linesStr));
 
-        foreach ($categories as $kategori) {
-            $grid = $this->getGridData($lokasi, $kategori, $bulanTahun, $line);
-            
-            // Skip if there are no machines
-            if (empty($grid)) {
-                continue;
-            }
-
-            // Check if 100% completed
-            $allChecked = true;
-            foreach ($grid as $row) {
-                if ($row['pic_nama'] === 'PIC') {
-                    $allChecked = false;
-                    break;
+        foreach ($lines as $singleLine) {
+            foreach ($categories as $kategori) {
+                $grid = $this->getGridData($departemen, $kategori, $bulanTahun, $singleLine);
+                
+                // Skip if there are no machines
+                if (empty($grid)) {
+                    continue;
                 }
-            }
 
-            if ($allChecked) {
-                // Check if already approved by leader
-                $approval = $db->table('approval_bulanan')
-                               ->where('type', 'kontrol')
-                               ->where('lokasi', $lokasi)
-                               ->where('line', $line)
-                               ->where('kategori', $kategori)
-                               ->where('bulan_tahun', $bulanTahun)
-                               ->get()
-                               ->getRowArray();
+                // Check if 100% completed
+                $allChecked = true;
+                foreach ($grid as $row) {
+                    if ($row['pic_nama'] === 'PIC') {
+                        $allChecked = false;
+                        break;
+                    }
+                }
 
-                if (!$approval || $approval['status'] === 'Pending') {
-                    $pendingList[] = [
-                        'lokasi'      => $lokasi,
-                        'line'        => $line,
-                        'kategori'    => $kategori,
-                        'bulan_tahun' => $bulanTahun,
-                        'status'      => 'Siap Approve'
-                    ];
+                if ($allChecked) {
+                    // Check if already approved by leader
+                    $approval = $db->table('approval_bulanan')
+                                   ->where('type', 'kontrol')
+                                   ->where('departemen', $departemen)
+                                   ->where('line', $singleLine)
+                                   ->where('kategori', $kategori)
+                                   ->where('bulan_tahun', $bulanTahun)
+                                   ->get()
+                                   ->getRowArray();
+
+                    if (!$approval || $approval['status'] === 'Pending') {
+                        $pendingList[] = [
+                            'departemen'  => $departemen,
+                            'line'        => $singleLine,
+                            'kategori'    => $kategori,
+                            'bulan_tahun' => $bulanTahun,
+                            'status'      => 'Siap Approve'
+                        ];
+                    }
                 }
             }
         }
@@ -245,7 +249,7 @@ class CeklisKontrolModel extends Model
     {
         $sql = "
             SELECT 
-                r.lokasi, 
+                r.departemen, 
                 r.line, 
                 c.kategori, 
                 c.bulan_tahun, 
@@ -263,7 +267,7 @@ class CeklisKontrolModel extends Model
             $params[] = $bulanTahun;
         }
         
-        $sql .= " GROUP BY c.bulan_tahun, r.lokasi, r.line, c.kategori";
+        $sql .= " GROUP BY c.bulan_tahun, r.departemen, r.line, c.kategori";
         
         return $this->db->query($sql, $params)->getResultArray();
     }

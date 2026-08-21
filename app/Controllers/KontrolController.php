@@ -23,7 +23,7 @@ class KontrolController extends BaseController
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
-        $dompdf->stream('Checklist_Control_' . str_replace(' ', '_', $data['kategori']) . '_' . str_replace(' ', '_', $data['lokasi']) . '.pdf', ['Attachment' => 0]);
+        $dompdf->stream('Checklist_Control_' . str_replace(' ', '_', $data['kategori']) . '_' . str_replace(' ', '_', $data['departemen']) . '.pdf', ['Attachment' => 0]);
     }
 
     public function pdfAllCategories()
@@ -38,7 +38,7 @@ class KontrolController extends BaseController
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
-        $dompdf->stream('Checklist_Control_Semua_Kategori_' . str_replace(' ', '_', $data['lokasi']) . '_' . $data['bulan'] . '.pdf', ['Attachment' => true]);
+        $dompdf->stream('Checklist_Control_Semua_Kategori_' . str_replace(' ', '_', $data['departemen']) . '_' . $data['bulan'] . '.pdf', ['Attachment' => true]);
     }
 
     public function pdfAllSummary()

@@ -3,7 +3,7 @@
 namespace App\Controllers;
 
 use App\Enums\Role;
-use App\Enums\Lokasi;
+use App\Enums\Departemen;
 use App\Enums\JenisCheck;
 
 use App\Models\TransaksiCheckDetailModel;
@@ -32,49 +32,49 @@ class RiwayatController extends BaseController
     private function resolveLokasi(string $slug): ?string
     {
         return match (strtolower($slug)) {
-            'mfg2'  => Lokasi::MFG2->value,
-            'mfg1'  => Lokasi::MFG1->value,
-            'plan2' => Lokasi::PLAN2->value,
+            'mfg2'  => Departemen::MFG2->value,
+            'mfg1'  => Departemen::MFG1->value,
+            'plan2' => Departemen::PLAN2->value,
             'semua' => null,
-            default => Lokasi::MFG1->value,
+            default => Departemen::MFG1->value,
         };
     }
 
     /**
      * GET /riwayat
-     * Halaman riwayat pengecekan (default semua lokasi)
+     * Halaman riwayat pengecekan (default semua departemen)
      */
     public function index()
     {
-        return redirect()->to('/riwayat/lokasi/semua');
+        return redirect()->to('/riwayat/departemen/semua');
     }
 
     /**
-     * GET /riwayat/lokasi/(:segment)
-     * Daftar riwayat pengecekan untuk lokasi terpilih beserta filter pencarian.
+     * GET /riwayat/departemen/(:segment)
+     * Daftar riwayat pengecekan untuk departemen terpilih beserta filter pencarian.
      */
-    public function lokasi(string $lokasiSlug)
+    public function departemen(string $departemenSlug)
     {
-        $lokasiName = $this->resolveLokasi($lokasiSlug);
+        $departemenName = $this->resolveLokasi($departemenSlug);
         
         $riwayatService = new \App\Services\RiwayatService();
         try {
-            $lokasiName = $riwayatService->validateLeaderAccess($lokasiName);
+            $departemenName = $riwayatService->validateLeaderAccess($departemenName);
         } catch (\Exception $e) {
-            return redirect()->to('/dashboard')->with('error', 'Akses ditolak. Anda hanya dapat mengakses riwayat lokasi ' . session()->get('lokasi'));
+            return redirect()->to('/dashboard')->with('error', 'Akses ditolak. Anda hanya dapat mengakses riwayat departemen ' . session()->get('departemen'));
         }
-        if ($lokasiName && $lokasiName !== $this->resolveLokasi($lokasiSlug)) {
-             $lokasiSlug = strtolower(str_replace(' ', '', $lokasiName));
+        if ($departemenName && $departemenName !== $this->resolveLokasi($departemenSlug)) {
+             $departemenSlug = strtolower(str_replace(' ', '', $departemenName));
         }
 
         $mesinModel = new MesinModel();
         $transaksiModel = new TransaksiCheckModel();
 
-        // Dropdown filter mesin dinamis (semua mesin jika lokasi null)
-        $daftarMesin = $mesinModel->getByLokasi($lokasiName);
+        // Dropdown filter mesin dinamis (semua mesin jika departemen null)
+        $daftarMesin = $mesinModel->getByDepartemen($departemenName);
 
-        $userLine = (session()->get('role') === Role::Leader->value) ? session()->get('line') : null;
-        $filters = $this->buildSearchFilters($lokasiName, $userLine);
+        $userLine = has_role(Role::Leader->value) ? session()->get('line') : null;
+        $filters = $this->buildSearchFilters($departemenName, $userLine);
 
         $perPage = (int) ($this->request->getGet('per_page') ?: 15);
         $currentPage = (int) ($this->request->getGet('page_riwayat') ?: 1);
@@ -91,7 +91,7 @@ class RiwayatController extends BaseController
                 'html'        => view('riwayat/_rows', [
                                     'riwayat'    => $riwayat,
                                     'startNo'    => $startNo,
-                                    'lokasiSlug' => $lokasiSlug
+                                    'departemenSlug' => $departemenSlug
                                  ]),
                 'currentPage' => $currentPage,
                 'totalPages'  => $totalPages,
@@ -101,19 +101,21 @@ class RiwayatController extends BaseController
             ]);
         }
 
-        $categoriesList = $this->buildCategoriesList($lokasiName, $filters['jenis_check'] ?? null);
+        $categoriesList = $this->buildCategoriesList($departemenName, $filters['jenis_check'] ?? null);
         $jenisLabel = $filters['jenis_check'] === JenisCheck::Preventive->value ? 'Checklist Report' : ($filters['jenis_check'] === JenisCheck::Overhaul->value ? 'Inspection Report' : 'Pengecekan');
-        $title = "Riwayat {$jenisLabel} — " . ($lokasiName ?? 'Semua Lokasi');
+        $title = "Riwayat {$jenisLabel} — " . ($departemenName ?? 'Semua Departemen');
         
-        $availableLines = $this->buildAvailableLines($lokasiName);
-        $availablePics = $this->buildAvailablePics($transaksiModel, $lokasiName, $filters['jenis_check'] ?? null);
-        $bulanList = $this->buildAvailableBulan($transaksiModel, $lokasiName, $filters['jenis_check'] ?? null);
+        $availablePlans = ['Plan 1', 'Plan 2'];
+        $availableLines = $this->buildAvailableLines($departemenName);
+        $availablePics = $this->buildAvailablePics($transaksiModel, $departemenName, $filters['jenis_check'] ?? null);
+        $bulanList = $this->buildAvailableBulan($transaksiModel, $departemenName, $filters['jenis_check'] ?? null);
 
         return view('riwayat/index', [
             'title'           => $title,
             'jenisLabel'      => $jenisLabel,
-            'lokasiSlug'      => $lokasiSlug,
-            'lokasiName'      => $lokasiName ?? 'Semua Lokasi',
+            'departemenSlug'      => $departemenSlug,
+            'departemenName'      => $departemenName ?? 'Semua Departemen',
+            'availablePlans'  => $availablePlans,
             'availableLines'  => $availableLines,
             'availablePics'   => $availablePics,
             'bulanList'       => $bulanList,
@@ -132,16 +134,16 @@ class RiwayatController extends BaseController
      * GET /riwayat/download-pdf-all/(:segment)
      * Download tabel riwayat secara keseluruhan berdasarkan filter yang aktif
      */
-    public function downloadPdfAll(string $lokasiSlug)
+    public function downloadPdfAll(string $departemenSlug)
     {
-        $lokasiName = $this->resolveLokasi($lokasiSlug);
+        $departemenName = $this->resolveLokasi($departemenSlug);
         $riwayatService = new \App\Services\RiwayatService();
         try {
-            $lokasiName = $riwayatService->validateLeaderAccess($lokasiName);
+            $departemenName = $riwayatService->validateLeaderAccess($departemenName);
         } catch (\Exception $e) {
             return redirect()->to('/dashboard')->with('error', $e->getMessage());
         }
-        $data = $riwayatService->getPdfAllData($lokasiName, $this->request->getGet());
+        $data = $riwayatService->getPdfAllData($departemenName, $this->request->getGet());
         $html = view('riwayat/pdf_all_details', $data);
         $options = new \Dompdf\Options();
         $options->set('isHtml5ParserEnabled', true);
@@ -158,18 +160,18 @@ class RiwayatController extends BaseController
      * GET /riwayat/export-excel/(:segment)
      * Download rekap riwayat dalam format Excel
      */
-    public function exportExcel(string $lokasiSlug)
+    public function exportExcel(string $departemenSlug)
     {
-        $lokasiName = $this->resolveLokasi($lokasiSlug);
+        $departemenName = $this->resolveLokasi($departemenSlug);
         $riwayatService = new \App\Services\RiwayatService();
         try {
-            $lokasiName = $riwayatService->validateLeaderAccess($lokasiName);
+            $departemenName = $riwayatService->validateLeaderAccess($departemenName);
         } catch (\Exception $e) {
             return redirect()->to('/dashboard')->with('error', $e->getMessage());
         }
 
-        $userLine = (session()->get('role') === Role::Leader->value) ? session()->get('line') : null;
-        $filters = $this->buildSearchFilters($lokasiName, $userLine);
+        $userLine = has_role(Role::Leader->value) ? session()->get('line') : null;
+        $filters = $this->buildSearchFilters($departemenName, $userLine);
         
         $transaksiModel = new TransaksiCheckModel();
         // Fetch all matching records (no pagination)
@@ -202,7 +204,7 @@ class RiwayatController extends BaseController
         helper('tanggal');
         
         // Headers
-        $headers = ['No', 'Tipe', 'Lokasi', 'Line', 'Nama Mesin', 'Kategori', 'Kondisi', 'PIC (Mekanik)', 'Waktu Mulai', 'Waktu Selesai', 'Status'];
+        $headers = ['No', 'Tipe', 'Departemen', 'Line', 'Nama Mesin', 'Kategori', 'Kondisi', 'PIC (Mekanik)', 'Waktu Mulai', 'Waktu Selesai', 'Status'];
         $col = 'A';
         foreach ($headers as $header) {
             $sheet->setCellValue($col . '1', $header);
@@ -221,7 +223,7 @@ class RiwayatController extends BaseController
         foreach ($riwayat as $data) {
             $sheet->setCellValue('A' . $row, $no++);
             $sheet->setCellValue('B' . $row, $data['jenis_check'] ?? '-');
-            $sheet->setCellValue('C' . $row, $data['lokasi_check'] ?? '-');
+            $sheet->setCellValue('C' . $row, $data['departemen_check'] ?? '-');
             $sheet->setCellValue('D' . $row, $data['line'] ?? '-');
             $sheet->setCellValue('E' . $row, $data['no_mesin'] ?? '-');
             $sheet->setCellValue('F' . $row, $data['kategori'] ?? '-');
@@ -270,7 +272,7 @@ class RiwayatController extends BaseController
     {
         $riwayatService = new \App\Services\RiwayatService();
         try {
-            $data = $riwayatService->getDetailData($id, session()->get('role'));
+            $data = $riwayatService->getDetailData($id, session()->get('role') ?: '');
         } catch (\Exception $e) {
             return redirect()->to('/dashboard')->with('error', $e->getMessage());
         }
@@ -279,7 +281,7 @@ class RiwayatController extends BaseController
         }
         $data['title'] = 'Detail Pengecekan';
         $data['from'] = $this->request->getGet('from');
-        $data['cb_lokasi'] = $this->request->getGet('lokasi');
+        $data['cb_lokasi'] = $this->request->getGet('departemen');
         $data['cb_line'] = $this->request->getGet('line');
         $data['cb_kategori'] = $this->request->getGet('kategori');
         $data['cb_bulan'] = $this->request->getGet('bulan');
@@ -293,7 +295,7 @@ class RiwayatController extends BaseController
         if ($url) {
             return redirect()->to($url);
         } else {
-            return redirect()->to('/riwayat/lokasi/' . rawurlencode($this->request->getGet('lokasi')) . '?line=' . rawurlencode($this->request->getGet('line')) . '&kategori=' . rawurlencode($this->request->getGet('kategori')) . '&bulan=' . rawurlencode($this->request->getGet('bulan')) . '&id_mesin=' . rawurlencode($this->request->getGet('id_mesin')))->with('error', 'Belum ada laporan untuk mesin ini di bulan yang dipilih.');
+            return redirect()->to('/riwayat/departemen/' . rawurlencode($this->request->getGet('departemen')) . '?line=' . rawurlencode($this->request->getGet('line')) . '&kategori=' . rawurlencode($this->request->getGet('kategori')) . '&bulan=' . rawurlencode($this->request->getGet('bulan')) . '&id_mesin=' . rawurlencode($this->request->getGet('id_mesin')))->with('error', 'Belum ada laporan untuk mesin ini di bulan yang dipilih.');
         }
     }
 
@@ -321,7 +323,7 @@ class RiwayatController extends BaseController
 
     public function edit(int $id)
     {
-        if (session()->get('role') !== Role::Admin->value) {
+        if (!has_role(Role::Admin->value)) {
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
         $riwayatService = new \App\Services\RiwayatService();
@@ -334,7 +336,7 @@ class RiwayatController extends BaseController
 
     public function update(int $id)
     {
-        if (session()->get('role') !== Role::Admin->value) {
+        if (!has_role(Role::Admin->value)) {
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
         $riwayatService = new \App\Services\RiwayatService();
@@ -350,7 +352,7 @@ class RiwayatController extends BaseController
 
     public function delete(int $id)
     {
-        if (session()->get('role') !== Role::Admin->value) {
+        if (!has_role(Role::Admin->value)) {
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
         $riwayatService = new \App\Services\RiwayatService();
@@ -372,8 +374,8 @@ class RiwayatController extends BaseController
 
     public function deleteApproval(int $id)
     {
-        if (session()->get('role') !== \App\Enums\Role::Admin->value) {
-            return redirect()->back()->with('error', 'Akses ditolak.');
+        if (!has_role(Role::Admin->value)) {
+            return $this->response->setJSON(['status' => false, 'message' => 'Akses ditolak.']);
         }
         $riwayatService = new \App\Services\RiwayatService();
         $result = $riwayatService->deleteApproval($id);
@@ -383,7 +385,7 @@ class RiwayatController extends BaseController
         return redirect()->back()->with('success', $result['message']);
     }
 
-    private function buildSearchFilters(?string $lokasiName, ?string $userLine): array
+    private function buildSearchFilters(?string $departemenName, ?string $userLine): array
     {
         $rawStatus = $this->request->getGet('status');
         if ($rawStatus === 'all') {
@@ -396,11 +398,17 @@ class RiwayatController extends BaseController
             $statusFilter = ['Approved', 'Approved Final'];
         }
         
+        $rawJenisCheck = $this->request->getGet('jenis_check');
+        if (has_role('magang') && !has_any_role(['admin', 'member', 'leader_member', 'leader', 'sheadprd', 'sheadmtc'])) {
+            $rawJenisCheck = 'Preventive Maintenance';
+        }
+
         return [
-            'lokasi'      => $lokasiName,
+            'plan'        => $this->request->getGet('plan') === 'all' ? null : ($this->request->getGet('plan') ?: null),
+            'departemen'  => $departemenName,
             'id_mesin'    => $this->request->getGet('id_mesin') === 'all' ? null : ($this->request->getGet('id_mesin') ?: null),
             'line'        => $userLine ?: ($this->request->getGet('line') === 'all' ? null : ($this->request->getGet('line') ?: null)),
-            'jenis_check' => $this->request->getGet('jenis_check') === 'all' ? null : ($this->request->getGet('jenis_check') ?: null),
+            'jenis_check' => $rawJenisCheck === 'all' ? null : ($rawJenisCheck ?: null),
             'kategori'    => $this->request->getGet('kategori') === 'all' ? null : ($this->request->getGet('kategori') ?: null),
             'bulan'       => $this->request->getGet('bulan') === 'all' ? null : ($this->request->getGet('bulan') ?: date('Y-m')),
             'status'      => $statusFilter,
@@ -410,14 +418,14 @@ class RiwayatController extends BaseController
         ];
     }
 
-    private function buildCategoriesList(?string $lokasiName, ?string $jenisCheckFilter): array
+    private function buildCategoriesList(?string $departemenName, ?string $jenisCheckFilter): array
     {
         $parameterModel = new \App\Models\ParameterCheckModel();
         $jenisDb = (in_array(strtolower($jenisCheckFilter ?? ''), ['preventive', 'checklist report'])) ? JenisCheck::Preventive->value : JenisCheck::Overhaul->value;
         
         $catQuery = $parameterModel->select('kategori');
-        if ($lokasiName !== null) {
-            $catQuery->where('lokasi', $lokasiName);
+        if ($departemenName !== null) {
+            $catQuery->where('departemen', $departemenName);
         }
         $dbCategories = $catQuery->where('jenis_check', $jenisDb)->distinct()->findAll();
 
@@ -429,19 +437,19 @@ class RiwayatController extends BaseController
         return $categoriesList;
     }
 
-    private function buildAvailableLines(?string $lokasiName): array
+    private function buildAvailableLines(?string $departemenName): array
     {
-        if ($lokasiName === Lokasi::MFG1->value) {
+        if ($departemenName === Departemen::MFG1->value) {
             return ['Line 1', 'Line 2', 'Line 3'];
-        } elseif ($lokasiName === Lokasi::MFG2->value) {
+        } elseif ($departemenName === Departemen::MFG2->value) {
             return ['CG', 'Second'];
         }
         return ['Line 1', 'Line 2', 'Line 3', 'CG', 'Second'];
     }
 
-    private function buildAvailablePics(\App\Models\TransaksiCheckModel $transaksiModel, ?string $lokasiName, ?string $jenisCheckFilter): array
+    private function buildAvailablePics(\App\Models\TransaksiCheckModel $transaksiModel, ?string $departemenName, ?string $jenisCheckFilter): array
     {
-        $rawPics = $transaksiModel->getAvailablePics($lokasiName, $jenisCheckFilter);
+        $rawPics = $transaksiModel->getAvailablePics($departemenName, $jenisCheckFilter);
         $availablePics = [];
         foreach ($rawPics as $row) {
             $raw = $row['nama_pic'] ?: $row['nama_staff'];
@@ -456,9 +464,9 @@ class RiwayatController extends BaseController
         return $availablePics;
     }
 
-    private function buildAvailableBulan(\App\Models\TransaksiCheckModel $transaksiModel, ?string $lokasiName, ?string $jenisCheckFilter): array
+    private function buildAvailableBulan(\App\Models\TransaksiCheckModel $transaksiModel, ?string $departemenName, ?string $jenisCheckFilter): array
     {
-        $rawBulan = $transaksiModel->getAvailableBulan($lokasiName, $jenisCheckFilter);
+        $rawBulan = $transaksiModel->getAvailableBulan($departemenName, $jenisCheckFilter);
         $bulanList = [];
         foreach ($rawBulan as $row) {
             $val = $row['bulan'];

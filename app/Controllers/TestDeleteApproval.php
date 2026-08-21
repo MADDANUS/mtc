@@ -16,7 +16,7 @@ class TestDeleteApproval extends BaseController {
         $kategoriName = $header['kategori'] ?? null;
         
         $jadwalModel = new \App\Models\JadwalPreventiveModel();
-        $jadwal = $jadwalModel->getJadwalForChecklist($header['lokasi_check'], $kategoriName, $bulanTahun);
+        $jadwal = $jadwalModel->getJadwalForChecklist($header['departemen_check'], $kategoriName, $bulanTahun);
 
         $riwayatService = new \App\Services\RiwayatService();
         $resolveMethod = new \ReflectionMethod($riwayatService, 'resolvePeriodeKe');

@@ -30,30 +30,30 @@ $routes->group('checklist', ['filter' => 'role:admin,magang,member'], static fun
     // 0. API Check Duplicate
     $routes->post('check-duplicate', 'ChecklistController::checkDuplicate');
 
-    // 1. Pilih Lokasi (mfg1 / mfg2)
-    $routes->get('/', 'ChecklistController::pilihLokasi');
+    // 1. Pilih Plan
+    $routes->get('/', 'ChecklistController::pilihPlan');
     
-    // 2. Route obsolete (dulu untuk Pilih Jenis), sekarang langsung redirect ke root checklist
-    $routes->get('(:segment)', static function() {
-        return redirect()->to('/checklist');
-    });
+    // 1b. Pilih Departemen
+    $routes->get('plan/(:segment)', 'ChecklistController::pilihDepartemen/$1');
     
-    // 3. Pilih Kategori untuk tipe Preventive / Overhaul
-    $routes->get('(:segment)/(:segment)', 'ChecklistController::indexKategori/$1/$2');
+    // 2. Pilih Jenis Pengecekan
+    $routes->get('plan/(:segment)/(:segment)', 'ChecklistController::pilihJenis/$1/$2');
+    
+    // 3. Pilih Kategori (Line / Kategori)
+    $routes->get('plan/(:segment)/(:segment)/(:segment)', 'ChecklistController::indexKategori/$1/$2/$3');
     
     // 4. Form Checklist (Create)
-    $routes->get('(:segment)/(:segment)/create/(:segment)', 'ChecklistController::create/$1/$2/$3');
+    $routes->get('plan/(:segment)/(:segment)/(:segment)/create/(:segment)', 'ChecklistController::create/$1/$2/$3/$4');
     
     // 5. Simpan Pengecekan
-    $routes->post('(:segment)/(:segment)/store', 'ChecklistController::store/$1/$2');
+    $routes->post('plan/(:segment)/(:segment)/(:segment)/store', 'ChecklistController::store/$1/$2/$3');
 });
 
 // Riwayat & Detail Transaksi (semua role login, scoping data ditangani di controller)
 $routes->group('riwayat', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/', 'RiwayatController::index');
     $routes->get('redirect-detail', 'RiwayatController::redirectDetail');
-    $routes->get('lokasi/(:segment)', 'RiwayatController::lokasi/$1');
-    $routes->get('kategori/(:segment)', 'RiwayatController::kategori/$1');
+    $routes->get('departemen/(:segment)', 'RiwayatController::departemen/$1');
     $routes->get('download-pdf-all/(:segment)', 'RiwayatController::downloadPdfAll/$1', ['filter' => 'role:member,admin,magang']);
     $routes->get('export-excel/(:segment)', 'RiwayatController::exportExcel/$1', ['filter' => 'role:member,admin,magang']);
     $routes->get('download-pdf/(:num)', 'RiwayatController::downloadPdf/$1', ['filter' => 'role:member,admin,magang']);
@@ -131,7 +131,7 @@ $routes->group('admin/mesin', ['filter' => 'role:admin,member,sheadprd,sheadmtc,
 });
 
 // Admin - Master User (admin only)
-$routes->group('admin/user', ['filter' => 'role:admin', 'namespace' => 'App\Controllers\Admin'], static function ($routes) {
+$routes->group('admin/user', ['filter' => 'role:admin,leader_member', 'namespace' => 'App\Controllers\Admin'], static function ($routes) {
     $routes->get('/', 'UserController::index');
     $routes->get('create', 'UserController::create');
     $routes->post('store', 'UserController::store');

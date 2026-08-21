@@ -11,25 +11,27 @@ use CodeIgniter\I18n\Time;
 
 class RiwayatService
 {
-    public function validateLeaderAccess(?string $lokasiName): ?string
+    public function validateLeaderAccess(?string $departemenName): ?string
     {
-        if (session()->get('role') === Role::Leader->value) {
-            $userLokasi = session()->get('lokasi');
-            if ($userLokasi && $userLokasi !== $lokasiName) {
-                if ($lokasiName === null) {
-                    return $userLokasi;
-                } else {
+        if (has_role(Role::Leader->value) && !has_role(Role::Admin->value) && !has_role(Role::Sheadprd->value) && !has_role(Role::Sheadmtc->value)) {
+            $userLokasi = session()->get('departemen');
+            if ($userLokasi) {
+                $userDepts = array_map('trim', explode(',', $userLokasi));
+                if ($departemenName !== null && !in_array($departemenName, $userDepts)) {
                     throw new \Exception('Akses ditolak.');
+                }
+                if ($departemenName === null) {
+                    return $userDepts[0];
                 }
             }
         }
-        return $lokasiName;
+        return $departemenName;
     }
 
-    public function getPdfAllData(?string $lokasiName, array $getParams): array
+    public function getPdfAllData(?string $departemenName, array $getParams): array
     {
         $transaksiModel = new TransaksiCheckModel();
-        $filters        = $this->buildPdfFilters($lokasiName, $getParams);
+        $filters        = $this->buildPdfFilters($departemenName, $getParams);
         $riwayat        = $transaksiModel->getRiwayatFiltered($filters);
         $allReports     = $this->buildAllReports($riwayat);
 
@@ -38,10 +40,10 @@ class RiwayatService
             : ($filters['jenis_check'] === JenisCheck::Overhaul->value ? 'Inspection Report' : 'Pengecekan');
 
         return [
-            'title'      => "Riwayat {$jenisLabel} - {$lokasiName}",
+            'title'      => "Riwayat {$jenisLabel} - {$departemenName}",
             'allReports' => $allReports,
             'filters'    => $filters,
-            'lokasiName' => $lokasiName,
+            'departemenName' => $departemenName,
             'jenisLabel' => $jenisLabel,
             'percentageSummary' => $transaksiModel->getPercentageSummary($filters)
         ];
@@ -81,7 +83,7 @@ class RiwayatService
         $kategori = $getParams['kategori'] ?? null;
         $bulan    = $getParams['bulan'] ?? null;
         $line     = $getParams['line'] ?? null;
-        $lokasi   = $getParams['lokasi'] ?? null;
+        $departemen   = $getParams['departemen'] ?? null;
 
         $transaksiModel = new \App\Models\TransaksiCheckModel();
         $tx = $transaksiModel->getLatestIdByMesinAndKategori($idMesin, $kategori, $bulan);
@@ -89,7 +91,7 @@ class RiwayatService
         if ($tx) {
             $qsArray = [
                 'from'     => 'kontrol',
-                'lokasi'   => $lokasi,
+                'departemen'   => $departemen,
                 'line'     => $line,
                 'kategori' => $kategori,
                 'bulan'    => $bulan,
@@ -146,7 +148,7 @@ class RiwayatService
         $mesinModel = new \App\Models\MesinModel();
         $parameterModel = new \App\Models\ParameterCheckModel();
         
-        $lokasiSlug = strtolower(str_replace(' ', '', $header['lokasi_check']));
+        $departemenSlug = strtolower(str_replace(' ', '', $header['departemen_check']));
         $jenisSlug = strtolower(str_replace(' ', '-', $header['jenis_check']));
         
         $categoryMap = [
@@ -166,14 +168,14 @@ class RiwayatService
 
         return [
             'title'             => "Edit Pengecekan {$header['jenis_check']} - {$header['kategori']}",
-            'lokasiSlug'        => $lokasiSlug,
-            'lokasiName'        => $header['lokasi_check'],
+            'departemenSlug'        => $departemenSlug,
+            'departemenName'        => $header['departemen_check'],
             'jenisSlug'         => $jenisSlug,
             'jenisName'         => $header['jenis_check'],
             'categorySlug'      => $categorySlug,
             'categoryName'      => $header['kategori'],
-            'daftarMesin'       => $mesinModel->getByLokasi($header['lokasi_check']),
-            'rows'              => $parameterModel->getFormRows($header['lokasi_check'], $header['jenis_check'], $header['kategori']),
+            'daftarMesin'       => $mesinModel->getByDepartemen($header['departemen_check']),
+            'rows'              => $parameterModel->getFormRows($header['departemen_check'], $header['jenis_check'], $header['kategori']),
             'masterPic'         => (new \App\Models\UserModel())->whereIn('role', ['member', 'magang'])->orderBy('nama', 'ASC')->findAll(),
             'namaPic'           => $header['nama_pic'],
             'supportPic'        => $header['support_pic'],
@@ -226,7 +228,7 @@ class RiwayatService
             $bulanTahun = $header['target_periode'] ?: date('Y-m', strtotime($tanggalCheckDate));
             $kategoriName = $header['kategori'] ?? null;
             $jadwalModel = new \App\Models\JadwalPreventiveModel();
-            $jadwal = $jadwalModel->getJadwalForChecklist($header['lokasi_check'], $kategoriName, $bulanTahun);
+            $jadwal = $jadwalModel->getJadwalForChecklist($header['departemen_check'], $kategoriName, $bulanTahun);
             [$periodeKe, ] = $this->resolvePeriodeKe($jadwal, $tanggalCheckDate, $waktu);
 
             $kategoriName = $header['kategori'] ?? null;
@@ -277,7 +279,7 @@ class RiwayatService
             $bulanTahun = $header['target_periode'] ?: date('Y-m', strtotime($tanggalCheckDate));
             $kategoriName = $header['kategori'] ?? null;
             $jadwalModel = new \App\Models\JadwalPreventiveModel();
-            $jadwal = $jadwalModel->getJadwalForChecklist($header['lokasi_check'], $kategoriName, $bulanTahun);
+            $jadwal = $jadwalModel->getJadwalForChecklist($header['departemen_check'], $kategoriName, $bulanTahun);
             [$periodeKe, ] = $this->resolvePeriodeKe($jadwal, $tanggalCheckDate, $waktu);
 
             $kategoriName = $header['kategori'] ?? null;
@@ -381,8 +383,7 @@ class RiwayatService
     
     public function approveTransaksi($idTransaksi, $request)
     {
-        $role = session()->get('role');
-        if (!in_array($role, [Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, Role::Leader->value], true)) {
+        if (!has_any_role([Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, Role::Leader->value])) {
             return ["status" => false, "message" => 'Anda tidak memiliki akses untuk menyetujui laporan.'];
         }
 
@@ -392,30 +393,20 @@ class RiwayatService
         if (!$transaksi) {
             return ["status" => false, "message" => 'Laporan tidak ditemukan.'];
         }
-
-        if ($role === Role::Leader->value) {
-            $mesinModel = new \App\Models\MesinModel();
-            $mesinInfo  = $mesinModel->find($transaksi['id_mesin']);
-            if ($mesinInfo) {
-                if (session()->get('lokasi') && $mesinInfo['lokasi'] !== session()->get('lokasi')) {
-                    return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di lokasi ' . session()->get('lokasi')];
-                }
-                if (session()->get('line') && strtolower($mesinInfo['line']) !== strtolower(session()->get('line'))) {
-                    return ["status" => false, "message" => 'Akses ditolak! Mesin ini tidak berada di ' . session()->get('line') . ' yang menjadi tanggung jawab Anda.'];
-                }
-            }
-        }
-
+        
         if ($transaksi['status'] === 'Approved') {
             return ["status" => false, "message" => 'Laporan ini sudah disetujui sepenuhnya.'];
         }
+
+        $mesinModel = new \App\Models\MesinModel();
+        $mesinInfo  = $mesinModel->find($transaksi['id_mesin']);
 
         $jenisSlug    = strtolower(str_replace(' ', '-', $transaksi['jenis_check']));
         $now          = date('Y-m-d H:i:s');
         $userId       = session()->get('user_id');
         $waktuSelesai = $transaksi['waktu_selesai'] ?? $now;
 
-        $result = $this->buildApprovalUpdateData($role, $jenisSlug, $transaksi, $request, $now, $userId);
+        $result = $this->buildApprovalUpdateData($jenisSlug, $transaksi, $request, $now, $userId, $mesinInfo);
         if (isset($result['status'])) {
             return $result;
         }
@@ -479,43 +470,81 @@ class RiwayatService
      * Tentukan $updateData dan $newStatus berdasarkan role dan jenis transaksi.
      * Return [[$updateData, $newStatus]] jika OK, atau ['status'=>false, 'message'=>...] jika error.
      */
-    private function buildApprovalUpdateData(string $role, string $jenisSlug, array $transaksi, $request, string $now, $userId): array
+    private function buildApprovalUpdateData(string $jenisSlug, array $transaksi, $request, string $now, $userId, $mesinInfo = null): array
     {
         if ($jenisSlug === 'overhaul') {
-            if ($role === Role::Admin->value) {
+            if (has_role(Role::Admin->value)) {
                 return [['status' => 'Approved', 'approved_by' => $userId, 'approved_at' => $now], 'Approved'];
             }
-            if ($role === Role::Leader->value) {
-                if ($transaksi['status'] !== 'Pending') {
-                    return ["status" => false, "message" => 'Laporan sudah diperiksa (bukan status Pending).'];
+            
+            if ($transaksi['status'] === 'Pending') {
+                if (!has_role(Role::Leader->value)) {
+                    return ["status" => false, "message" => 'Laporan butuh persetujuan dari Leader Produksi terlebih dahulu.'];
                 }
-
+                
+                // Location Validation
+                if ($mesinInfo) {
+                    if (session()->get('departemen')) {
+                        $userDepts = array_map('trim', explode(',', session()->get('departemen')));
+                        if (!in_array($mesinInfo['departemen'], $userDepts)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di departemen ' . session()->get('departemen')];
+                    }
+                    if (session()->get('plan')) {
+                        $userPlans = array_map('trim', explode(',', session()->get('plan')));
+                        if (!in_array($mesinInfo['plan'], $userPlans)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plan ' . session()->get('plan')];
+                    }
+                    if (session()->get('line')) {
+                        $userLines = array_map('trim', explode(',', session()->get('line')));
+                        if (!in_array($mesinInfo['line'], $userLines)) return ["status" => false, "message" => 'Akses ditolak! Mesin ini tidak berada di ' . session()->get('line') . ' yang menjadi tanggung jawab Anda.'];
+                    }
+                }
+                
                 return [[
                     'status'         => 'Approved L1',
                     'approval_l1_by' => $userId,
                     'approval_l1_at' => $now,
                 ], 'Approved L1'];
             }
-            if ($role === Role::Sheadprd->value) {
-                if ($transaksi['status'] !== 'Approved L1') {
-                    return ["status" => false, "message" => 'Laporan belum diperiksa oleh Leader.'];
+            
+            if ($transaksi['status'] === 'Approved L1') {
+                if (!has_role(Role::Sheadprd->value)) {
+                    return ["status" => false, "message" => 'Laporan butuh persetujuan dari Section Head Produksi terlebih dahulu.'];
                 }
+                
+                // Location Validation
+                if ($mesinInfo) {
+                    if (session()->get('departemen')) {
+                        $userDepts = array_map('trim', explode(',', session()->get('departemen')));
+                        if (!in_array($mesinInfo['departemen'], $userDepts)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di departemen ' . session()->get('departemen')];
+                    }
+                    if (session()->get('plan')) {
+                        $userPlans = array_map('trim', explode(',', session()->get('plan')));
+                        if (!in_array($mesinInfo['plan'], $userPlans)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plan ' . session()->get('plan')];
+                    }
+                    if (session()->get('line')) {
+                        $userLines = array_map('trim', explode(',', session()->get('line')));
+                        if (!in_array($mesinInfo['line'], $userLines)) return ["status" => false, "message" => 'Akses ditolak! Mesin ini tidak berada di ' . session()->get('line') . ' yang menjadi tanggung jawab Anda.'];
+                    }
+                }
+                
                 return [[
                     'status'         => 'Approved L2',
                     'approval_l2_by' => $userId,
                     'approval_l2_at' => $now,
                 ], 'Approved L2'];
             }
-            if ($role === Role::Sheadmtc->value) {
-                if ($transaksi['status'] !== 'Approved L2') {
-                    return ["status" => false, "message" => 'Laporan belum disetujui oleh S. Head Produksi.'];
+            
+            if ($transaksi['status'] === 'Approved L2') {
+                if (!has_role(Role::Sheadmtc->value)) {
+                    return ["status" => false, "message" => 'Laporan butuh persetujuan dari Section Head MTC.'];
                 }
                 return [['status' => 'Approved', 'approved_by' => $userId, 'approved_at' => $now], 'Approved'];
             }
-            return ["status" => false, "message" => 'Role Anda tidak memiliki akses persetujuan untuk laporan Overhaul.'];
+            
+            return ["status" => false, "message" => 'Status laporan tidak valid untuk diproses.'];
         }
+        
         // PREVENTIVE
-        if (!in_array($role, [Role::Admin->value, Role::Member->value], true)) {
+        if (!has_role(Role::Admin->value) && !has_role(Role::Member->value)) {
             return ["status" => false, "message" => 'Hanya Admin atau Member MTC yang dapat menyetujui laporan Preventive.'];
         }
 
@@ -586,13 +615,13 @@ class RiwayatService
         $overallStatus  = $this->calculateOverallStatus($hasilCheck);
 
         $kategoriName     = $transaksi['kategori'];
-        $lokasiName       = $transaksi['lokasi_check'];
+        $departemenName       = $transaksi['departemen_check'];
         $idMesin          = $transaksi['id_mesin'];
         $bulanTahun       = $transaksi['target_periode'] ?: date('Y-m', strtotime($waktuSelesai));
         $tanggalCheckDate = date('Y-m-d', strtotime($waktuSelesai));
 
         $jadwalModel = new \App\Models\JadwalPreventiveModel();
-        $schedule    = $jadwalModel->getJadwalForChecklist($lokasiName, $kategoriName, $bulanTahun);
+        $schedule    = $jadwalModel->getJadwalForChecklist($departemenName, $kategoriName, $bulanTahun);
         [$periodeKe, $outOfPlanDate] = $this->resolvePeriodeKe($schedule, $tanggalCheckDate, $waktuSelesai);
 
         // Jika bulan pengerjaan berbeda dengan bulan target, maka ini adalah tunggakan/curi start
@@ -784,12 +813,12 @@ class RiwayatService
     /**
      * Normalisasi GET params menjadi array $filters standar untuk PDF all.
      */
-    private function buildPdfFilters(?string $lokasiName, array $getParams): array
+    private function buildPdfFilters(?string $departemenName, array $getParams): array
     {
         $userLine = (session()->get('role') === Role::Leader->value) ? session()->get('line') : null;
 
         return [
-            'lokasi'      => $lokasiName,
+            'departemen'      => $departemenName,
             'id_mesin'    => ($getParams['id_mesin'] ?? 'all') === 'all' ? null : ($getParams['id_mesin'] ?? null),
             'line'        => $userLine ?: (($getParams['line'] ?? 'all') === 'all' ? null : ($getParams['line'] ?? null)),
             'jenis_check' => ($getParams['jenis_check'] ?? 'all') === 'all' ? null : ($getParams['jenis_check'] ?? null),

@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Enums\Role;
-use App\Enums\Lokasi;
+use App\Enums\Departemen;
 use App\Enums\JenisCheck;
 
 use App\Models\LaporanAbnormalModel;
@@ -20,15 +20,15 @@ class AbnormalService
      
         public function pdf($request)
     {
-        $lokasiFilter   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
+        $departemenFilter   = $request->getGet('departemen') ?: Departemen::MFG1->value;
         $searchFilter   = $request->getGet('search') ?: '';
         $kategoriFilter = $request->getGet('kategori') ?: 'Penerangan';
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
 
         $abnormalModel = new \App\Models\LaporanAbnormalModel();
-        $reports = $abnormalModel->getPdfLaporan($lokasiFilter, $kategoriFilter, $bulanFilter, $searchFilter);
+        $reports = $abnormalModel->getPdfLaporan($departemenFilter, $kategoriFilter, $bulanFilter, $searchFilter);
 
-        $categories = $this->resolveKategoriList($lokasiFilter);
+        $categories = $this->resolveKategoriList($departemenFilter);
 
         if (!in_array($kategoriFilter, $categories)) {
             $kategoriFilter = 'Penerangan';
@@ -37,7 +37,7 @@ class AbnormalService
         $data = [
             'title'          => 'Abnormal Report Condition',
             'reports'        => $reports,
-            'lokasiFilter'   => $lokasiFilter,
+            'lokasiFilter'   => $departemenFilter,
             'searchFilter'   => $searchFilter,
             'kategoriFilter' => $kategoriFilter,
             'bulanFilter'    => $bulanFilter,
@@ -49,18 +49,18 @@ class AbnormalService
 
     public function pdfAllCategories($request)
     {
-        $lokasiFilter   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
+        $departemenFilter   = $request->getGet('departemen') ?: Departemen::MFG1->value;
         $searchFilter   = $request->getGet('search') ?: '';
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
 
-        $categories = $this->resolveKategoriList($lokasiFilter);
+        $categories = $this->resolveKategoriList($departemenFilter);
 
         $allReportsData = [];
         
         
         foreach ($categories as $cat) {
             $abnormalModel = new \App\Models\LaporanAbnormalModel();
-            $reports = $abnormalModel->getPdfAllCategoriesLaporan($lokasiFilter, $cat, $bulanFilter, $searchFilter);
+            $reports = $abnormalModel->getPdfAllCategoriesLaporan($departemenFilter, $cat, $bulanFilter, $searchFilter);
 
             $allReportsData[] = [
                 'kategori' => $cat,
@@ -69,9 +69,9 @@ class AbnormalService
         }
 
         $data = [
-            'title'          => "Abnormal Report - Semua Kategori - {$lokasiFilter}",
+            'title'          => "Abnormal Report - Semua Kategori - {$departemenFilter}",
             'allReportsData' => $allReportsData,
-            'lokasiFilter'   => $lokasiFilter,
+            'lokasiFilter'   => $departemenFilter,
             'searchFilter'   => $searchFilter,
             'bulanFilter'    => $bulanFilter
         ];
@@ -87,27 +87,27 @@ class AbnormalService
         $filterLine = $request->getGet('filter_line') === 'all' ? '' : ($request->getGet('filter_line') ?: '');
         $filterKategori = $request->getGet('filter_kategori') === 'all' ? '' : ($request->getGet('filter_kategori') ?: '');
         
-        $lokasiList = [Lokasi::MFG1->value, Lokasi::MFG2->value];
+        $departemenList = [Departemen::MFG1->value, Departemen::MFG2->value];
         
         $allReportsData = [];
         
         
-        foreach ($lokasiList as $lokasi) {
-            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
+        foreach ($departemenList as $departemen) {
+            if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
             
-            $categories = $this->resolveKategoriList($lokasi);
+            $categories = $this->resolveKategoriList($departemen);
                 
             foreach ($categories as $cat) {
                 if (!empty($filterKategori) && $cat !== $filterKategori) continue;
                 
                 $abnormalModel = new \App\Models\LaporanAbnormalModel();
-                $reports = $abnormalModel->getPdfAllSummaryLaporan($lokasi, $cat, $bulanFilter, $filterLine);
+                $reports = $abnormalModel->getPdfAllSummaryLaporan($departemen, $cat, $bulanFilter, $filterLine);
 
                 // Skip if no data
                 if (empty($reports)) continue;
 
                 $allReportsData[] = [
-                    'lokasi'   => $lokasi,
+                    'departemen'   => $departemen,
                     'kategori' => $cat,
                     'reports'  => $reports
                 ];
@@ -129,11 +129,11 @@ class AbnormalService
     public function index($request)
     {
         // Jika parameter view=summary atau tidak ada parameter spesifik, tampilkan halaman ringkasan
-        if ($request->getGet('view') === 'summary' || (!$request->getGet('lokasi') && !$request->getGet('search') && !$request->getGet('kategori'))) {
+        if ($request->getGet('view') === 'summary' || (!$request->getGet('departemen') && !$request->getGet('search') && !$request->getGet('kategori'))) {
             return $this->summary($request);
         }
 
-        $lokasiFilter   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
+        $departemenFilter   = $request->getGet('departemen') ?: Departemen::MFG1->value;
         $lineFilter     = $request->getGet('line') ?: '';
         $searchFilter   = $request->getGet('search') ?: '';
         $kategoriFilter = $request->getGet('kategori') ?: 'Penerangan';
@@ -146,14 +146,14 @@ class AbnormalService
         $perPage = (int) ($request->getGet('per_page') ?: 15);
         $currentPage = (int) ($request->getGet('page_abnormal') ?: 1);
         
-        $reports = $abnormalModel->getIndexLaporan($lokasiFilter, $kategoriFilter, $bulanFilter, $searchFilter, $perPage, $lineFilter);
+        $reports = $abnormalModel->getIndexLaporan($departemenFilter, $kategoriFilter, $bulanFilter, $searchFilter, $perPage, $lineFilter);
         
         $pager = $abnormalModel->pager;
         $totalItems = $pager ? $pager->getTotal('abnormal') : 0;
         $totalPages = $pager ? $pager->getPageCount('abnormal') : 1;
         $startNo = ($currentPage - 1) * $perPage + 1;
 
-        $categories = $this->resolveKategoriList($lokasiFilter);
+        $categories = $this->resolveKategoriList($departemenFilter);
 
         if (!in_array($kategoriFilter, $categories)) {
             $kategoriFilter = 'Penerangan';
@@ -168,7 +168,7 @@ class AbnormalService
         $responseData = [
             'title'          => 'Abnormal Report Condition',
             'reports'        => $reports,
-            'lokasiFilter'   => $lokasiFilter,
+            'lokasiFilter'   => $departemenFilter,
             'lineFilter'     => $lineFilter,
             'searchFilter'   => $searchFilter,
             'kategoriFilter' => $kategoriFilter,
@@ -200,7 +200,7 @@ class AbnormalService
         $filterLine = $request->getGet('filter_line') === 'all' ? '' : ($request->getGet('filter_line') ?: '');
         $filterKategori = $request->getGet('filter_kategori') === 'all' ? '' : ($request->getGet('filter_kategori') ?: '');
         $filterStatus = $request->getGet('filter_status') === 'all' ? '' : ($request->getGet('filter_status') ?: '');
-        $sortBy = $request->getGet('sort_by') ?: 'lokasi';
+        $sortBy = $request->getGet('sort_by') ?: 'departemen';
         $order = strtolower($request->getGet('order') ?: 'asc');
 
         $bulanList = $this->buildBulanList();
@@ -245,7 +245,7 @@ class AbnormalService
      */
     public function overhaul($request)
     {
-        $lokasiFilter = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
+        $departemenFilter = $request->getGet('departemen') ?: Departemen::MFG1->value;
         $searchFilter = $request->getGet('search') ?: '';
         $bulanFilter  = $request->getGet('bulan') ?: date('Y-m');
 
@@ -255,7 +255,7 @@ class AbnormalService
         $perPage = (int) ($request->getGet('per_page') ?: 15);
         $currentPage = (int) ($request->getGet('page_abnormal_overhaul') ?: 1);
 
-        $reports = $abnormalModel->getOverhaulLaporan($lokasiFilter, $bulanFilter, $searchFilter, $perPage);
+        $reports = $abnormalModel->getOverhaulLaporan($departemenFilter, $bulanFilter, $searchFilter, $perPage);
 
         $pager = $abnormalModel->pager;
         $totalItems = $pager ? $pager->getTotal('abnormal_overhaul') : 0;
@@ -269,7 +269,7 @@ class AbnormalService
         $data = [
             'title'          => 'Abnormal Report Overhaul',
             'reports'        => $reports,
-            'lokasiFilter'   => $lokasiFilter,
+            'lokasiFilter'   => $departemenFilter,
             'searchFilter'   => $searchFilter,
             'bulanFilter'    => $bulanFilter,
             'masterPic'      => $masterPic,
@@ -294,12 +294,12 @@ class AbnormalService
         $filterLokasi   = $request->getGet('filter_lokasi') ?: '';
         $filterLine     = $request->getGet('filter_line') ?: '';
         $filterStatus   = $request->getGet('filter_status') ?: '';
-        $sortBy         = $request->getGet('sort_by') ?: 'lokasi';
+        $sortBy         = $request->getGet('sort_by') ?: 'departemen';
         $order          = $request->getGet('order') ?: 'asc';
 
         $linesByLokasi = [
-            Lokasi::MFG1->value => ['Brother', 'Milling', 'Kasahara', 'Knurling', 'Osl', 'Centering Grinding', 'Double Milling', 'Double Center Drill'],
-            Lokasi::MFG2->value => ['Brother', 'Osl', 'Kasahara', 'Buffing', 'Thread', 'Burnishing']
+            Departemen::MFG1->value => ['Brother', 'Milling', 'Kasahara', 'Knurling', 'Osl', 'Centering Grinding', 'Double Milling', 'Double Center Drill'],
+            Departemen::MFG2->value => ['Brother', 'Osl', 'Kasahara', 'Buffing', 'Thread', 'Burnishing']
         ];
 
         $bulan = date('Y-m');
@@ -309,7 +309,7 @@ class AbnormalService
 
         $db = \Config\Database::connect();
         $builder = $db->table('laporan_abnormal')
-                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori, master_parameter_check.bagian_check, master_parameter_check.sub_item_check')
+                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.departemen, transaksi_check.kategori, master_parameter_check.bagian_check, master_parameter_check.sub_item_check')
                       ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
                       ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
                       ->join('transaksi_check_detail', 'transaksi_check_detail.id_detail = laporan_abnormal.id_detail', 'left')
@@ -325,28 +325,28 @@ class AbnormalService
 
         $abnormalData = [];
         foreach ($reports as $r) {
-            $lokasi = trim($r['lokasi']);
+            $departemen = trim($r['departemen']);
             $line = trim($r['type_mesin']);
             
-            if (!isset($abnormalData[$lokasi])) $abnormalData[$lokasi] = [];
-            if (!isset($abnormalData[$lokasi][$line])) $abnormalData[$lokasi][$line] = ['totalOpen' => 0, 'totalAll' => 0];
+            if (!isset($abnormalData[$departemen])) $abnormalData[$departemen] = [];
+            if (!isset($abnormalData[$departemen][$line])) $abnormalData[$departemen][$line] = ['totalOpen' => 0, 'totalAll' => 0];
 
-            $abnormalData[$lokasi][$line]['totalAll']++;
+            $abnormalData[$departemen][$line]['totalAll']++;
             if (empty($r['action'])) {
-                $abnormalData[$lokasi][$line]['totalOpen']++;
+                $abnormalData[$departemen][$line]['totalOpen']++;
             }
         }
 
         $bulanList = $this->buildBulanList();
 
         $summaryRows = [];
-        foreach ($linesByLokasi as $lokasi => $lines) {
-            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
+        foreach ($linesByLokasi as $departemen => $lines) {
+            if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
             
             foreach ($lines as $line) {
                 if (!empty($filterLine) && $line !== $filterLine) continue;
 
-                $abData = $abnormalData[$lokasi][$line] ?? ['totalOpen' => 0, 'totalAll' => 0];
+                $abData = $abnormalData[$departemen][$line] ?? ['totalOpen' => 0, 'totalAll' => 0];
                 $totalOpen = $abData['totalOpen'];
                 $totalAll  = $abData['totalAll'];
                 
@@ -363,7 +363,7 @@ class AbnormalService
                 if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
 
                 $summaryRows[] = [
-                    'lokasi'      => $lokasi,
+                    'departemen'      => $departemen,
                     'line'        => $line,
                     'totalOpen'   => $totalOpen,
                     'statusText'  => $statusText,
@@ -411,21 +411,21 @@ class AbnormalService
 
     public function pdfOverhaul($request)
     {
-        $lokasiFilter   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
+        $departemenFilter   = $request->getGet('departemen') ?: Departemen::MFG1->value;
         $searchFilter   = $request->getGet('search') ?: '';
         $bulanFilter    = $request->getGet('bulan') ?: date('Y-m');
 
         $db = \Config\Database::connect();
         $builder = $db->table('laporan_abnormal')
-                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.lokasi, transaksi_check.kategori, master_parameter_check.bagian_check, master_parameter_check.sub_item_check')
+                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.departemen, transaksi_check.kategori, master_parameter_check.bagian_check, master_parameter_check.sub_item_check')
                       ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
                       ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
                       ->join('transaksi_check_detail', 'transaksi_check_detail.id_detail = laporan_abnormal.id_detail', 'left')
                       ->join('master_parameter_check', 'master_parameter_check.id_parameter = transaksi_check_detail.id_parameter', 'left')
                       ->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value);
 
-        if (!empty($lokasiFilter) && $lokasiFilter !== 'all') {
-            $builder->where('master_mesin.lokasi', $lokasiFilter);
+        if (!empty($departemenFilter) && $departemenFilter !== 'all') {
+            $builder->where('master_mesin.departemen', $departemenFilter);
         }
 
         if (!empty($bulanFilter) && $bulanFilter !== 'all') {
@@ -449,7 +449,7 @@ class AbnormalService
         $data = [
             'title'          => 'Abnormal Report Overhaul',
             'reports'        => $reports,
-            'lokasiFilter'   => $lokasiFilter,
+            'lokasiFilter'   => $departemenFilter,
             'searchFilter'   => $searchFilter,
             'bulanFilter'    => $bulanFilter,
             'isOverhaul'     => true,
@@ -465,15 +465,15 @@ class AbnormalService
         
         
         $linesByLokasi = [
-            Lokasi::MFG1->value => ['Brother', 'Milling', 'Kasahara', 'Knurling', 'Osl', 'Centering Grinding', 'Double Milling', 'Double Center Drill'],
-            Lokasi::MFG2->value => ['Brother', 'Osl', 'Kasahara', 'Buffing', 'Thread', 'Burnishing']
+            Departemen::MFG1->value => ['Brother', 'Milling', 'Kasahara', 'Knurling', 'Osl', 'Centering Grinding', 'Double Milling', 'Double Center Drill'],
+            Departemen::MFG2->value => ['Brother', 'Osl', 'Kasahara', 'Buffing', 'Thread', 'Burnishing']
         ];
         
         $allData = [];
         
-        foreach ([Lokasi::MFG1->value, Lokasi::MFG2->value] as $lokasi) {
+        foreach ([Departemen::MFG1->value, Departemen::MFG2->value] as $departemen) {
             $abnormalModel = new \App\Models\LaporanAbnormalModel();
-            $reports = $abnormalModel->getOverhaulDashboardSummaryLaporan($lokasi, $bulanFilter);
+            $reports = $abnormalModel->getOverhaulDashboardSummaryLaporan($departemen, $bulanFilter);
             
             $abnormalData = [];
             foreach ($reports as $r) {
@@ -486,7 +486,7 @@ class AbnormalService
             }
             
             $summaryRows = [];
-            $lines = $linesByLokasi[$lokasi] ?? [];
+            $lines = $linesByLokasi[$departemen] ?? [];
             foreach ($lines as $line) {
                 $abData = $abnormalData[$line] ?? ['totalOpen' => 0, 'totalAll' => 0];
                 $totalOpen = $abData['totalOpen'];
@@ -500,7 +500,7 @@ class AbnormalService
                     'totalAll'    => $totalAll
                 ];
             }
-            $allData[$lokasi] = $summaryRows;
+            $allData[$departemen] = $summaryRows;
         }
 
         $abnormalModel = new \App\Models\LaporanAbnormalModel();
@@ -628,14 +628,14 @@ class AbnormalService
     }
 
     /**
-     * Menentukan daftar kategori berdasarkan lokasi.
+     * Menentukan daftar kategori berdasarkan departemen.
      *
-     * @param string $lokasi Lokasi (MFG1/MFG2)
+     * @param string $departemen Departemen (MFG1/MFG2)
      * @return array Daftar kategori
      */
-    private function resolveKategoriList(string $lokasi): array
+    private function resolveKategoriList(string $departemen): array
     {
-        if ($lokasi === Lokasi::MFG2->value) {
+        if ($departemen === Departemen::MFG2->value) {
             return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
         }
         
@@ -665,7 +665,7 @@ class AbnormalService
 
         $linesByLokasi = [];
         foreach($mesinQuery as $m) {
-            $linesByLokasi[$m['lokasi']][] = $m['line'];
+            $linesByLokasi[$m['departemen']][] = $m['line'];
         }
 
         $abnormalModel = new \App\Models\LaporanAbnormalModel();
@@ -674,22 +674,22 @@ class AbnormalService
         $abnormalData = [];
         foreach($allAbnormal as $oa) {
             $kategori = $oa['kategori'] ?: 'Penerangan'; // Default fallback
-            $abnormalData[$oa['lokasi']][$oa['line']][$kategori] = [
+            $abnormalData[$oa['departemen']][$oa['line']][$kategori] = [
                 'totalOpen' => (int) $oa['totalOpen'],
                 'totalAll'  => (int) $oa['totalAll']
             ];
         }
 
         $kategoriByLokasi = [
-            Lokasi::MFG1->value => $this->resolveKategoriList(Lokasi::MFG1->value),
-            Lokasi::MFG2->value => $this->resolveKategoriList(Lokasi::MFG2->value)
+            Departemen::MFG1->value => $this->resolveKategoriList(Departemen::MFG1->value),
+            Departemen::MFG2->value => $this->resolveKategoriList(Departemen::MFG2->value)
         ];
 
         $summaryRows = [];
-        foreach ($kategoriByLokasi as $lokasi => $categories) {
-            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
+        foreach ($kategoriByLokasi as $departemen => $categories) {
+            if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
             
-            $lines = isset($linesByLokasi[$lokasi]) ? array_unique($linesByLokasi[$lokasi]) : [];
+            $lines = isset($linesByLokasi[$departemen]) ? array_unique($linesByLokasi[$departemen]) : [];
             sort($lines);
 
             foreach ($lines as $line) {
@@ -698,7 +698,7 @@ class AbnormalService
                 foreach ($categories as $kategori) {
                     if (!empty($filterKategori) && $kategori !== $filterKategori) continue;
                     
-                    $abData = $abnormalData[$lokasi][$line][$kategori] ?? ['totalOpen' => 0, 'totalAll' => 0];
+                    $abData = $abnormalData[$departemen][$line][$kategori] ?? ['totalOpen' => 0, 'totalAll' => 0];
                     $totalOpen = $abData['totalOpen'];
                     $totalAll  = $abData['totalAll'];
                     
@@ -715,7 +715,7 @@ class AbnormalService
                     if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
 
                     $summaryRows[] = [
-                        'lokasi'      => $lokasi,
+                        'departemen'      => $departemen,
                         'line'        => $line,
                         'kategori'    => $kategori,
                         'totalOpen'   => $totalOpen,

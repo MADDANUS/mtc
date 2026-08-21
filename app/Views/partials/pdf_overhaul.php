@@ -90,7 +90,7 @@
         <th style="width:5%; text-align:center; background-color:#f2f2f2;">NO</th>
         <th colspan="2" style="text-align:center; background-color:#f2f2f2;">ITEM CHECK</th>
         <th style="width:20%; text-align:center; background-color:#f2f2f2;">POINT CHECK</th>
-        <?php if (strtolower($header['lokasi_check']) !== 'mfg 2'): ?>
+        <?php if (strtolower($header['departemen_check']) !== 'mfg 2'): ?>
         <th style="width:15%; text-align:center; background-color:#f2f2f2;">STANDAR ITEM</th>
         <?php endif; ?>
         <th style="width:10%; text-align:center; background-color:#f2f2f2;">HASIL</th>
@@ -106,7 +106,7 @@
       <?php endif; ?>
         <?php if (!empty($d['is_section_start'])): ?>
           <tr>
-            <?php $colSpan = strtolower($header['lokasi_check']) === 'mfg 2' ? 6 : 7; ?>
+            <?php $colSpan = strtolower($header['departemen_check']) === 'mfg 2' ? 6 : 7; ?>
             <td colspan="<?= $colSpan ?>" style="text-align:center; font-weight:bold; background-color:#f2f2f2;"><?= esc($d['dynamic_section_header'] ?? '') ?></td>
           </tr>
         <?php endif; ?>
@@ -128,7 +128,7 @@
             <td rowspan="<?= $d['point_rowspan'] ?? 1 ?>" style="text-align:center; vertical-align:middle;"><?= esc($d['point_check'] ?? '') ?></td>
           <?php endif; ?>
 
-          <?php if (strtolower($header['lokasi_check']) !== 'mfg 2'): ?>
+          <?php if (strtolower($header['departemen_check']) !== 'mfg 2'): ?>
             <?php if (!empty($d['show_standard'])): ?>
               <td rowspan="<?= $d['standard_rowspan'] ?? 1 ?>" style="text-align:center; vertical-align:middle;"><?= nl2br(esc($d['standard_check'] ?? '')) ?></td>
             <?php endif; ?>

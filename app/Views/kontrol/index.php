@@ -23,7 +23,7 @@
   </a>
   <div class="ms-auto d-flex gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
-<a href="<?= site_url('kontrol/pdf?lokasi=' . urlencode($lokasi) . '&kategori=' . urlencode($kategori) . '&bulan=' . urlencode($bulan) . '&line=' . urlencode($line)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
+<a href="<?= site_url('kontrol/pdf?departemen=' . urlencode($departemen) . '&kategori=' . urlencode($kategori) . '&bulan=' . urlencode($bulan) . '&line=' . urlencode($line)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
       <i class="bi bi-eye-fill me-1"></i> Preview PDF
     </a>
 <?php endif; ?>
@@ -36,7 +36,7 @@
   </tr>
   <tr>
     <td class="kop-label text-start">AREA</td>
-    <td class="kop-val text-start"><?= esc($lokasi) ?> <?= $line ? '/ ' . esc($line) : '' ?></td>
+    <td class="kop-val text-start"><?= esc($departemen) ?> <?= $line ? '/ ' . esc($line) : '' ?></td>
     <td class="kop-label text-start">KATEGORI</td>
     <td class="kop-val text-start"><?= esc($kategori) ?></td>
     <td class="kop-label text-start">BULAN</td>
@@ -110,7 +110,7 @@
             <tr>
               <td colspan="9" class="p-5 text-muted">
                 <i class="bi bi-exclamation-circle text-secondary" style="font-size: 2rem; display:block; margin-bottom:0.5rem;"></i>
-                Belum ada data mesin terdaftar di <?= esc($lokasi) ?>.
+                Belum ada data mesin terdaftar di <?= esc($departemen) ?>.
               </td>
             </tr>
           <?php else: ?>
@@ -123,7 +123,7 @@
               <tr>
                 <td rowspan="2" class="fw-bold font-monospace text-secondary" style="background-color: #faf9f6; border-bottom: 2px solid #d6d3d1 !important; vertical-align: middle !important;"><?= $no++ ?></td>
                 <td class="text-start fw-bold text-dark ps-4 py-2" style="border-bottom: 1px solid #e7e5e4 !important; background-color: #fff;">
-                  <?= (isset($lokasi) && $lokasi === 'MFG 2') ? esc($m['no_mesin']) : (!empty($m['jenis']) ? esc($m['jenis']) . ' ' . esc($m['no_mesin']) : esc($m['no_mesin'])) ?>
+                  <?= (isset($departemen) && $departemen === 'MFG 2') ? esc($m['no_mesin']) : (!empty($m['jenis']) ? esc($m['jenis']) . ' ' . esc($m['no_mesin']) : esc($m['no_mesin'])) ?>
                 </td>
                 
                 <!-- Periode 1 s.d 5 Cells (Status Check) -->
@@ -198,7 +198,7 @@
                       $qsSummary = !empty($_GET['qs_summary']) ? '&qs_summary=' . urlencode($_GET['qs_summary']) : '';
                       $qsFrom = !empty($_GET['from']) ? '&from_origin=' . urlencode($_GET['from']) : '';
                     ?>
-                    <a href="<?= site_url('riwayat/redirect-detail?id_mesin=' . rawurlencode($m['id_mesin']) . '&line=' . rawurlencode($line) . '&kategori=' . rawurlencode($kategori) . '&bulan=' . rawurlencode($bulan) . '&lokasi=' . rawurlencode($lokasi) . $qsSummary . $qsFrom) ?>" class="btn btn-sm btn-outline-primary fw-bold" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;" title="Lihat Laporan Full">
+                    <a href="<?= site_url('riwayat/redirect-detail?id_mesin=' . rawurlencode($m['id_mesin']) . '&line=' . rawurlencode($line) . '&kategori=' . rawurlencode($kategori) . '&bulan=' . rawurlencode($bulan) . '&departemen=' . rawurlencode($departemen) . $qsSummary . $qsFrom) ?>" class="btn btn-sm btn-outline-primary fw-bold" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;" title="Lihat Laporan Full">
                       Detail
                     </a>
                   <?php else: ?>
@@ -388,7 +388,7 @@
     </div>
     <form action="<?= site_url('kontrol/approve') ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menyetujui Checklist Control ini sebagai <?= esc(session()->get('nama')) ?>?');">
       <?= csrf_field() ?>
-      <input type="hidden" name="lokasi" value="<?= esc($lokasi) ?>">
+      <input type="hidden" name="departemen" value="<?= esc($departemen) ?>">
       <input type="hidden" name="line" value="<?= esc($line) ?>">
       <input type="hidden" name="kategori" value="<?= esc($kategori) ?>">
       <input type="hidden" name="bulan_tahun" value="<?= esc($bulan) ?>">
@@ -409,7 +409,7 @@
     </div>
     <form action="<?= site_url('kontrol/delete-approval') ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menghapus approval ini? Status akan kembali ke Belum Selesai.');">
       <?= csrf_field() ?>
-      <input type="hidden" name="lokasi" value="<?= esc($lokasi) ?>">
+      <input type="hidden" name="departemen" value="<?= esc($departemen) ?>">
       <input type="hidden" name="line" value="<?= esc($line) ?>">
       <input type="hidden" name="kategori" value="<?= esc($kategori) ?>">
       <input type="hidden" name="bulan_tahun" value="<?= esc($bulan) ?>">

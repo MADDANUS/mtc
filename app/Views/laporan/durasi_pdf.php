@@ -77,7 +77,7 @@ function formatDurasiTextPdf($detik) {
                 <th>NO</th>
                 <th>PIC</th>
                 <th>Mesin</th>
-                <th>Lokasi / Line</th>
+                <th>Departemen / Line</th>
                 <th>Jenis Pengecekan</th>
                 <th>Waktu Mulai</th>
                 <th>Waktu Selesai</th>
@@ -101,8 +101,8 @@ function formatDurasiTextPdf($detik) {
                         <td><?= esc($namaPicDurasi) ?></td>
                         <td><?= esc($l['no_mesin'] ?? '-') ?></td>
                         <td>
-                            <?php if (!empty($l['lokasi_check'])): ?>
-                                <?= esc($l['lokasi_check']) ?>
+                            <?php if (!empty($l['departemen_check'])): ?>
+                                <?= esc($l['departemen_check']) ?>
                                 <?php if (!empty($l['line'])): ?>
                                     <br><span style="font-size: 10px; color: #666;">Line: <?= esc($l['line']) ?></span>
                                 <?php endif; ?>

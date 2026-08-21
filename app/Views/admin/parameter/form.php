@@ -12,15 +12,15 @@
     <?= csrf_field() ?>
 
     <div class="row g-3 mb-3">
-      <!-- Lokasi -->
+      <!-- Departemen -->
       <div class="col-md-6">
-        <label class="form-label">Lokasi</label>
+        <label class="form-label">Departemen</label>
         <?php 
-          $lokasiVal = old('lokasi', $parameter['lokasi'] ?? ($prefill['lokasi'] ?? 'MFG 1')); 
+          $departemenVal = old('departemen', $parameter['departemen'] ?? ($prefill['departemen'] ?? 'MFG 1')); 
         ?>
-        <select name="lokasi" class="form-select" required>
-          <option value="MFG 1" <?= $lokasiVal === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
-          <option value="MFG 2" <?= $lokasiVal === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
+        <select name="departemen" class="form-select" required>
+          <option value="MFG 1" <?= $departemenVal === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
+          <option value="MFG 2" <?= $departemenVal === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
         </select>
       </div>
 
@@ -84,7 +84,7 @@
     <div class="d-flex gap-2">
       <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save me-1"></i> Simpan Parameter</button>
       <?php $currentKategori = old('kategori', $parameter['kategori'] ?? ($prefill['kategori'] ?? '')); ?>
-      <a href="<?= site_url('admin/parameter?lokasi=' . urlencode($lokasiVal) . '&jenis_check=' . urlencode($jenisVal) . '&kategori=' . urlencode($currentKategori)) ?>" class="btn btn-outline-secondary px-4">Batal</a>
+      <a href="<?= site_url('admin/parameter?departemen=' . urlencode($departemenVal) . '&jenis_check=' . urlencode($jenisVal) . '&kategori=' . urlencode($currentKategori)) ?>" class="btn btn-outline-secondary px-4">Batal</a>
     </div>
   </form>
 </div>

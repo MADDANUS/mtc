@@ -2,14 +2,14 @@
 
 <div class="mb-3">
   <a href="<?= site_url('checklist') ?>" class="btn btn-sm btn-outline-secondary">
-    <i class="bi bi-arrow-left"></i> Kembali ke Pilih Lokasi
+    <i class="bi bi-arrow-left"></i> Kembali ke Pilih Departemen
   </a>
 </div>
 
 <div class="row justify-content-center mb-5">
   <div class="col-md-8 text-center">
-    <h2 class="fw-bold text-dark mb-2">Pengecekan di <?= esc($lokasiName) ?></h2>
-    <p class="text-muted">Pilih jenis pemeriksaan mesin yang ingin Anda lakukan di <?= esc($lokasiName) ?>.</p>
+    <h2 class="fw-bold text-dark mb-2">Pengecekan di <?= esc($departemenName) ?></h2>
+    <p class="text-muted">Pilih jenis pemeriksaan mesin yang ingin Anda lakukan di <?= esc($departemenName) ?>.</p>
   </div>
 </div>
 
@@ -25,11 +25,12 @@
         </div>
         <h3 class="card-title fw-bold text-dark mb-3">Preventive Maintenance</h3>
         <p class="card-text text-muted mb-4">Pengecekan rutin terencana (harian/mingguan) untuk mencegah kerusakan mesin.</p>
-        <a href="<?= site_url("checklist/{$lokasiSlug}/checklist-report") ?>" class="btn btn-primary w-100 py-3 fw-bold rounded-3 mt-auto">Mulai Preventive &raquo;</a>
+        <a href="<?= site_url("checklist/{$departemenSlug}/checklist-report") ?>" class="btn btn-primary w-100 py-3 fw-bold rounded-3 mt-auto">Mulai Preventive &raquo;</a>
       </div>
     </div>
   </div>
 
+  <?php if ($role !== 'magang'): ?>
   <!-- Card Overhaul -->
   <div class="col-md-5">
     <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden card-hover transition" style="transition: transform 0.2s, box-shadow 0.2s;">
@@ -41,10 +42,11 @@
         </div>
         <h3 class="card-title fw-bold text-dark mb-3">Overhaul Maintenance</h3>
         <p class="card-text text-muted mb-4">Pemeriksaan dan pembongkaran menyeluruh untuk perbaikan besar mesin secara berkala.</p>
-        <a href="<?= site_url("checklist/{$lokasiSlug}/overhaul") ?>" class="btn btn-warning text-white w-100 py-3 fw-bold rounded-3 mt-auto">Mulai Overhaul &raquo;</a>
+        <a href="<?= site_url("checklist/{$departemenSlug}/overhaul") ?>" class="btn btn-warning text-white w-100 py-3 fw-bold rounded-3 mt-auto">Mulai Overhaul &raquo;</a>
       </div>
     </div>
   </div>
+  <?php endif; ?>
 </div>
 
 <style>

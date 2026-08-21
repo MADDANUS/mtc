@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Enums\Role;
-use App\Enums\Lokasi;
+use App\Enums\Departemen;
 
 use App\Models\CeklisKontrolModel;
 use App\Models\MesinModel;
@@ -31,7 +31,7 @@ class KontrolService
         $ulasan      = $request->getPost('ulasan');
 
         $mesin = $this->mesinModel->find($idMesin);
-        $lokasiRedirect = $mesin ? $mesin['lokasi'] : Lokasi::MFG1->value;
+        $departemenRedirect = $mesin ? $mesin['departemen'] : Departemen::MFG1->value;
 
         $data = [
             'id_mesin'      => $idMesin,
@@ -60,7 +60,7 @@ class KontrolService
             }
         }
 
-        return redirect()->to("/kontrol?lokasi=" . urlencode($lokasiRedirect) . "&kategori=" . urlencode($kategori) . "&bulan=" . urlencode($bulanTahun))
+        return redirect()->to("/kontrol?departemen=" . urlencode($departemenRedirect) . "&kategori=" . urlencode($kategori) . "&bulan=" . urlencode($bulanTahun))
                          ->with('success', 'Sel Checklist Control berhasil diperbarui.');
     }
 
@@ -71,39 +71,39 @@ class KontrolService
      
         public function pdf($request)
     {
-        $lokasi   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
+        $departemen   = $request->getGet('departemen') ?: Departemen::MFG1->value;
         $kategori = $request->getGet('kategori') ?: 'Penerangan';
         $bulan    = $request->getGet('bulan') ?: date('Y-m');
         $line     = $request->getGet('line') ?: null;
 
-        $categoriesList = $this->resolveCategories($lokasi);
+        $categoriesList = $this->resolveCategories($departemen, $line);
         if (!in_array($kategori, $categoriesList)) {
             $kategori = 'Penerangan';
         }
         $categories = array_combine($categoriesList, $categoriesList);
 
-        $availableLines = $this->resolveAvailableLines($lokasi);
+        $availableLines = $this->resolveAvailableLines($departemen);
         if (empty($line) && !empty($availableLines)) {
             $line = $availableLines[0];
         }
 
-        $grid = (new \App\Models\CeklisKontrolModel())->getGridData($lokasi, $kategori, $bulan, $line);
+        $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $kategori, $bulan, $line);
 
         $db = \Config\Database::connect();
         $jadwalModel = new \App\Models\JadwalPreventiveModel();
-        $schedule = $jadwalModel->getJadwalForChecklist($lokasi, $kategori, $bulan);
+        $schedule = $jadwalModel->getJadwalForChecklist($departemen, $kategori, $bulan);
 
         $hasSchedule = !empty($schedule);
         $columnDates = $this->calculateColumnDates($schedule);
 
         $approvalModel = new \App\Models\ApprovalBulananModel();
-        $approval = $approvalModel->getApprovalWithUsers($lokasi, $kategori, $bulan, $line ?: 'NONE');
+        $approval = $approvalModel->getApprovalWithUsers($departemen, $kategori, $bulan, $line ?: 'NONE');
         
         $approvalStatus = $approval ? $approval['status'] : 'Pending';
 
         $data = [
             'title'          => 'Checklist Control Bulanan',
-            'lokasi'         => $lokasi,
+            'departemen'         => $departemen,
             'line'           => $line,
             'kategori'       => $kategori,
             'bulan'          => $bulan,
@@ -121,12 +121,12 @@ class KontrolService
 
     public function pdfAllCategories($request)
     {
-        $lokasi   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
+        $departemen   = $request->getGet('departemen') ?: Departemen::MFG1->value;
         $bulan    = $request->getGet('bulan') ?: date('Y-m');
         $line     = $request->getGet('line') ?: null;
 
-        $categories = $this->resolveCategories($lokasi);
-        $availableLines = $this->resolveAvailableLines($lokasi);
+        $categories = $this->resolveCategories($departemen, $line);
+        $availableLines = $this->resolveAvailableLines($departemen);
         if (empty($line) && !empty($availableLines)) {
             $line = $availableLines[0];
         }
@@ -135,9 +135,9 @@ class KontrolService
         $db = \Config\Database::connect();
         
         foreach ($categories as $cat) {
-            $grid = (new \App\Models\CeklisKontrolModel())->getGridData($lokasi, $cat, $bulan, $line);
+            $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $cat, $bulan, $line);
             $jadwalModel = new \App\Models\JadwalPreventiveModel();
-            $schedule = $jadwalModel->getJadwalForChecklist($lokasi, $cat, $bulan);
+            $schedule = $jadwalModel->getJadwalForChecklist($departemen, $cat, $bulan);
                            
             $hasSchedule = false;
             $tglRencanaStr = '-';
@@ -148,7 +148,7 @@ class KontrolService
             $columnDates = $this->calculateColumnDates($schedule);
 
             $approvalModel = new \App\Models\ApprovalBulananModel();
-            $approval = $approvalModel->getApprovalWithUsers($lokasi, $cat, $bulan, $line ?: 'NONE') ?: [];
+            $approval = $approvalModel->getApprovalWithUsers($departemen, $cat, $bulan, $line ?: 'NONE') ?: [];
 
             $allGrids[] = [
                 'kategori'    => $cat,
@@ -163,8 +163,8 @@ class KontrolService
         $bulanList = $this->buildBulanList();
 
         $data = [
-            'title'      => "Checklist Control - {$lokasi} - Semua Kategori",
-            'lokasi'     => $lokasi,
+            'title'      => "Checklist Control - {$departemen} - Semua Kategori",
+            'departemen'     => $departemen,
             'bulan'      => $bulan,
             'line'       => $line,
             'allGrids'   => $allGrids,
@@ -181,28 +181,29 @@ class KontrolService
         $filterLine = $request->getGet('filter_line') === 'all' ? '' : ($request->getGet('filter_line') ?: '');
         $filterKategori = $request->getGet('filter_kategori') === 'all' ? '' : ($request->getGet('filter_kategori') ?: '');
         
-        $lokasiList = [
-            Lokasi::MFG1->value => ['Line 1', 'Line 2', 'Line 3'],
-            Lokasi::MFG2->value => ['CG', 'Second']
+        $departemenList = [
+            Departemen::MFG1->value => ['Line 1', 'Line 2', 'Line 3'],
+            Departemen::MFG2->value => ['CG', 'Second']
         ];
         
         $allGrids = [];
         $db = \Config\Database::connect();
         
-        foreach ($lokasiList as $lokasi => $lines) {
-            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
+        foreach ($departemenList as $departemen => $lines) {
+            if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
             
-            $categories = ($lokasi === Lokasi::MFG2->value)
-                ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor']
-                : ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
-                
             foreach ($lines as $line) {
                 if (!empty($filterLine) && $line !== $filterLine) continue;
+                
+                $hasCam = (new \App\Models\MesinModel())->hasCamMachine($departemen, $line);
+                $categories = $hasCam 
+                    ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam']
+                    : ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
                 
                 foreach ($categories as $cat) {
                     if (!empty($filterKategori) && $cat !== $filterKategori) continue;
                     
-                    $grid = (new \App\Models\CeklisKontrolModel())->getGridData($lokasi, $cat, $bulan, $line);
+                    $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $cat, $bulan, $line);
                     
                     if (empty($grid)) continue;
 
@@ -216,7 +217,7 @@ class KontrolService
                     }
                     if (!$hasData) continue;
                     $jadwalModel = new \App\Models\JadwalPreventiveModel();
-            $schedule = $jadwalModel->getJadwalForChecklist($lokasi, $cat, $bulan);
+            $schedule = $jadwalModel->getJadwalForChecklist($departemen, $cat, $bulan);
                                    
                     $columnDates = [];
                     $hasSchedule = false;
@@ -235,14 +236,14 @@ class KontrolService
                     }
 
                     $approvalModel = new \App\Models\ApprovalBulananModel();
-        $approval = $approvalModel->getApprovalWithUsers($lokasi, $cat, $bulan, $line);
+        $approval = $approvalModel->getApprovalWithUsers($departemen, $cat, $bulan, $line);
         // DUMMY ASSIGNMENT TO KEEP REST WORKING
         $approvalQuery = true;
 
                     
 
                     $allGrids[] = [
-                        'lokasi'      => $lokasi,
+                        'departemen'      => $departemen,
                         'line'        => $line,
                         'kategori'    => $cat,
                         'grid'        => $grid,
@@ -263,7 +264,7 @@ class KontrolService
 
         $data = [
             'title'      => "Checklist Control - Ringkasan Semua Area",
-            'lokasi'     => 'SEMUA AREA',
+            'departemen'     => 'SEMUA AREA',
             'bulan'      => $bulan,
             'line'       => null,
             'allGrids'   => $allGrids,
@@ -276,17 +277,17 @@ class KontrolService
     public function index($request)
     {
         // Jika parameter view=summary atau tidak ada parameter spesifik, tampilkan halaman ringkasan
-        if ($request->getGet('view') === 'summary' || (!$request->getGet('lokasi') && !$request->getGet('line') && !$request->getGet('kategori'))) {
+        if ($request->getGet('view') === 'summary' || (!$request->getGet('departemen') && !$request->getGet('line') && !$request->getGet('kategori'))) {
             return $this->summary($request);
         }
 
-        $lokasi   = $request->getGet('lokasi') ?: Lokasi::MFG1->value;
+        $departemen   = $request->getGet('departemen') ?: Departemen::MFG1->value;
         $kategori = $request->getGet('kategori') ?: 'Penerangan';
         $bulan    = $request->getGet('bulan') ?: date('Y-m');
         $line     = $request->getGet('line') ?: null;
 
         // Daftar kategori khusus Preventive
-        $categoriesList = $this->resolveCategories($lokasi);
+        $categoriesList = $this->resolveCategories($departemen, $line);
         if (!in_array($kategori, $categoriesList)) {
             $kategori = 'Penerangan';
         }
@@ -294,17 +295,17 @@ class KontrolService
 
         $bulanList = $this->buildBulanList();
 
-        $availableLines = $this->resolveAvailableLines($lokasi);
+        $availableLines = $this->resolveAvailableLines($departemen);
         if (empty($line) && !empty($availableLines)) {
             $line = $availableLines[0];
         }
 
-        $grid = (new \App\Models\CeklisKontrolModel())->getGridData($lokasi, $kategori, $bulan, $line);
+        $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $kategori, $bulan, $line);
 
-        // Ambil jadwal rencana untuk lokasi, kategori, dan bulan berjalan (maks 1 per bulan)
+        // Ambil jadwal rencana untuk departemen, kategori, dan bulan berjalan (maks 1 per bulan)
         $db = \Config\Database::connect();
         $jadwalModel = new \App\Models\JadwalPreventiveModel();
-        $schedule = $jadwalModel->getJadwalForChecklist($lokasi, $kategori, $bulan);
+        $schedule = $jadwalModel->getJadwalForChecklist($departemen, $kategori, $bulan);
 
         // Hitung 5 tanggal hari kerja (Senin-Jumat) dari pekan terjadwal
         $hasSchedule = !empty($schedule);
@@ -320,21 +321,20 @@ class KontrolService
 
         // Ambil status approval beserta nama approver
         $approvalModel = new \App\Models\ApprovalBulananModel();
-        $approval = $approvalModel->getApprovalWithUsers($lokasi, $kategori, $bulan, $line ?: 'NONE');
+        $approval = $approvalModel->getApprovalWithUsers($departemen, $kategori, $bulan, $line ?: 'NONE');
 
         $approvalStatus = $approval ? $approval['status'] : 'Pending';
 
-        $roleSession = session()->get('role');
-        if ($roleSession === Role::Sheadprd->value && $approvalStatus === 'Pending') {
+        if (has_role(Role::Sheadprd->value) && !has_any_role([Role::Admin->value, Role::Leader->value, Role::Member->value]) && $approvalStatus === 'Pending') {
             return redirect()->to('/kontrol')->with('error', 'Dokumen belum siap untuk Anda (Masih menunggu persetujuan Leader).');
         }
-        if ($roleSession === Role::Sheadmtc->value && in_array($approvalStatus, ['Pending', 'Approved L1'], true)) {
+        if (has_role(Role::Sheadmtc->value) && !has_any_role([Role::Admin->value, Role::Leader->value, Role::Member->value, Role::Sheadprd->value]) && in_array($approvalStatus, ['Pending', 'Approved L1'], true)) {
             return redirect()->to('/kontrol')->with('error', 'Dokumen belum siap untuk Anda (Masih menunggu persetujuan SHead Produksi).');
         }
 
         return [
             'title'          => 'Checklist Control Bulanan',
-            'lokasi'         => $lokasi,
+            'departemen'         => $departemen,
             'line'           => $line,
             'kategori'       => $kategori,
             'bulan'          => $bulan,
@@ -360,7 +360,7 @@ class KontrolService
         $filterLine = $request->getGet('filter_line') === 'all' ? '' : ($request->getGet('filter_line') ?: '');
         $filterKategori = $request->getGet('filter_kategori') === 'all' ? '' : ($request->getGet('filter_kategori') ?: '');
         $filterStatus = $request->getGet('filter_status') === 'all' ? '' : ($request->getGet('filter_status') ?: '');
-        $sortBy = $request->getGet('sort_by') ?: 'lokasi';
+        $sortBy = $request->getGet('sort_by') ?: 'departemen';
         $order = strtolower($request->getGet('order') ?: 'asc');
 
         $db = \Config\Database::connect();
@@ -372,8 +372,8 @@ class KontrolService
         $totalMesin = [];
         $linesByLokasi = [];
         foreach($totalMesinQuery as $tm) {
-            $totalMesin[$tm['lokasi']][$tm['line']] = (int) $tm['total'];
-            $linesByLokasi[$tm['lokasi']][] = $tm['line'];
+            $totalMesin[$tm['departemen']][$tm['line']] = (int) $tm['total'];
+            $linesByLokasi[$tm['departemen']][] = $tm['line'];
         }
 
         // 2. Checked machines per Line & Category
@@ -382,7 +382,7 @@ class KontrolService
                            
         $checkedData = [];
         foreach($checkedQuery as $cq) {
-            $checkedData[$cq['lokasi']][$cq['line']][$cq['kategori']] = (int) $cq['checked_count'];
+            $checkedData[$cq['departemen']][$cq['line']][$cq['kategori']] = (int) $cq['checked_count'];
         }
 
         // 3. Approval status
@@ -391,25 +391,22 @@ class KontrolService
                         
         $approvalData = [];
         foreach($approvals as $ap) {
-            $approvalData[$ap['lokasi']][$ap['line']][$ap['kategori']] = $ap['status'];
+            $approvalData[$ap['departemen']][$ap['line']][$ap['kategori']] = $ap['status'];
         }
 
         // Categories mapping
-        $kategoriByLokasi = [
-            Lokasi::MFG1->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
-            Lokasi::MFG2->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor']
-        ];
-
+        $mesinModel = new \App\Models\MesinModel();
+        
         // Buat list 12 bulan terakhir untuk dropdown filter
         $bulanList = $this->buildBulanList();
 
         // Build flat array for summary rows
         $summaryRows = [];
         $notCheckedRows = [];
-        foreach ($kategoriByLokasi as $lokasi => $categories) {
-            if (!empty($filterLokasi) && $lokasi !== $filterLokasi) continue;
+        foreach ($kategoriByLokasi as $departemen => $categories) {
+            if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
             
-            $lines = isset($linesByLokasi[$lokasi]) ? array_unique($linesByLokasi[$lokasi]) : [];
+            $lines = isset($linesByLokasi[$departemen]) ? array_unique($linesByLokasi[$departemen]) : [];
             sort($lines);
 
             foreach ($lines as $line) {
@@ -418,14 +415,14 @@ class KontrolService
                 foreach ($categories as $kategori) {
                     if (!empty($filterKategori) && $kategori !== $filterKategori) continue;
                     
-                    $total = $totalMesin[$lokasi][$line] ?? 0;
+                    $total = $totalMesin[$departemen][$line] ?? 0;
                     if ($total == 0) continue;
                     
-                    $checked = $checkedData[$lokasi][$line][$kategori] ?? 0;
+                    $checked = $checkedData[$departemen][$line][$kategori] ?? 0;
                     
                     if ($checked == 0) {
                         $notCheckedRows[] = [
-                            'lokasi'   => $lokasi,
+                            'departemen'   => $departemen,
                             'line'     => $line,
                             'kategori' => $kategori
                         ];
@@ -433,7 +430,7 @@ class KontrolService
                     }
                     
                     $percent = $total > 0 ? round(($checked / $total) * 100) : 0;
-                    $status = $approvalData[$lokasi][$line][$kategori] ?? '';
+                    $status = $approvalData[$departemen][$line][$kategori] ?? '';
                     
                     // Hitung status teks dan warna badge yang akurat sesuai progress
                     $badgeClass = 'bg-secondary';
@@ -464,7 +461,7 @@ class KontrolService
                     if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
 
                     $summaryRows[] = [
-                        'lokasi'      => $lokasi,
+                        'departemen'      => $departemen,
                         'line'        => $line,
                         'kategori'    => $kategori,
                         'total'       => $total,
@@ -529,12 +526,11 @@ class KontrolService
      */
     public function approveBulanan($request)
     {
-        $role = session()->get('role');
-        if (!in_array($role, [Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value])) {
-            return ["status" => false, "message" => 'Akses ditolak.'];
+        if (!has_any_role([\App\Enums\Role::Admin->value, \App\Enums\Role::Member->value, \App\Enums\Role::Leader->value, \App\Enums\Role::Sheadprd->value, \App\Enums\Role::Sheadmtc->value])) {
+            return redirect()->to('/dashboard')->with('error', 'Akses ditolak.');
         }
 
-        $lokasi   = $request->getPost('lokasi');
+        $departemen   = $request->getPost('departemen');
         $line     = $request->getPost('line');
         $kategori = $request->getPost('kategori');
         $bulan    = $request->getPost('bulan_tahun');
@@ -545,7 +541,7 @@ class KontrolService
 
         $db = \Config\Database::connect();
         $approvalModel = new \App\Models\ApprovalBulananModel();
-        $approval = $approvalModel->getApprovalKontrol($lokasi, $line, $kategori, $bulan);
+        $approval = $approvalModel->getApprovalKontrol($departemen, $line, $kategori, $bulan);
 
         $currentStatus = $approval ? $approval['status'] : 'Pending';
         $userId        = session()->get('user_id');
@@ -553,34 +549,53 @@ class KontrolService
 
         $data = [
             'type'        => 'kontrol',
-            'lokasi'      => $lokasi,
+            'departemen'      => $departemen,
             'line'        => $line,
             'kategori'    => $kategori,
             'bulan_tahun' => $bulan,
             'updated_at'  => $now,
         ];
 
-        // Admin override
-        if ($role === Role::Admin->value) {
+
+        // Logic Approval Level
+        if (has_role(Role::Admin->value)) {
             $data['status'] = 'Approved Final';
             $data['approved_final_by'] = $userId;
             $data['approved_final_at'] = $now;
-        } elseif ($role === Role::Member->value) {
-            if ($currentStatus !== 'Pending') return ["status" => false, "message" => 'Sudah diproses L1.'];
+        } elseif ($currentStatus === 'Pending') {
+            if (!has_role(Role::Member->value)) return ["status" => false, "message" => 'Laporan butuh persetujuan Member.'];
             
             $data['status'] = 'Approved L1';
             $data['approved_l1_by'] = $userId;
             $data['approved_l1_at'] = $now;
-        } elseif ($role === Role::Sheadprd->value) {
-            if ($currentStatus !== 'Approved L1') return ["status" => false, "message" => 'Belum disetujui L1.'];
+        } elseif ($currentStatus === 'Approved L1') {
+            if (!has_role(Role::Sheadprd->value)) return ["status" => false, "message" => 'Laporan butuh persetujuan Section Head Produksi.'];
+            
+            // Location Validation for Sheadprd
+            if (session()->get('departemen')) {
+                $userDepts = array_map('trim', explode(',', session()->get('departemen')));
+                if (!in_array($departemen, $userDepts)) {
+                    return ["status" => false, "message" => 'Akses ditolak! Anda hanya dapat menyetujui laporan dari departemen ' . session()->get('departemen')];
+                }
+            }
+            if (session()->get('line')) {
+                $userLines = array_map('trim', explode(',', session()->get('line')));
+                if (!in_array($line, $userLines)) {
+                    return ["status" => false, "message" => 'Akses ditolak! Line ini tidak berada di ' . session()->get('line') . ' yang menjadi tanggung jawab Anda.'];
+                }
+            }
+            
             $data['status'] = 'Approved L2';
             $data['approved_l2_by'] = $userId;
             $data['approved_l2_at'] = $now;
-        } elseif ($role === Role::Sheadmtc->value) {
-            if ($currentStatus !== 'Approved L2') return ["status" => false, "message" => 'Belum disetujui L2.'];
+        } elseif ($currentStatus === 'Approved L2') {
+            if (!has_role(Role::Sheadmtc->value)) return ["status" => false, "message" => 'Laporan butuh persetujuan Section Head MTC.'];
+            
             $data['status'] = 'Approved Final';
             $data['approved_final_by'] = $userId;
             $data['approved_final_at'] = $now;
+        } else {
+            return ["status" => false, "message" => 'Status laporan tidak valid untuk diproses.'];
         }
 
         if ($approval) {
@@ -599,34 +614,35 @@ class KontrolService
      */
     public function deleteApprovalBulanan($request)
     {
-        if (session()->get('role') !== Role::Admin->value) {
-            return ["status" => false, "message" => 'Akses ditolak.'];
+        if (!has_role(Role::Admin->value)) {
+            return ['status' => false, 'message' => 'Akses ditolak. Hanya Admin.'];
         }
 
-        $lokasi   = $request->getPost('lokasi');
+        $departemen   = $request->getPost('departemen');
         $line     = $request->getPost('line');
         $kategori = $request->getPost('kategori');
         $bulan    = $request->getPost('bulan_tahun');
 
         $approvalModel = new \App\Models\ApprovalBulananModel();
-        $approvalModel->deleteApprovalKontrol($lokasi, $line, $kategori, $bulan);
+        $approvalModel->deleteApprovalKontrol($departemen, $line, $kategori, $bulan);
 
         return ["status" => true, "message" => 'Data approval Checklist Control berhasil dihapus (Reset ke Belum Selesai).'];
     }
 
-    private function resolveCategories(string $lokasi): array
+    private function resolveCategories(string $departemen, ?string $line = null): array
     {
-        if ($lokasi === Lokasi::MFG2->value) {
-            return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
+        $hasCam = (new \App\Models\MesinModel())->hasCamMachine($departemen, $line);
+        if ($hasCam) {
+            return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
         }
-        return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
+        return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
     }
 
-    private function resolveAvailableLines(string $lokasi): array
+    private function resolveAvailableLines(string $departemen): array
     {
-        if ($lokasi === Lokasi::MFG1->value) {
+        if ($departemen === Departemen::MFG1->value) {
             return ['Line 1', 'Line 2', 'Line 3'];
-        } elseif ($lokasi === Lokasi::MFG2->value) {
+        } elseif ($departemen === Departemen::MFG2->value) {
             return ['CG', 'Second'];
         }
         return [];

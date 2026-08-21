@@ -88,7 +88,8 @@
             <th>No Mesin</th>
             <th>Type</th>
             <th>Serial Nomor</th>
-            <th>Lokasi</th>
+            <th>Plan</th>
+            <th>Departemen</th>
             <th>Line</th>
             <th>Bar Feeder</th>
             <th>Jenis</th>
@@ -108,14 +109,26 @@
             </td>
             <td>
               <?php if (session()->get('role') === 'leader'): ?>
-                <input type="text" class="form-control form-control-sm" value="<?= esc(session()->get('lokasi')) ?>" readonly>
-                <input type="hidden" id="filterLokasi" name="lokasi" value="<?= esc(session()->get('lokasi')) ?>">
+                <!-- Untuk leader, plan kita ambil berdasarkan departemen user atau biarkan all -->
+                <input type="hidden" name="plan" value="<?= esc($filters['plan'] ?? 'all') ?>">
+                -
               <?php else: ?>
-                <select name="lokasi" id="filterLokasi" class="form-select form-select-sm" onchange="document.getElementById('filterLine').value = 'all'; this.form.submit();">
-                  <option value="all">Semua Lokasi</option>
-                  <option value="MFG 1" <?= ($filters['lokasi'] ?? '') === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
-                  <option value="MFG 2" <?= ($filters['lokasi'] ?? '') === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
-                  <option value="Plan 2" <?= ($filters['lokasi'] ?? '') === 'Plan 2' ? 'selected' : '' ?>>Plan 2</option>
+                <select name="plan" id="filterPlan" class="form-select form-select-sm" onchange="document.getElementById('filterLine').value = 'all'; this.form.submit();">
+                  <option value="all">Semua</option>
+                  <option value="Plan 1" <?= ($filters['plan'] ?? '') === 'Plan 1' ? 'selected' : '' ?>>Plan 1</option>
+                  <option value="Plan 2" <?= ($filters['plan'] ?? '') === 'Plan 2' ? 'selected' : '' ?>>Plan 2</option>
+                </select>
+              <?php endif; ?>
+            </td>
+            <td>
+              <?php if (session()->get('role') === 'leader'): ?>
+                <input type="text" class="form-control form-control-sm" value="<?= esc(session()->get('departemen')) ?>" readonly>
+                <input type="hidden" id="filterDepartemen" name="departemen" value="<?= esc(session()->get('departemen')) ?>">
+              <?php else: ?>
+                <select name="departemen" id="filterDepartemen" class="form-select form-select-sm" onchange="document.getElementById('filterLine').value = 'all'; this.form.submit();">
+                  <option value="all">Semua</option>
+                  <option value="MFG 1" <?= ($filters['departemen'] ?? '') === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
+                  <option value="MFG 2" <?= ($filters['departemen'] ?? '') === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
                 </select>
               <?php endif; ?>
             </td>
@@ -166,7 +179,8 @@
               <td><?= esc($m['no_mesin']) ?></td>
               <td><?= esc($m['type_mesin']) ?></td>
               <td><?= esc($m['serial_nomor']) ?></td>
-              <td><span class="badge bg-secondary"><?= esc($m['lokasi']) ?></span></td>
+              <td><span class="badge bg-primary"><?= esc($m['plan'] ?? 'Plan 1') ?></span></td>
+              <td><span class="badge bg-secondary"><?= esc($m['departemen']) ?></span></td>
               <td><span class="badge bg-info text-dark"><?= esc($m['line'] ?? '-') ?></span></td>
               <td><span class="text-muted small"><?= esc($m['bar_feeder_type'] ?? '-') ?></span></td>
               <td><span class="badge bg-secondary"><?= esc($m['jenis'] ?? '-') ?></span></td>
@@ -176,7 +190,7 @@
                           data-id="<?= (int)$m['id_mesin'] ?>"
                           data-no="<?= esc($m['no_mesin']) ?>"
                           data-type="<?= esc($m['type_mesin']) ?>"
-                          data-lokasi="<?= esc($m['lokasi']) ?>"
+                          data-departemen="<?= esc($m['departemen']) ?>"
                           data-serial="<?= esc($m['serial_nomor']) ?>">
                     <i class="bi bi-qr-code"></i> QR
                   </button>

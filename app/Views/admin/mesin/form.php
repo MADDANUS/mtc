@@ -22,12 +22,19 @@
              value="<?= esc(old('serial_nomor', $mesin['serial_nomor'] ?? '')) ?>">
     </div>
       <div class="mb-3">
-        <label class="form-label fw-semibold">Lokasi <span class="text-danger">*</span></label>
-        <?php $lokasiVal = old('lokasi', $mesin['lokasi'] ?? 'MFG 1'); ?>
-        <select name="lokasi" class="form-select" required>
-          <option value="MFG 1" <?= $lokasiVal === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
-          <option value="MFG 2" <?= $lokasiVal === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
-          <option value="Plan 2" <?= $lokasiVal === 'Plan 2' ? 'selected' : '' ?>>Plan 2</option>
+        <label class="form-label fw-semibold">Plan <span class="text-danger">*</span></label>
+        <?php $planVal = old('plan', $mesin['plan'] ?? 'Plan 1'); ?>
+        <select name="plan" class="form-select" required>
+          <option value="Plan 1" <?= $planVal === 'Plan 1' ? 'selected' : '' ?>>Plan 1</option>
+          <option value="Plan 2" <?= $planVal === 'Plan 2' ? 'selected' : '' ?>>Plan 2</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Departemen <span class="text-danger">*</span></label>
+        <?php $departemenVal = old('departemen', $mesin['departemen'] ?? 'MFG 1'); ?>
+        <select name="departemen" class="form-select" required>
+          <option value="MFG 1" <?= $departemenVal === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
+          <option value="MFG 2" <?= $departemenVal === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
         </select>
       </div>
     <div class="mb-3">
@@ -65,7 +72,6 @@
       <div class="form-text small">Pilih jenis form agar saat scan QR otomatis diarahkan ke form yang tepat. (CNC untuk MFG 1, lainnya untuk MFG 2)</div>
     </div>
 
-
     <button type="submit" class="btn btn-primary">Simpan</button>
     <a href="<?= site_url('admin/mesin') ?>" class="btn btn-outline-secondary">Batal</a>
   </form>
@@ -73,7 +79,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const lokasiSelect = document.querySelector('select[name="lokasi"]');
+    const planSelect = document.querySelector('select[name="plan"]');
+    const lokasiSelect = document.querySelector('select[name="departemen"]');
     const typeInput = document.querySelector('input[name="type_mesin"]');
     const serialInput = document.querySelector('input[name="serial_nomor"]');
     const lineSelect = document.querySelector('select[name="line"]');
@@ -82,13 +89,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const lines = <?= json_encode($linesGrouped ?? []) ?>;
 
     function updateLines() {
+        const selectedPlan = planSelect.value;
         const selectedLokasi = lokasiSelect.value;
         const selectedLine = lineSelect.getAttribute('data-selected');
         
         lineSelect.innerHTML = '<option value="">-- Pilih Line --</option>';
         
-        if (lines[selectedLokasi]) {
-            lines[selectedLokasi].forEach(line => {
+        if (lines[selectedPlan] && lines[selectedPlan][selectedLokasi]) {
+            lines[selectedPlan][selectedLokasi].forEach(line => {
                 const option = document.createElement('option');
                 option.value = line;
                 option.textContent = line;
@@ -111,8 +119,9 @@ document.addEventListener('DOMContentLoaded', function() {
         updateLines();
     }
 
-    if(lokasiSelect) {
+    if(lokasiSelect && planSelect) {
         lokasiSelect.addEventListener('change', toggleRequired);
+        planSelect.addEventListener('change', updateLines);
         toggleRequired(); // Run on init
         
         // Update data-selected when user manually changes it

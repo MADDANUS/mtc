@@ -3,7 +3,7 @@
 namespace App\Controllers;
 
 use App\Enums\Role;
-use App\Enums\Lokasi;
+use App\Enums\Departemen;
 use App\Enums\JenisCheck;
 
 use App\Models\MesinModel;
@@ -49,11 +49,19 @@ class ChecklistController extends BaseController
         'centering-grinding'   => 'CENTERING GRINDING',
     ];
 
-    private function resolveLokasi(string $slug): string
+    private function resolvePlan(string $slug): string
     {
         return match (strtolower($slug)) {
-            'mfg2'  => Lokasi::MFG2->value,
-            default => Lokasi::MFG1->value,
+            'plan-2' => \App\Enums\Plan::PLAN2->value,
+            default  => \App\Enums\Plan::PLAN1->value,
+        };
+    }
+
+    private function resolveDepartemen(string $slug): string
+    {
+        return match (strtolower($slug)) {
+            'mfg-2', 'mfg2' => Departemen::MFG2->value,
+            default         => Departemen::MFG1->value,
         };
     }
 
@@ -68,40 +76,66 @@ class ChecklistController extends BaseController
 
     private function resolveJenisDisplay(string $jenisName): string
     {
-        return $jenisName === JenisCheck::Preventive->value ? 'Checklist Report' : $jenisName;
+        if ($jenisName === JenisCheck::Preventive->value) {
+            return 'Preventive Maintenance';
+        }
+        if ($jenisName === JenisCheck::Overhaul->value) {
+            return 'Overhaul Maintenance';
+        }
+        return $jenisName;
     }
 
     /**
      * GET /checklist
-     * Halaman pilih lokasi (MFG 1 / MFG 2).
+     * Halaman pilih Plan (Plan 1 / Plan 2).
      */
-    public function pilihLokasi()
+    public function pilihPlan()
     {
-        return view('checklist/pilih_lokasi', [
-            'title' => 'Pilih Jenis Pengecekan',
+        return view('checklist/pilih_plan', [
+            'title' => 'Pilih Plan Pengecekan',
         ]);
     }
 
     /**
-     * GET /checklist/(:segment)
+     * GET /checklist/plan/(:segment)
+     * Halaman pilih departemen (MFG 1 / MFG 2).
+     */
+    public function pilihDepartemen(string $planSlug)
+    {
+        return view('checklist/pilih_departemen', [
+            'title' => 'Pilih Departemen',
+            'planSlug' => $planSlug,
+            'planName' => $this->resolvePlan($planSlug),
+        ]);
+    }
+
+    /**
+     * GET /checklist/plan/(:segment)/(:segment)
      * Halaman pilih jenis pengecekan (Preventive / Overhaul).
      */
-    public function pilihJenis(string $lokasiSlug)
+    public function pilihJenis(string $planSlug, string $departemenSlug)
     {
         return view('checklist/pilih_jenis', [
-            'title'      => 'Pilih Jenis Pengecekan',
-            'lokasiSlug' => $lokasiSlug,
-            'lokasiName' => $this->resolveLokasi($lokasiSlug),
+            'title'          => 'Pilih Jenis Pengecekan',
+            'planSlug'       => $planSlug,
+            'departemenSlug' => $departemenSlug,
+            'departemenName' => $this->resolveDepartemen($departemenSlug),
+            'role'           => session()->get('role'),
         ]);
     }
 
     /**
-     * GET /checklist/(:segment)/(:segment)
+     * GET /checklist/plan/(:segment)/(:segment)/(:segment)
      * Halaman pilih kategori berdasarkan jenis (Preventive / Overhaul).
      */
-    public function indexKategori(string $lokasiSlug, string $jenisSlug)
+    public function indexKategori(string $planSlug, string $departemenSlug, string $jenisSlug)
     {
-        $lokasiName       = $this->resolveLokasi($lokasiSlug);
+        if (strtolower($jenisSlug) === 'overhaul' && has_role('magang') && !has_any_role(['admin', 'member', 'leader_member', 'leader', 'sheadprd', 'sheadmtc'])) {
+            return $this->redirectError('/dashboard', 'Akses Ditolak: Magang tidak memiliki akses ke Overhaul Mesin.');
+        }
+
+        $planName             = $this->resolvePlan($planSlug);
+        $departemenName       = $this->resolveDepartemen($departemenSlug);
         $jenisDbName      = $this->resolveJenis($jenisSlug);
         $jenisDisplayName = $this->resolveJenisDisplay($jenisDbName);
         $idMesin          = $this->request->getGet('id_mesin') ?: null;
@@ -115,52 +149,62 @@ class ChecklistController extends BaseController
             }
         }
 
+        // --- INTERCEPT: Jika Line belum dipilih, tampilkan halaman Pilih Line ---
+        if (empty($line)) {
+            $lineModel = new \App\Models\LineModel();
+            // Filter by Departemen AND Plan
+            $linesGrouped = $lineModel->where('plan', $planName)->getLinesGroupedByDepartemen();
+            $lines = $linesGrouped[$planName][$departemenName] ?? [];
+
+            return view('checklist/pilih_line', [
+                'title'          => "Pilih Line - {$jenisDisplayName} {$departemenName}",
+                'planSlug'       => $planSlug,
+                'departemenSlug' => $departemenSlug,
+                'departemenName' => $departemenName,
+                'jenisSlug'      => $jenisSlug,
+                'jenisName'      => $jenisDisplayName,
+                'lines'          => $lines,
+            ]);
+        }
+
         // Auto-routing jika id_mesin ada
         if ($idMesin && strtolower($jenisSlug) === 'overhaul') {
             $mesin = $this->mesinModel->find($idMesin);
             if ($mesin) {
-                if ($lokasiName === Lokasi::MFG1->value) {
+                if ($departemenName === Departemen::MFG1->value) {
                     // MFG 1 Overhaul selalu memakai form mesin-cnc-bar-feeder
-                    return redirect()->to("/checklist/{$lokasiSlug}/{$jenisSlug}/create/mesin-cnc-bar-feeder?id_mesin={$idMesin}");
+                    return redirect()->to("/checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}/create/mesin-cnc-bar-feeder?id_mesin={$idMesin}" . ($line ? "&line=" . urlencode($line) : ""));
                 } else if (!empty($mesin['jenis'])) {
                     // MFG 2 Overhaul mengikuti jenis mesinnya (milling, thread, dll)
                     $kategoriSlug = url_title(strtolower($mesin['jenis']), '-', true);
-                    return redirect()->to("/checklist/{$lokasiSlug}/{$jenisSlug}/create/{$kategoriSlug}?id_mesin={$idMesin}");
+                    return redirect()->to("/checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}/create/{$kategoriSlug}?id_mesin={$idMesin}" . ($line ? "&line=" . urlencode($line) : ""));
                 }
             }
         }
 
-        // Jika Overhaul MFG 1 tanpa id_mesin, langsung arahkan ke form Mesin CNC & Bar Feeder
-        if (strtolower($jenisSlug) === 'overhaul' && $lokasiName === Lokasi::MFG1->value) {
-            $redirectUrl = "/checklist/{$lokasiSlug}/{$jenisSlug}/create/mesin-cnc-bar-feeder";
+        // Jika Overhaul MFG 1, langsung arahkan ke form Mesin CNC & Bar Feeder
+        if (strtolower($jenisSlug) === 'overhaul' && $departemenName === Departemen::MFG1->value) {
+            $redirectUrl = "/checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}/create/mesin-cnc-bar-feeder";
+            $queryParams = [];
             if ($idMesin) {
-                $redirectUrl .= "?id_mesin=" . $idMesin;
+                $queryParams[] = "id_mesin=" . $idMesin;
+            }
+            if ($line) {
+                $queryParams[] = "line=" . urlencode($line);
+            }
+            if (!empty($queryParams)) {
+                $redirectUrl .= "?" . implode("&", $queryParams);
             }
             return redirect()->to($redirectUrl);
         }
 
-        // --- INTERCEPT: Jika Line belum dipilih, tampilkan halaman Pilih Line ---
-        if (empty($line) && strtolower($jenisSlug) !== 'overhaul') {
-            $lineModel = new \App\Models\LineModel();
-            $linesGrouped = $lineModel->getLinesGroupedByLokasi();
-            $lines = $linesGrouped[$lokasiName] ?? [];
-
-            return view('checklist/pilih_line', [
-                'title'      => "Pilih Line - {$jenisDisplayName} {$lokasiName}",
-                'lokasiSlug' => $lokasiSlug,
-                'lokasiName' => $lokasiName,
-                'jenisSlug'  => $jenisSlug,
-                'jenisName'  => $jenisDisplayName,
-                'lines'      => $lines,
-            ]);
-        }
-
-        $categories = $this->resolveCategoriesList($jenisSlug, $lokasiName);
+        $categories = $this->resolveCategoriesList($jenisSlug, $departemenName, $planName, $line);
 
         return view('checklist/index', [
-            'title'      => "Pilih Kategori - {$jenisDisplayName} {$lokasiName}",
-            'lokasiSlug' => $lokasiSlug,
-            'lokasiName' => $lokasiName,
+            'title'      => "Pilih Kategori - {$jenisDisplayName} {$departemenName}",
+            'planSlug'       => $planSlug,
+            'departemenSlug' => $departemenSlug,
+            'departemenName' => $departemenName,
             'jenisSlug'  => $jenisSlug,
             'jenisName'  => $jenisDisplayName,
             'categories' => $categories,
@@ -170,29 +214,43 @@ class ChecklistController extends BaseController
     }
 
     /**
-     * GET /checklist/(:segment)/(:segment)/create/(:segment)
+     * GET /checklist/plan/(:segment)/(:segment)/(:segment)/create/(:segment)
      * Menampilkan form pengecekan.
      */
-    public function create(string $lokasiSlug, string $jenisSlug, string $categorySlug)
+    public function create(string $planSlug, string $departemenSlug, string $jenisSlug, string $categorySlug)
     {
-        if (! isset($this->categoryMap[$categorySlug])) {
-            return redirect()->to("/checklist/{$lokasiSlug}/{$jenisSlug}")->with('error', 'Kategori tidak valid.');
+        if (strtolower($jenisSlug) === 'overhaul' && has_role('magang') && !has_any_role(['admin', 'member', 'leader_member', 'leader', 'sheadprd', 'sheadmtc'])) {
+            return redirect()->to('/dashboard')->with('error', 'Akses ditolak: Magang tidak diizinkan melakukan Overhaul.');
         }
 
-        $lokasiName       = $this->resolveLokasi($lokasiSlug);
-        $jenisDbName      = $this->resolveJenis($jenisSlug);
-        $jenisDisplayName = $this->resolveJenisDisplay($jenisDbName);
-        $categoryName     = $this->categoryMap[$categorySlug];
+        $planName             = $this->resolvePlan($planSlug);
+        $departemenName       = $this->resolveDepartemen($departemenSlug);
+        $jenisDbName          = $this->resolveJenis($jenisSlug);
+        $jenisDisplayName     = $this->resolveJenisDisplay($jenisDbName);
+        
+        $line             = $this->request->getGet('line') ?: null;
+        
+        $categories = $this->resolveCategoriesList($jenisSlug, $departemenName, $planName, $line);
+        if (!isset($categories[$categorySlug])) {
+            if (isset($this->categoryMap[$categorySlug])) {
+                $categoryName = $this->categoryMap[$categorySlug];
+            } else {
+                return redirect()->to("/checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}")->with('error', 'Kategori tidak valid.');
+            }
+        } else {
+            $categoryName = $categories[$categorySlug];
+        }
+
         $waktuMulai       = Time::now();
         $idMesin          = $this->request->getGet('id_mesin') ?: null;
-        $line             = $this->request->getGet('line') ?: null;
 
         // NEW LOGIC: Block if Jadwal Preventive is not created for this month, location, and category
         if ($jenisDbName === JenisCheck::Preventive->value) {
             $jadwalModel = new \App\Models\JadwalPreventiveModel();
             $bulanIni = date('Y-m'); // e.g., '2026-07'
             
-            $cekJadwal = $jadwalModel->where('lokasi', $lokasiName)
+            $cekJadwal = $jadwalModel->where('plan', $planName)
+                                     ->where('departemen', $departemenName)
                                      ->where('kategori', $categoryName)
                                      ->where('bulan_tahun', $bulanIni)
                                      ->first();
@@ -200,7 +258,7 @@ class ChecklistController extends BaseController
             if (!$cekJadwal) {
                 // If it came from QR scan with id_mesin, preserve the id_mesin in the redirect url if desired,
                 // but redirecting back to category list is fine.
-                $redirectUrl = "/checklist/{$lokasiSlug}/{$jenisSlug}";
+                $redirectUrl = "/checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}";
                 if ($idMesin) {
                     $redirectUrl .= "?id_mesin=" . $idMesin;
                 }
@@ -211,44 +269,56 @@ class ChecklistController extends BaseController
         }
 
         if (strtolower($jenisSlug) === 'overhaul') {
-            if ($lokasiName === Lokasi::MFG2->value) {
-                $daftarMesin = $this->mesinModel->where('lokasi', $lokasiName)
-                                                ->where('jenis', $categoryName)
-                                                ->orderBy('no_mesin', 'ASC')
-                                                ->findAll();
-            } else {
-                // MFG 1 - Overhaul (Mesin CNC & Bar Feeder)
-                $daftarMesin = $this->mesinModel->where('lokasi', $lokasiName)
-                                                ->where('jenis', 'CNC')
-                                                ->orderBy('no_mesin', 'ASC')
-                                                ->findAll();
-            }
-        } else {
-            // Preventive: filter mesin berdasarkan Line yang dipilih jika ada
-            $mesinQuery = $this->mesinModel->where('lokasi', $lokasiName);
+            $mesinQuery = $this->mesinModel->where('plan', $planName)
+                                           ->where('departemen', $departemenName);
             if ($line) {
                 $mesinQuery->where('line', $line);
             }
+
+            if ($departemenName === Departemen::MFG2->value) {
+                $mesinQuery->where('jenis', $categoryName);
+            } else {
+                // MFG 1 - Overhaul (Mesin CNC & Bar Feeder)
+                $mesinQuery->where('jenis', 'CNC');
+            }
+            
+            $daftarMesin = $mesinQuery->orderBy('no_mesin', 'ASC')->findAll();
+        } else {
+            // Preventive: filter mesin berdasarkan Line yang dipilih jika ada
+            $mesinQuery = $this->mesinModel->where('plan', $planName)->where('departemen', $departemenName);
+            if ($line) {
+                $mesinQuery->where('line', $line);
+            }
+            
+            // Filter khusus mesin CAM untuk 3 kategori bawah di MFG 1
+            if ($departemenName === Departemen::MFG1->value) {
+                $camCategories = ['bearing-cam', 'gearbox', 'belt-cam'];
+                if (in_array($categorySlug, $camCategories)) {
+                    $mesinQuery->where('jenis', 'CAM');
+                }
+            }
+
             $daftarMesin = $mesinQuery->orderBy('no_mesin', 'ASC')->findAll();
 
             // Jika Line dipilih tapi tidak ada mesin, redirect balik ke Pilih Line dengan SweetAlert
             if ($line && empty($daftarMesin)) {
                 return redirect()
-                    ->to("/checklist/{$lokasiSlug}/{$jenisSlug}")
+                    ->to("/checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}")
                     ->with('warning', "Tidak ada mesin yang terdaftar di Line <b>\"{$line}\"</b>. Silakan pilih Line lain atau hubungi Admin untuk mendaftarkan mesin.");
             }
         }
 
         $data = [
             'title'             => "Form Pengecekan {$jenisDisplayName} - {$categoryName}",
-            'lokasiSlug'        => $lokasiSlug,
-            'lokasiName'        => $lokasiName,
+            'planSlug'          => $planSlug,
+            'departemenSlug'        => $departemenSlug,
+            'departemenName'        => $departemenName,
             'jenisSlug'         => $jenisSlug,
             'jenisName'         => $jenisDisplayName,
             'categorySlug'      => $categorySlug,
             'categoryName'      => $categoryName,
             'daftarMesin'       => $daftarMesin,
-            'rows'              => $this->parameterModel->getFormRows($lokasiName, $jenisDbName, $categoryName),
+            'rows'              => $this->parameterModel->getFormRows($departemenName, $jenisDbName, $categoryName),
             'masterPic'         => (new \App\Models\UserModel())->whereIn('role', ['member', 'magang'])->orderBy('nama', 'ASC')->findAll(),
             'namaStaff'         => session()->get('nama'),
             'waktuMulai'        => $waktuMulai->toDateTimeString(),
@@ -286,10 +356,10 @@ class ChecklistController extends BaseController
             }
         }
 
-        // Get Lokasi for Jadwal
+        // Get Departemen for Jadwal
         $mesinModel = new \App\Models\MesinModel();
         $mesin = $mesinModel->find($idMesin);
-        $lokasiName = $mesin['lokasi'] ?? '';
+        $departemenName = $mesin['departemen'] ?? '';
 
         $transaksiModel = new \App\Models\TransaksiCheckModel();
         
@@ -319,7 +389,7 @@ class ChecklistController extends BaseController
 
         // 1. Cek Tunggakan (Bulan Lalu)
         $lastMonth = date('Y-m', strtotime('-1 month'));
-        $scheduleLastMonth = $jadwalModel->getJadwalForChecklist($lokasiName, $kategori, $lastMonth);
+        $scheduleLastMonth = $jadwalModel->getJadwalForChecklist($departemenName, $kategori, $lastMonth);
         
         if ($scheduleLastMonth) {
             $checkedLastMonth = $transaksiModel->checkDuplicate((int)$idMesin, $jenisCheck, $lastMonth, $kategori);
@@ -335,7 +405,7 @@ class ChecklistController extends BaseController
 
         // 2. Cek Bulan Berjalan
         $currentMonth = date('Y-m');
-        $scheduleCurrentMonth = $jadwalModel->getJadwalForChecklist($lokasiName, $kategori, $currentMonth);
+        $scheduleCurrentMonth = $jadwalModel->getJadwalForChecklist($departemenName, $kategori, $currentMonth);
 
         if ($scheduleCurrentMonth) {
             $checkedCurrentMonth = $transaksiModel->checkDuplicate((int)$idMesin, $jenisCheck, $currentMonth, $kategori);
@@ -351,7 +421,7 @@ class ChecklistController extends BaseController
 
         // 3. Cek Curi Start (Bulan Depan)
         $nextMonth = date('Y-m', strtotime('+1 month'));
-        $scheduleNextMonth = $jadwalModel->getJadwalForChecklist($lokasiName, $kategori, $nextMonth);
+        $scheduleNextMonth = $jadwalModel->getJadwalForChecklist($departemenName, $kategori, $nextMonth);
 
         if ($scheduleNextMonth) {
             $checkedNextMonth = $transaksiModel->checkDuplicate((int)$idMesin, $jenisCheck, $nextMonth, $kategori);
@@ -377,13 +447,13 @@ class ChecklistController extends BaseController
     /**
      * POST /checklist/(:segment)/(:segment)/store
      */
-    public function store(string $lokasiSlug, string $jenisSlug)
+    public function store(string $departemenSlug, string $jenisSlug)
     {
         if (! $this->validateStoreRules($jenisSlug)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        $lokasiName   = $this->resolveLokasi($lokasiSlug);
+        $departemenName   = $this->resolveLokasi($departemenSlug);
         $jenisName    = $this->resolveJenis($jenisSlug);
         $idMesin      = (int) $this->request->getPost('id_mesin');
         $waktuMulai   = $this->request->getPost('waktu_mulai');
@@ -407,8 +477,9 @@ class ChecklistController extends BaseController
         $idTransaksi = $this->transaksiModel->insert([
             'id_user'       => session()->get('user_id'),
             'nama_pic'      => $inputPic,
+            'plan'          => $planName,
             'id_mesin'      => $idMesin,
-            'lokasi_check'  => $lokasiName,
+            'departemen_check'  => $departemenName,
             'line_check'    => $lineCheck,
             'jenis_check'   => $jenisName,
             'kategori'      => $kategoriName,
@@ -442,7 +513,7 @@ class ChecklistController extends BaseController
 
         $roleSession = session()->get('role');
         if ($roleSession === Role::Magang->value) {
-            $redirectUrl = "/riwayat/lokasi/{$lokasiSlug}?jenis_check=" . urlencode($jenisName) . "&kategori=" . urlencode($kategoriName);
+            $redirectUrl = "/riwayat/departemen/{$departemenSlug}?jenis_check=" . urlencode($jenisName) . "&kategori=" . urlencode($kategoriName) . "&plan=" . urlencode($planName);
         } else {
             $redirectUrl = "/approval";
         }
@@ -453,12 +524,12 @@ class ChecklistController extends BaseController
     }
 
     /**
-     * GET /checklist/(:segment)/overhaul
+     * GET /checklist/plan/(:segment)/(:segment)/overhaul
      * Halaman placeholder Overhaul.
      */
-    public function overhaulPlaceholder(string $lokasiSlug)
+    public function overhaulPlaceholder(string $planSlug, string $departemenSlug)
     {
-        return redirect()->to("/checklist/{$lokasiSlug}/overhaul");
+        return redirect()->to("/checklist/plan/{$planSlug}/{$departemenSlug}/overhaul");
     }
 
     private function formatDurasi(string $mulai, string $selesai): string
@@ -546,24 +617,34 @@ class ChecklistController extends BaseController
         ]);
     }
 
-    private function resolveCategoriesList(string $jenisSlug, string $lokasiName): array
+    private function resolveCategoriesList(string $jenisSlug, string $departemenName, string $planName = 'Plan 1', ?string $line = null): array
     {
-        if (strtolower($jenisSlug) === 'overhaul' && $lokasiName === Lokasi::MFG2->value) {
-            return [
-                'thread'               => 'THREAD',
-                'double-milling'       => 'DOUBLE MILLING',
-                'milling'              => 'MILLING',
-                'double-center-drill'  => 'DOUBLE CENTER DRILL',
-                'osl'                  => 'OSL',
-                'knurling'             => 'KNURLING',
-                'brother'              => 'BROTHER',
-                'burnishing'           => 'BURNISHING',
-                'buffing'              => 'BUFFING',
-                'centering-grinding'   => 'CENTERING GRINDING',
-            ];
+        if (strtolower($jenisSlug) === 'overhaul' && $departemenName === Departemen::MFG2->value) {
+            $db = \Config\Database::connect();
+            
+            $sql = "SELECT DISTINCT jenis FROM master_mesin WHERE plan = ? AND departemen = ? AND jenis IS NOT NULL AND jenis != '-'";
+            $params = [$planName, $departemenName];
+            
+            if (!empty($line)) {
+                $sql .= " AND line = ?";
+                $params[] = $line;
+            }
+            
+            $query = $db->query($sql, $params);
+            $results = $query->getResultArray();
+            
+            $categories = [];
+            foreach ($results as $row) {
+                $jenis = trim($row['jenis']);
+                if (!empty($jenis)) {
+                    $slug = url_title(strtolower($jenis), '-', true);
+                    $categories[$slug] = strtoupper($jenis);
+                }
+            }
+            return $categories;
         }
 
-        if ($lokasiName === Lokasi::MFG2->value) {
+        if ($departemenName === Departemen::MFG2->value) {
             return [
                 'penerangan'     => 'Penerangan',
                 'kabel-dan-pipa' => 'Kabel dan Pipa',
@@ -571,13 +652,31 @@ class ChecklistController extends BaseController
             ];
         }
 
-        return [
+        $baseCategories = [
             'penerangan'     => 'Penerangan',
             'kabel-dan-pipa' => 'Kabel dan Pipa',
             'angin-bocor'    => 'Angin Bocor',
-            'bearing-cam'    => 'Bearing Cam',
-            'gearbox'        => 'Gearbox',
-            'belt-cam'       => 'Belt Cam',
         ];
+
+        if ($departemenName === Departemen::MFG1->value) {
+            $db = \Config\Database::connect();
+            $sql = "SELECT 1 FROM master_mesin WHERE plan = ? AND departemen = ? AND jenis = 'CAM'";
+            $params = [$planName, $departemenName];
+            if (!empty($line)) {
+                $sql .= " AND line = ?";
+                $params[] = $line;
+            }
+            $sql .= " LIMIT 1";
+            
+            $hasCam = $db->query($sql, $params)->getRow();
+            
+            if ($hasCam) {
+                $baseCategories['bearing-cam'] = 'Bearing Cam';
+                $baseCategories['gearbox'] = 'Gearbox';
+                $baseCategories['belt-cam'] = 'Belt Cam';
+            }
+        }
+
+        return $baseCategories;
     }
 }

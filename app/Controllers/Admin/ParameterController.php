@@ -5,7 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\ParameterCheckModel;
 use App\Traits\AdminCrudTrait;
-use App\Enums\Lokasi;
+use App\Enums\Departemen;
 use App\Enums\JenisCheck;
 
 class ParameterController extends BaseController
@@ -20,12 +20,12 @@ class ParameterController extends BaseController
 
     public function index()
     {
-        $lokasi     = $this->request->getGet('lokasi') ?: Lokasi::MFG1->value;
+        $departemen     = $this->request->getGet('departemen') ?: Departemen::MFG1->value;
         $jenisCheck = $this->request->getGet('jenis_check') ?: JenisCheck::Preventive->value;
 
-        // Ambil daftar kategori unik untuk lokasi + jenis check ini
+        // Ambil daftar kategori unik untuk departemen + jenis check ini
         // Urutkan kategori berdasarkan urutan terkecil (urutan pertama baris parameter)
-        $kategoriQuery = $this->model->where('lokasi', $lokasi)
+        $kategoriQuery = $this->model->where('departemen', $departemen)
                                      ->where('jenis_check', $jenisCheck)
                                      ->select('kategori, MIN(urutan) as min_urut')
                                      ->groupBy('kategori')
@@ -37,14 +37,14 @@ class ParameterController extends BaseController
         // Ambil parameter per kategori lengkap dengan rowspan dinamisnya
         $kategoriParameters = [];
         foreach ($daftarKategori as $kat) {
-            $kategoriParameters[$kat] = $this->model->getFormRows($lokasi, $jenisCheck, $kat);
+            $kategoriParameters[$kat] = $this->model->getFormRows($departemen, $jenisCheck, $kat);
         }
 
         $selectedKategori = $this->request->getGet('kategori') ?: null;
 
         return view('admin/parameter/index', [
             'title'              => 'Master Parameter Check',
-            'lokasi'             => $lokasi,
+            'departemen'             => $departemen,
             'jenisCheck'         => $jenisCheck,
             'daftarKategori'     => $daftarKategori,
             'kategoriParameters' => $kategoriParameters,
@@ -58,7 +58,7 @@ class ParameterController extends BaseController
             'title'     => 'Tambah Parameter Check',
             'parameter' => null,
             'prefill'   => [
-                'lokasi'      => $this->request->getGet('lokasi') ?: Lokasi::MFG1->value,
+                'departemen'      => $this->request->getGet('departemen') ?: Departemen::MFG1->value,
                 'jenis_check' => $this->request->getGet('jenis_check') ?: JenisCheck::Preventive->value,
                 'kategori'    => $this->request->getGet('kategori') ?: '',
             ]
@@ -72,7 +72,7 @@ class ParameterController extends BaseController
         }
 
         $this->model->insert([
-            'lokasi'         => $this->request->getPost('lokasi'),
+            'departemen'         => $this->request->getPost('departemen'),
             'jenis_check'    => $this->request->getPost('jenis_check'),
             'kategori'       => $this->request->getPost('kategori'),
             'section_check'  => $this->request->getPost('section_check') ?: null,
@@ -83,7 +83,7 @@ class ParameterController extends BaseController
             'urutan'         => (int) $this->request->getPost('urutan'),
         ]);
 
-        $url = '/admin/parameter?lokasi=' . urlencode($this->request->getPost('lokasi')) . '&jenis_check=' . urlencode($this->request->getPost('jenis_check')) . '&kategori=' . urlencode($this->request->getPost('kategori'));
+        $url = '/admin/parameter?departemen=' . urlencode($this->request->getPost('departemen')) . '&jenis_check=' . urlencode($this->request->getPost('jenis_check')) . '&kategori=' . urlencode($this->request->getPost('kategori'));
         return $this->redirectSuccess($url, 'Parameter check berhasil ditambahkan.');
     }
 
@@ -112,7 +112,7 @@ class ParameterController extends BaseController
         }
 
         $this->model->update($id, [
-            'lokasi'         => $this->request->getPost('lokasi'),
+            'departemen'         => $this->request->getPost('departemen'),
             'jenis_check'    => $this->request->getPost('jenis_check'),
             'kategori'       => $this->request->getPost('kategori'),
             'section_check'  => $this->request->getPost('section_check') ?: null,
@@ -123,7 +123,7 @@ class ParameterController extends BaseController
             'urutan'         => (int) $this->request->getPost('urutan'),
         ]);
 
-        $url = '/admin/parameter?lokasi=' . urlencode($this->request->getPost('lokasi')) . '&jenis_check=' . urlencode($this->request->getPost('jenis_check')) . '&kategori=' . urlencode($this->request->getPost('kategori'));
+        $url = '/admin/parameter?departemen=' . urlencode($this->request->getPost('departemen')) . '&jenis_check=' . urlencode($this->request->getPost('jenis_check')) . '&kategori=' . urlencode($this->request->getPost('kategori'));
         return $this->redirectSuccess($url, 'Parameter check berhasil diperbarui.');
     }
 
@@ -135,19 +135,19 @@ class ParameterController extends BaseController
         }
 
         $this->model->delete($id);
-        $url = '/admin/parameter?lokasi=' . urlencode($parameter['lokasi']) . '&jenis_check=' . urlencode($parameter['jenis_check']);
+        $url = '/admin/parameter?departemen=' . urlencode($parameter['departemen']) . '&jenis_check=' . urlencode($parameter['jenis_check']);
         return $this->redirectSuccess($url, 'Parameter check berhasil dihapus.');
     }
 
     public function fixUrutan()
     {
         $parameterModel = new \App\Models\ParameterCheckModel();
-        // Ambil semua kombinasi lokasi, jenis_check, kategori
+        // Ambil semua kombinasi departemen, jenis_check, kategori
         $combinations = $parameterModel->getKombinasiKategori();
 
         $totalUpdated = 0;
         foreach ($combinations as $combo) {
-            $params = $parameterModel->getParamsByKombinasi($combo['lokasi'], $combo['jenis_check'], $combo['kategori']);
+            $params = $parameterModel->getParamsByKombinasi($combo['departemen'], $combo['jenis_check'], $combo['kategori']);
             
             $index = 1;
             foreach ($params as $p) {
@@ -163,7 +163,7 @@ class ParameterController extends BaseController
     private function rules(): array
     {
         return [
-            'lokasi'         => 'required|in_list[MFG 1,MFG 2]',
+            'departemen'         => 'required|in_list[MFG 1,MFG 2]',
             'jenis_check'    => 'required|in_list[Preventive,Overhaul]',
             'kategori'       => 'required|max_length[100]',
             'section_check'  => 'permit_empty|max_length[150]',
@@ -176,13 +176,13 @@ class ParameterController extends BaseController
     }
     public function export()
     {
-        $parameters = $this->model->orderBy('lokasi', 'ASC')->orderBy('kategori', 'ASC')->orderBy('urutan', 'ASC')->findAll();
+        $parameters = $this->model->orderBy('departemen', 'ASC')->orderBy('kategori', 'ASC')->orderBy('urutan', 'ASC')->findAll();
         
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         
         // Header
-        $sheet->setCellValue('A1', 'Lokasi');
+        $sheet->setCellValue('A1', 'Departemen');
         $sheet->setCellValue('B1', 'Jenis Check');
         $sheet->setCellValue('C1', 'Kategori');
         $sheet->setCellValue('D1', 'Section Check');
@@ -195,7 +195,7 @@ class ParameterController extends BaseController
         // Data
         $row = 2;
         foreach ($parameters as $p) {
-            $sheet->setCellValue('A' . $row, $p['lokasi']);
+            $sheet->setCellValue('A' . $row, $p['departemen']);
             $sheet->setCellValue('B' . $row, $p['jenis_check']);
             $sheet->setCellValue('C' . $row, $p['kategori']);
             $sheet->setCellValue('D' . $row, $p['section_check']);
@@ -224,7 +224,7 @@ class ParameterController extends BaseController
         $sheet = $spreadsheet->getActiveSheet();
         
         // Header
-        $sheet->setCellValue('A1', 'Lokasi');
+        $sheet->setCellValue('A1', 'Departemen');
         $sheet->setCellValue('B1', 'Jenis Check');
         $sheet->setCellValue('C1', 'Kategori');
         $sheet->setCellValue('D1', 'Section Check');
@@ -280,7 +280,7 @@ class ParameterController extends BaseController
             $errors = [];
             
             for ($row = 2; $row <= $highestRow; $row++) {
-                $lokasi        = trim($sheet->getCell('A' . $row)->getValue() ?? '');
+                $departemen        = trim($sheet->getCell('A' . $row)->getValue() ?? '');
                 $jenisCheck    = trim($sheet->getCell('B' . $row)->getValue() ?? '');
                 $kategori      = trim($sheet->getCell('C' . $row)->getValue() ?? '');
                 $sectionCheck  = trim($sheet->getCell('D' . $row)->getValue() ?? '');
@@ -291,17 +291,17 @@ class ParameterController extends BaseController
                 $urutan        = trim($sheet->getCell('I' . $row)->getValue() ?? '');
                 
                 // Lewati baris kosong
-                if (empty($lokasi) && empty($jenisCheck) && empty($kategori) && empty($bagianCheck)) {
+                if (empty($departemen) && empty($jenisCheck) && empty($kategori) && empty($bagianCheck)) {
                     continue;
                 }
                 
-                if (empty($lokasi) || empty($jenisCheck) || empty($kategori) || empty($bagianCheck) || empty($pointCheck) || empty($standardCheck) || $urutan === '') {
-                    $errors[] = "Baris {$row}: Lokasi, Jenis, Kategori, Bagian, Point, Standard, Urutan wajib diisi.";
+                if (empty($departemen) || empty($jenisCheck) || empty($kategori) || empty($bagianCheck) || empty($pointCheck) || empty($standardCheck) || $urutan === '') {
+                    $errors[] = "Baris {$row}: Departemen, Jenis, Kategori, Bagian, Point, Standard, Urutan wajib diisi.";
                     continue;
                 }
                 
-                if (! in_array($lokasi, [Lokasi::MFG1->value, Lokasi::MFG2->value], true)) {
-                    $errors[] = "Baris {$row}: Lokasi '{$lokasi}' tidak valid. Harus Lokasi::MFG1->value atau 'MFG 2'.";
+                if (! in_array($departemen, [Departemen::MFG1->value, Departemen::MFG2->value], true)) {
+                    $errors[] = "Baris {$row}: Departemen '{$departemen}' tidak valid. Harus Departemen::MFG1->value atau 'MFG 2'.";
                     continue;
                 }
                 
@@ -311,7 +311,7 @@ class ParameterController extends BaseController
                 }
                 
                 $this->model->insert([
-                    'lokasi'         => $lokasi,
+                    'departemen'         => $departemen,
                     'jenis_check'    => $jenisCheck,
                     'kategori'       => $kategori,
                     'section_check'  => empty($sectionCheck) ? null : $sectionCheck,

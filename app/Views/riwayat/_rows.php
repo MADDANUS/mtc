@@ -17,7 +17,8 @@
   <tr>
     <td class="fw-semibold text-muted text-center"><?= $no++ ?></td>
     <td class="text-muted" style="font-size: 0.85rem;"><?= esc($r['nama_pic']) ?></td>
-    <td class="fw-medium text-dark" style="font-size: 0.85rem; text-center"><?= esc($r['lokasi_check'] ?? '-') ?></td>
+    <td class="fw-medium text-dark" style="font-size: 0.85rem; text-center"><?= esc($r['plan'] ?? '-') ?></td>
+    <td class="fw-medium text-dark" style="font-size: 0.85rem; text-center"><?= esc($r['departemen_check'] ?? '-') ?></td>
     <td class="fw-medium text-dark" style="font-size: 0.85rem; text-center"><?= strtoupper(esc($r['line'] ?? '-')) ?></td>
     <td>
       <div class="fw-semibold text-dark" style="font-size: 0.85rem;"><?= esc($r['no_mesin']) ?></div>
@@ -54,7 +55,7 @@
     <td>
       <div class="d-flex gap-1">
         <?php 
-          $qs = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] . '&from_lokasi=' . ($lokasiSlug ?? '') : '?from_lokasi=' . ($lokasiSlug ?? ''); 
+          $qs = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] . '&from_lokasi=' . ($departemenSlug ?? '') : '?from_lokasi=' . ($departemenSlug ?? ''); 
         ?>
         <a href="<?= site_url('riwayat/' . $r['id_transaksi']) . $qs ?>" class="btn btn-sm btn-outline-primary py-1 px-2">
           Detail

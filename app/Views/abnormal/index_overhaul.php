@@ -5,7 +5,7 @@
 <div class="d-flex align-items-center mb-3">
   <div class="ms-auto d-flex gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
-    <a href="<?= site_url('abnormal/overhaul/pdf?lokasi=' . urlencode($lokasiFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
+    <a href="<?= site_url('abnormal/overhaul/pdf?departemen=' . urlencode($departemenFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
       <i class="bi bi-eye-fill me-1"></i> Preview PDF
     </a>
     <?php endif; ?>
@@ -28,10 +28,10 @@
   </tr>
   <tr>
     <td colspan="2" class="kop-val text-center p-2">
-        <select name="lokasi" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white text-center mx-auto searchable-select" style="width: 80%; font-size: 0.8rem; text-align: center; text-align-last: center;" onchange="document.getElementById('filterForm').submit();">
-            <option value="all" <?= ($lokasiFilter === 'all') ? 'selected' : '' ?>>Semua Area</option>
-            <option value="MFG 1" <?= ($lokasiFilter === 'MFG 1') ? 'selected' : '' ?>>MFG 1</option>
-            <option value="MFG 2" <?= ($lokasiFilter === 'MFG 2') ? 'selected' : '' ?>>MFG 2</option>
+        <select name="departemen" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white text-center mx-auto searchable-select" style="width: 80%; font-size: 0.8rem; text-align: center; text-align-last: center;" onchange="document.getElementById('filterForm').submit();">
+            <option value="all" <?= ($departemenFilter === 'all') ? 'selected' : '' ?>>Semua Area</option>
+            <option value="MFG 1" <?= ($departemenFilter === 'MFG 1') ? 'selected' : '' ?>>MFG 1</option>
+            <option value="MFG 2" <?= ($departemenFilter === 'MFG 2') ? 'selected' : '' ?>>MFG 2</option>
         </select>
     </td>
     <td colspan="2" class="kop-val text-center p-2">

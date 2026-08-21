@@ -23,7 +23,7 @@
           <div>The Future</div><div>In Our Hands</div>
         </div>
       </td>
-      <td colspan="6" class="kop-table-title" style="padding:6px; font-size:13px;">CHECKLIST REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?> (<?= strtoupper(esc($header['lokasi_check'] ?? '-')) ?>)</td>
+      <td colspan="6" class="kop-table-title" style="padding:6px; font-size:13px;">CHECKLIST REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?> (<?= strtoupper(esc($header['departemen_check'] ?? '-')) ?>)</td>
     </tr>
     <!-- ROW 2: Label dokumen -->
     <tr>

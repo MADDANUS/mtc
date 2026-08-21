@@ -10,7 +10,7 @@ class RiwayatMesinModel extends Model
     protected $primaryKey    = 'id_riwayat';
     protected $allowedFields = [
         'id_mesin',
-        'lokasi',
+        'departemen',
         'line',
         'tanggal_mulai',
         'tanggal_selesai'
@@ -24,12 +24,12 @@ class RiwayatMesinModel extends Model
         $dateStr = $bulanTahun . '-01';
         
         $sql = "
-            SELECT lokasi, line, COUNT(id_mesin) as total
+            SELECT departemen, line, COUNT(id_mesin) as total
             FROM riwayat_mesin
             WHERE tanggal_mulai <= LAST_DAY(STR_TO_DATE(?, '%Y-%m-%d'))
               AND (tanggal_selesai IS NULL OR tanggal_selesai >= LAST_DAY(STR_TO_DATE(?, '%Y-%m-%d')))
               AND line != '' AND line IS NOT NULL
-            GROUP BY lokasi, line
+            GROUP BY departemen, line
         ";
 
         return $this->db->query($sql, [$dateStr, $dateStr])->getResultArray();

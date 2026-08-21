@@ -33,7 +33,7 @@
     $hasSchedule = $item['hasSchedule'];
     $columnDates = $item['columnDates'];
     $approvalData = $item['approvalData'];
-    $itemLokasi = $item['lokasi'] ?? $lokasi;
+    $itemLokasi = $item['departemen'] ?? $departemen;
     $itemLine = $item['line'] ?? $line;
     $currentIndex++;
   ?>
@@ -53,7 +53,7 @@
     <td colspan="8" style="border:1.5pt solid #000; text-align:center; font-weight:bold; font-size:16px; padding:6px; letter-spacing:0.5px;">CHECKLIST CONTROL</td>
   </tr>
 
-  <!-- ROW 2: Kategori + Lokasi -->
+  <!-- ROW 2: Kategori + Departemen -->
   <tr>
     <td colspan="8" style="border:1.5pt solid #000; text-align:center; font-weight:bold; font-size:13px; padding:4px;"><?= strtoupper($kategori) ?> (<?= strtoupper($itemLokasi) ?><?= $itemLine ? ' / ' . strtoupper($itemLine) : '' ?>)</td>
   </tr>

@@ -2,8 +2,8 @@
 
 <?php
 // Helper to build the create form URL preserving the dynamic machine ID and Line
-$getCreateUrl = function(string $categorySlug) use ($lokasiSlug, $jenisSlug, $idMesin, $line) {
-    $url = "checklist/{$lokasiSlug}/{$jenisSlug}/create/{$categorySlug}";
+$getCreateUrl = function(string $categorySlug) use ($planSlug, $departemenSlug, $jenisSlug, $idMesin, $line) {
+    $url = "checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}/create/{$categorySlug}";
     $params = [];
     if (!empty($idMesin)) {
         $params[] = 'id_mesin=' . (int)$idMesin;
@@ -21,19 +21,19 @@ $getCreateUrl = function(string $categorySlug) use ($lokasiSlug, $jenisSlug, $id
 <div class="page-header">
   <div>
     <?php
-    $backUrl = site_url('checklist'); // default
+    $backUrl = site_url('checklist/plan/' . $planSlug); // default
     if (!empty($idMesin)) {
         $backUrl = site_url("scan/mesin/{$idMesin}");
     } elseif (!empty($line)) {
         // Kembali ke halaman Pilih Line
-        $backUrl = site_url("checklist/{$lokasiSlug}/{$jenisSlug}");
+        $backUrl = site_url("checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}");
     }
     ?>
     <a href="<?= $backUrl ?>" class="btn btn-sm btn-outline-secondary mb-2">
       <i class="bi bi-arrow-left"></i> Kembali
     </a>
     <h5 class="mb-0">
-      Buat Pengecekan Baru — <span style="color:var(--accent)"><?= esc($jenisName) ?> <?= esc($lokasiName) ?></span>
+      Buat Pengecekan Baru — <span style="color:var(--accent)"><?= esc($jenisName) ?> <?= esc($departemenName) ?></span>
       <?php if (!empty($line)): ?>
         <span class="badge bg-primary ms-2" style="font-size:0.75rem;"><i class="bi bi-diagram-3 me-1"></i><?= esc($line) ?></span>
       <?php endif; ?>
@@ -69,7 +69,7 @@ $getCreateUrl = function(string $categorySlug) use ($lokasiSlug, $jenisSlug, $id
       <?php endforeach; ?>
     <?php else: ?>
       <div class="col-12">
-        <div class="alert alert-info">Belum ada kategori overhaul untuk lokasi ini.</div>
+        <div class="alert alert-info">Belum ada kategori overhaul untuk departemen ini.</div>
       </div>
     <?php endif; ?>
 

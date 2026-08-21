@@ -39,6 +39,8 @@
             <th>Nama</th>
             <th>Username</th>
             <th>Role</th>
+            <th>Plan</th>
+            <th>Departemen</th>
             <th>Line</th>
             <th>Status</th>
             <th style="width:220px;">AKSI</th>
@@ -50,6 +52,14 @@
               <td><?= esc($u['nama']) ?></td>
               <td><?= esc($u['username']) ?></td>
               <td><span class="badge bg-secondary text-uppercase"><?= esc($u['role']) ?></span></td>
+              <td>
+                <?php if (($u['plan'] ?? '-') === '-'): ?>
+                  -
+                <?php else: ?>
+                  <span class="badge bg-primary"><?= esc($u['plan'] ?? 'Plan 1') ?></span>
+                <?php endif; ?>
+              </td>
+              <td><?= esc($u['departemen'] ?? '-') ?></td>
               <td><?= esc($u['line'] ?? '-') ?></td>
               <td>
                 <?php $isActive = (isset($u['is_active']) && (int)$u['is_active'] === 1); ?>

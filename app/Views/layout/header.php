@@ -522,7 +522,7 @@
     /* ---- RADIO BUTTONS (Checklist V/Δ/X) ---- */
     .form-check-inline { margin-right: 0.4rem; }
     .form-check-input[type="radio"] { display: none !important; }
-    .form-check-label {
+    .form-check-input[type="radio"] + .form-check-label {
         display: inline-flex !important;
         align-items: center;
         justify-content: center;
@@ -648,14 +648,14 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
         <i class="bi bi-grid-1x2-fill"></i>Dashboard
       </a>
       
-      <?php if (in_array($role, ['magang', 'member', 'admin'], true)): ?>
+      <?php if (has_any_role(['magang', 'member', 'admin'])): ?>
         <a href="<?= site_url('checklist') ?>" class="menu-item <?= ($seg1 === 'checklist' || $seg1 === 'scan') ? 'active' : '' ?>">
           <i class="bi bi-clipboard-check-fill"></i>Checking
         </a>
       <?php endif; ?>
 
       <?php $isFromApproval = (isset($_GET['from']) && $_GET['from'] === 'approval'); ?>
-      <?php if (in_array($role, ['admin', 'member', 'leader', 'sheadprd', 'sheadmtc'], true)): ?>
+      <?php if (has_any_role(['admin', 'member', 'leader', 'sheadprd', 'sheadmtc'])): ?>
         <a href="<?= site_url('approval') ?>" class="menu-item <?= ($seg1 === 'approval' || $isFromApproval) ? 'active' : '' ?>">
           <i class="bi bi-bell-fill"></i>Approval
           <?php
@@ -663,34 +663,34 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
             try {
               $__db = \Config\Database::connect();
               $__cnt = 0;
-              if ($role === 'leader') {
+              if (has_role('leader')) {
                 $__line = session()->get('line');
                 $__q = $__db->table('transaksi_check tc')
                   ->join('master_mesin mm', 'mm.id_mesin = tc.id_mesin', 'left')
                   ->where('tc.jenis_check', 'Overhaul')->where('tc.status', 'Pending');
-                if ($__line) $__q->where('mm.line', $__line);
+                if ($__line) $__q->whereIn('mm.line', array_map('trim', explode(',', $__line)));
                 $__cnt = $__q->countAllResults();
-              } elseif ($role === 'sheadprd') {
+              } elseif (has_role('sheadprd')) {
                 $__cnt = $__db->table('transaksi_check')->whereIn('jenis_check', ['Overhaul', 'Preventive'])->where('status', 'Approved L1')->countAllResults();
                 $__cnt += $__db->table('approval_bulanan')->where('status', 'Approved L1')->countAllResults();
-              } elseif ($role === 'sheadmtc') {
+              } elseif (has_role('sheadmtc')) {
                 $__cnt = $__db->table('transaksi_check')->whereIn('jenis_check', ['Overhaul', 'Preventive'])->where('status', 'Approved L2')->countAllResults();
                 $__cnt += $__db->table('approval_bulanan')->where('status', 'Approved L2')->countAllResults();
-              } elseif ($role === 'member') {
+              } elseif (has_role('member')) {
                 $__cnt = $__db->table('transaksi_check')->where('jenis_check', 'Preventive')->where('status', 'Pending')->countAllResults();
                 $__approvalSvc = new \App\Services\ApprovalService();
                 $__approvalModel = new \App\Models\ApprovalBulananModel();
-                $__belumSelesaiRows = $__approvalSvc->getBelumSelesaiRows('member', date('Y-m'), $__approvalModel);
+                $__belumSelesaiRows = $__approvalSvc->getBelumSelesaiRows(date('Y-m'), $__approvalModel);
                 foreach ($__belumSelesaiRows as $__r) {
                   if (isset($__r['persen']) && $__r['persen'] == 100) {
                       $__cnt++;
                   }
                 }
-              } elseif ($role === 'admin') {
+              } elseif (has_role('admin')) {
                 $__cnt = $__db->table('transaksi_check')->whereNotIn('status', ['Approved'])->countAllResults();
                 $__approvalSvc = new \App\Services\ApprovalService();
                 $__approvalModel = new \App\Models\ApprovalBulananModel();
-                $__belumSelesaiRows = $__approvalSvc->getBelumSelesaiRows('admin', date('Y-m'), $__approvalModel);
+                $__belumSelesaiRows = $__approvalSvc->getBelumSelesaiRows(date('Y-m'), $__approvalModel);
                 foreach ($__belumSelesaiRows as $__r) {
                   if (isset($__r['persen']) && $__r['persen'] == 100) {
                       $__cnt++;
@@ -706,6 +706,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
       <?php endif; ?>
 
       <!-- HISTORY MENU (COLLAPSE) -->
+      <?php if (!has_role('magang')): ?>
       <?php 
         $isLaporanOpen = ($seg1 === 'riwayat' || $seg1 === 'kontrol' || $seg1 === 'abnormal' || $seg1 === 'laporan');
       ?>
@@ -720,7 +721,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
             $isPreventiveMenu = false;
             $isOverhaulMenu = false;
             if ($seg1 === 'riwayat') {
-                if ($seg2 === 'lokasi' || $seg2 === 'index') {
+                if ($seg2 === 'departemen' || $seg2 === 'index') {
                     if (!isset($_GET['jenis_check']) || strcasecmp($_GET['jenis_check'], 'Preventive') === 0) {
                         $isPreventiveMenu = true;
                     } elseif (isset($_GET['jenis_check']) && strcasecmp($_GET['jenis_check'], 'Overhaul') === 0) {
@@ -737,43 +738,46 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
                 }
             }
           ?>
-          <?php if ($role !== 'leader'): ?>
+          <?php if (!has_role('leader')): ?>
           <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.2rem; letter-spacing: 0.05em;">Preventive</div>
 
-          <?php if (!in_array($role, ['sheadprd', 'sheadmtc'])): ?>
-          <a href="<?= site_url('riwayat/lokasi/semua?jenis_check=Preventive') ?>" class="menu-item <?= $isPreventiveMenu ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
+          <?php if (!has_any_role(['sheadprd', 'sheadmtc'])): ?>
+          <a href="<?= site_url('riwayat/departemen/semua?jenis_check=Preventive') ?>" class="menu-item <?= $isPreventiveMenu ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
             <i class="bi bi-file-earmark-text"></i>Checklist Report
           </a>
           <?php endif; ?>
-          <?php if (in_array($role, ['sheadprd', 'sheadmtc', 'admin', 'member', 'magang'])): ?>
+          <?php if (has_any_role(['sheadprd', 'sheadmtc', 'admin', 'member'])): ?>
           <a href="<?= site_url('kontrol') ?>" class="menu-item <?= $seg1 === 'kontrol' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
             <i class="bi bi-calendar2-check"></i>Checklist Control
           </a>
           <?php endif; ?>
-          <?php if (!in_array($role, ['sheadprd', 'sheadmtc', 'leader'])): ?>
+          <?php if (!has_any_role(['sheadprd', 'sheadmtc', 'leader'])): ?>
           <a href="<?= site_url('abnormal') ?>" class="menu-item <?= ($seg1 === 'abnormal' && $seg2 !== 'overhaul') ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 10px;">
             <i class="bi bi-exclamation-triangle"></i>Abnormal Report
           </a>
           <?php endif; ?>
           <?php endif; ?>
 
+          <?php if (!has_role('magang')): ?>
           <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.2rem; letter-spacing: 0.05em;">Overhaul</div>
-          <a href="<?= site_url('riwayat/lokasi/semua?jenis_check=Overhaul') ?>" class="menu-item <?= $isOverhaulMenu ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
+          <a href="<?= site_url('riwayat/departemen/semua?jenis_check=Overhaul') ?>" class="menu-item <?= $isOverhaulMenu ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
             <i class="bi bi-tools"></i>Inspection Report
           </a>
-          <?php if (!in_array($role, ['sheadprd', 'sheadmtc', 'leader'])): ?>
+          <?php if (!has_any_role(['sheadprd', 'sheadmtc', 'leader'])): ?>
           <a href="<?= site_url('abnormal/overhaul') ?>" class="menu-item <?= ($seg1 === 'abnormal' && $seg2 === 'overhaul') ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 10px;">
             <i class="bi bi-exclamation-triangle"></i>Abnormal Report
           </a>
           <?php endif; ?>
+          <?php endif; ?>
 
-          <?php if (in_array($role, ['member', 'admin', 'magang'], true)): ?>
+          <?php if (has_any_role(['member', 'admin'])): ?>
             <a href="<?= site_url('laporan/durasi') ?>" class="menu-item <?= $seg1 === 'laporan' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
               <i class="bi bi-bar-chart-line"></i>Duration Report
             </a>
           <?php endif; ?>
         </div>
       </div>
+      <?php endif; ?>
 
 
       
@@ -782,7 +786,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
       </a>
 
       <?php 
-        $hasMasterData = in_array($role, ['admin', 'member'], true);
+        $hasMasterData = has_any_role(['admin', 'member', 'leader_member']);
         $isMasterDataOpen = ($seg2 === 'mesin' || $seg2 === 'user' || $seg2 === 'pic' || $seg2 === 'parameter');
       ?>
       <?php if ($hasMasterData): ?>
@@ -797,13 +801,13 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
               <i class="bi bi-gear-wide-connected"></i>Master Mesin
             </a>
             
-            <?php if ($role === 'admin'): ?>
+            <?php if (has_any_role(['admin', 'leader_member'])): ?>
               <a href="<?= site_url('admin/user') ?>" class="menu-item <?= $seg2 === 'user' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
                 <i class="bi bi-people"></i>Master User
               </a>
             <?php endif; ?>
 
-            <?php if (in_array($role, ['admin', 'sheadmtc'], true)): ?>
+            <?php if (has_any_role(['admin', 'sheadmtc'])): ?>
               <a href="<?= site_url('admin/parameter') ?>" class="menu-item <?= $seg2 === 'parameter' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
                 <i class="bi bi-sliders"></i>Master Parameter
               </a>

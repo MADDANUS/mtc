@@ -8,7 +8,7 @@
 <div class="page-header d-flex align-items-center gap-3" style="justify-content: flex-start;">
   <?php if (isset($from) && $from === 'kontrol'): ?>
     <?php 
-      $backUrl = site_url('kontrol') . '?lokasi=' . urlencode($cb_lokasi ?? 'MFG 1') . '&line=' . urlencode($cb_line ?? '') . '&kategori=' . urlencode($cb_kategori ?? '') . '&bulan=' . urlencode($cb_bulan ?? '');
+      $backUrl = site_url('kontrol') . '?departemen=' . urlencode($cb_lokasi ?? 'MFG 1') . '&line=' . urlencode($cb_line ?? '') . '&kategori=' . urlencode($cb_kategori ?? '') . '&bulan=' . urlencode($cb_bulan ?? '');
       if (!empty($_GET['qs_summary'])) {
           $backUrl .= '&qs_summary=' . urlencode($_GET['qs_summary']);
       }
@@ -43,10 +43,10 @@
     </a>
   <?php else: ?>
     <?php 
-      $lokSlug = isset($_GET['from_lokasi']) ? $_GET['from_lokasi'] : strtolower(str_replace(' ', '', $header['lokasi_check']));
+      $lokSlug = isset($_GET['from_lokasi']) ? $_GET['from_lokasi'] : strtolower(str_replace(' ', '', $header['departemen_check']));
       $qs = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '?jenis_check=' . urlencode($header['jenis_check']);
     ?>
-    <a href="<?= site_url('riwayat/lokasi/' . $lokSlug . $qs) ?>" class="btn btn-sm btn-outline-secondary">
+    <a href="<?= site_url('riwayat/departemen/' . $lokSlug . $qs) ?>" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left"></i> Kembali
     </a>
   <?php endif; ?>
@@ -129,7 +129,7 @@
 <?php else: ?>
   <table class="kop-table text-center">
     <tr>
-      <td colspan="6" class="kop-table-title" style="padding: 10px;">CHECKLIST REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?> (<?= strtoupper(esc($header['lokasi_check'] ?? '-')) ?>)</td>
+      <td colspan="6" class="kop-table-title" style="padding: 10px;">CHECKLIST REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?> (<?= strtoupper(esc($header['departemen_check'] ?? '-')) ?>)</td>
     </tr>
     <tr>
       <td class="kop-label text-start" style="width:16%;">DATE</td>
@@ -210,7 +210,7 @@
           <th style="width:5%;">NO</th>
           <th colspan="2" style="width:30%;">ITEM CHECK</th>
           <th style="width:20%;">POINT CHECK</th>
-          <?php if (strtolower($header['lokasi_check']) !== 'mfg 2'): ?>
+          <?php if (strtolower($header['departemen_check']) !== 'mfg 2'): ?>
           <th style="width:15%;">STANDAR ITEM</th>
           <?php endif; ?>
           <th style="width:10%;">HASIL</th>
@@ -221,7 +221,7 @@
         <?php foreach ($details as $d): ?>
           <?php if ($d['is_section_start']): ?>
             <tr class="section-header">
-              <?php $colSpan = strtolower($header['lokasi_check']) === 'mfg 2' ? 6 : 7; ?>
+              <?php $colSpan = strtolower($header['departemen_check']) === 'mfg 2' ? 6 : 7; ?>
               <td colspan="<?= $colSpan ?>"><?= esc($d['dynamic_section_header']) ?></td>
             </tr>
           <?php endif; ?>
@@ -243,7 +243,7 @@
               <td rowspan="<?= (int) $d['point_rowspan'] ?>"><?= esc($d['point_check']) ?></td>
             <?php endif; ?>
 
-            <?php if (strtolower($header['lokasi_check']) !== 'mfg 2'): ?>
+            <?php if (strtolower($header['departemen_check']) !== 'mfg 2'): ?>
             <?php if ($d['show_standard']): ?>
               <td rowspan="<?= (int) $d['standard_rowspan'] ?>"><?= nl2br(esc($d['standard_check'])) ?></td>
             <?php endif; ?>

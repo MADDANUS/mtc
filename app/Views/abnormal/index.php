@@ -8,7 +8,7 @@
   </a>
   <div class="ms-auto d-flex gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
-<a href="<?= site_url('abnormal/pdf?lokasi=' . urlencode($lokasiFilter) . '&kategori=' . urlencode($kategoriFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
+<a href="<?= site_url('abnormal/pdf?departemen=' . urlencode($departemenFilter) . '&kategori=' . urlencode($kategoriFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
       <i class="bi bi-eye-fill me-1"></i> Preview PDF
     </a>
 <?php endif; ?>
@@ -21,7 +21,7 @@
   </tr>
   <tr>
     <td class="kop-label text-start">AREA</td>
-    <td class="kop-val text-start"><?= esc($lokasiFilter) ?></td>
+    <td class="kop-val text-start"><?= esc($departemenFilter) ?></td>
     <td class="kop-label text-start">KATEGORI</td>
     <td class="kop-val text-start"><?= esc($kategoriFilter) ?></td>
     <td class="kop-label text-start">BULAN</td>
