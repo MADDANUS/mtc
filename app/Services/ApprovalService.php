@@ -28,7 +28,7 @@ class ApprovalService
 
         // ─── 1. CHECKLIST REPORT & INSPECTION REPORT (transaksi_check) ──────────
         $transaksiModel = new \App\Models\TransaksiCheckModel();
-        if (!has_any_role([\App\Enums\Role::Leader->value, \App\Enums\Role::Sheadprd->value, \App\Enums\Role::Sheadmtc->value, \App\Enums\Role::Member->value, \App\Enums\Role::Admin->value])) {
+        if (!has_any_role([\App\Enums\Role::Leader->value, \App\Enums\Role::Sheadprd->value, \App\Enums\Role::Sheadmtc->value, \App\Enums\Role::Member->value, \App\Enums\Role::LeaderMember->value, \App\Enums\Role::Admin->value])) {
             return redirect()->to('/dashboard')->with('error', 'Akses tidak diizinkan.');
         }
         $transaksiRows = $transaksiModel->getInboxApprovalTransaksi($line);
@@ -37,7 +37,7 @@ class ApprovalService
         // Bagian A: yang sudah ada di approval_bulanan (Pending, Approved L1/L2)
         $kontrolRows = [];
 
-        if (has_any_role([Role::Member->value, Role::Admin->value, Role::Sheadprd->value, Role::Sheadmtc->value])) {
+        if (has_any_role([\App\Enums\Role::Member->value, \App\Enums\Role::LeaderMember->value, \App\Enums\Role::Admin->value, \App\Enums\Role::Sheadprd->value, \App\Enums\Role::Sheadmtc->value])) {
 
             // -- A. Kontrol yang sudah di-submit ke approval_bulanan (ada status Pending/L1/L2) --
             $approvalModel = new \App\Models\ApprovalBulananModel();
@@ -58,13 +58,13 @@ class ApprovalService
         $filterJenis    = $request->getGet('jenis') ?: null;
         $filterBulan    = $request->getGet('bulan') ?: null;
         $filterStatus   = $request->getGet('status') ?: null;
-        $filterPlan     = $request->getGet('plan') ?: null;
+        $filterPlant     = $request->getGet('plant') ?: null;
         $filterLokasi   = $request->getGet('departemen') ?: null;
         $filterKategori = $request->getGet('kategori') ?: null;
         $filterMesin    = $request->getGet('mesin') ?: null;
         $filterPic      = $request->getGet('pic') ?: null;
 
-        $filtered = $this->applyGetFilters($allDocs, $filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin, $filterPic, $filterPlan);
+        $filtered = $this->applyGetFilters($allDocs, $filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin, $filterPic, $filterPlant);
         $filtered = array_values($filtered);
 
         // ─── 4. Pagination ─────────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ class ApprovalService
             'filterJenis'    => $filterJenis,
             'filterBulan'    => $filterBulan,
             'filterStatus'   => $filterStatus,
-            'filterPlan'     => $filterPlan,
+            'filterPlan'     => $filterPlant,
             'filterLokasi'   => $filterLokasi,
             'filterKategori' => $filterKategori,
             'filterMesin'    => $filterMesin,
@@ -99,14 +99,14 @@ class ApprovalService
             'uniqueKategori' => $uniqueKategori,
             'uniqueMesin'    => $uniqueMesin,
             'uniquePic'      => $uniquePic,
-            'uniquePlan'     => ['Plan 1', 'Plan 2'],
+            'uniquePlan'     => ['Plant 1', 'Plant 2'],
         ];
     }
 
     public function getBelumSelesaiRows(string $bulanIni, \App\Models\ApprovalBulananModel $approvalModel): array
     {
         $belumSelesaiRows = [];
-        if (!has_any_role([Role::Member->value, Role::Admin->value])) {
+        if (!has_any_role([\App\Enums\Role::Member->value, \App\Enums\Role::LeaderMember->value, \App\Enums\Role::Admin->value])) {
             return $belumSelesaiRows;
         }
 
@@ -126,7 +126,8 @@ class ApprovalService
         foreach ($checkedData as $cd) {
             $bt = $cd['bulan_tahun'];
             $activeMonths[$bt] = true;
-            $checkedMap[$bt][$cd['departemen']][$cd['line']][$cd['kategori']] = (int) $cd['checked_count'];
+            $pln = $cd['plant'] ?? 'Plant 1';
+            $checkedMap[$bt][$pln][$cd['departemen']][$cd['line']][$cd['kategori']] = (int) $cd['checked_count'];
         }
 
         // Selalu sertakan bulan ini walau belum ada yg dicek (biar logic aslinya jalan jika perlu)
@@ -136,7 +137,8 @@ class ApprovalService
         $existingApprovals = $approvalModel->getExistingApprovals();
         $approvedSet = [];
         foreach ($existingApprovals as $ea) {
-            $approvedSet[$ea['bulan_tahun']][$ea['departemen']][$ea['line']][$ea['kategori']] = $ea['status'] ?? 'Pending';
+            $pln = $ea['plant'] ?? 'Plant 1';
+            $approvedSet[$ea['bulan_tahun']][$pln][$ea['departemen']][$ea['line']][$ea['kategori']] = $ea['status'] ?? 'Pending';
         }
 
         foreach (array_keys($activeMonths) as $bt) {
@@ -144,47 +146,52 @@ class ApprovalService
             $totalMesinData = $riwayatMesinModel->getTotalMesinPerLineHistorical($bt);
             $totalMesinMap = [];
             foreach ($totalMesinData as $tm) {
-                $totalMesinMap[$tm['departemen']][$tm['line']] = (int) $tm['total'];
+                $pln = $tm['plant'] ?? 'Plant 1';
+                $totalMesinMap[$pln][$tm['departemen']][$tm['line']] = (int) $tm['total'];
             }
 
             foreach ($kategoriByLokasi as $lok => $kats) {
-                if (!isset($totalMesinMap[$lok])) continue;
-                foreach ($totalMesinMap[$lok] as $ln => $totalMesin) {
-                    foreach ($kats as $kat) {
-                        $checked = $checkedMap[$bt][$lok][$ln][$kat] ?? 0;
-                        $persen = $totalMesin > 0 ? round(($checked / $totalMesin) * 100) : 0;
+                $plansToIterate = isset($totalMesinMap) ? array_keys($totalMesinMap) : ['Plant 1'];
+                foreach ($plansToIterate as $pln) {
+                    if (!isset($totalMesinMap[$pln][$lok])) continue;
+                    foreach ($totalMesinMap[$pln][$lok] as $ln => $totalMesin) {
+                        foreach ($kats as $kat) {
+                            $checked = $checkedMap[$bt][$pln][$lok][$ln][$kat] ?? 0;
+                            $persen = $totalMesin > 0 ? round(($checked / $totalMesin) * 100) : 0;
 
-                        $approvalStatus = $approvedSet[$bt][$lok][$ln][$kat] ?? null;
+                            $approvalStatus = $approvedSet[$bt][$pln][$lok][$ln][$kat] ?? null;
 
-                        if ($approvalStatus !== null) {
-                            if ($persen == 100) {
-                                continue; // Sudah 100% dan masuk tabel approval_bulanan -> diurus oleh Inbox normal atau History
+                            if ($approvalStatus !== null) {
+                                if ($persen == 100) {
+                                    continue; // Sudah 100% dan masuk tabel approval_bulanan -> diurus oleh Inbox normal atau History
+                                }
+                                if (!in_array($approvalStatus, ['Final', 'Approved Final'])) {
+                                    continue; // < 100% dan status belum final -> sudah ditarik oleh getInboxApprovalKontrol
+                                }
+                                // BLACK HOLE: < 100% TAPI status sudah Final/Approved Final di database.
+                                // Kita biarkan lanjut agar muncul di Inbox (dengan status Belum Selesai) sehingga Admin bisa menghapus approvalnya.
                             }
-                            if (!in_array($approvalStatus, ['Final', 'Approved Final'])) {
-                                continue; // < 100% dan status belum final -> sudah ditarik oleh getInboxApprovalKontrol
-                            }
-                            // BLACK HOLE: < 100% TAPI status sudah Final/Approved Final di database.
-                            // Kita biarkan lanjut agar muncul di Inbox (dengan status Belum Selesai) sehingga Admin bisa menghapus approvalnya.
+
+                            if ($checked === 0) continue;
+
+                            $belumSelesaiRows[] = [
+                                'doc_id'      => null,
+                                'jenis_check' => 'kontrol',
+                                'kategori'    => $kat,
+                                'plant'        => $pln,
+                                'departemen'      => $lok,
+                                'line'        => $ln,
+                                'doc_date'    => $bt,
+                                'status'      => 'Belum Selesai',
+                                'doc_source'  => 'kontrol',
+                                'departemen_check'=> null,
+                                'nama_pic'    => null,
+                                'nama_staff'  => null,
+                                'no_mesin'    => null,
+                                'type_mesin'  => null,
+                                'persen'      => $persen,
+                            ];
                         }
-
-                        if ($checked === 0) continue;
-
-                        $belumSelesaiRows[] = [
-                            'doc_id'      => null,
-                            'jenis_check' => 'kontrol',
-                            'kategori'    => $kat,
-                            'departemen'      => $lok,
-                            'line'        => $ln,
-                            'doc_date'    => $bt,
-                            'status'      => 'Belum Selesai',
-                            'doc_source'  => 'kontrol',
-                            'departemen_check'=> null,
-                            'nama_pic'    => null,
-                            'nama_staff'  => null,
-                            'no_mesin'    => null,
-                            'type_mesin'  => null,
-                            'persen'      => $persen,
-                        ];
                     }
                 }
             }
@@ -229,12 +236,12 @@ class ApprovalService
         return [$uniqueLokasi, $uniqueKategori, $uniqueMesin, $uniquePic];
     }
 
-    private function applyGetFilters(array $allDocs, ?string $filterJenis, ?string $filterBulan, ?string $filterStatus, ?string $filterLokasi, ?string $filterKategori, ?string $filterMesin, ?string $filterPic = null, ?string $filterPlan = null): array
+    private function applyGetFilters(array $allDocs, ?string $filterJenis, ?string $filterBulan, ?string $filterStatus, ?string $filterLokasi, ?string $filterKategori, ?string $filterMesin, ?string $filterPic = null, ?string $filterPlant = null): array
     {
-        return array_filter($allDocs, function($row) use ($filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin, $filterPic, $filterPlan) {
-            if ($filterPlan && $filterPlan !== 'all') {
-                $plan = $row['plan'] ?? '';
-                if ($plan !== $filterPlan) return false;
+        return array_filter($allDocs, function($row) use ($filterJenis, $filterBulan, $filterStatus, $filterLokasi, $filterKategori, $filterMesin, $filterPic, $filterPlant) {
+            if ($filterPlant && $filterPlant !== 'all') {
+                $plant = $row['plant'] ?? '';
+                if ($plant !== $filterPlant) return false;
             }
             if ($filterJenis && $filterJenis !== 'all') {
                 $jenis = $row['jenis_check'] ?? '';

@@ -1,13 +1,13 @@
-<?= view('layout/header', ['title' => $title ?? 'Pilih Plan Pengecekan']) ?>
+<?= view('layout/header', ['title' => $title ?? 'Pilih plant Pengecekan']) ?>
 
 <div class="container-fluid pt-3 px-4 pb-3">
 
     <!-- Header Section -->
     <div class="row mb-3">
         <div class="col-12 text-center">
-            <h3 class="fw-bold text-dark mb-2">Pilih Plan Mesin</h3>
+            <h3 class="fw-bold text-dark mb-2">Pilih plant Mesin</h3>
             <p class="text-muted mb-0 mx-auto" style="max-width: 600px; font-size: 0.9rem;">
-                Silakan pilih Plan untuk melanjutkan ke pengecekan, atau langsung scan QR Code mesin.
+                Silakan pilih plant untuk melanjutkan ke pengecekan, atau langsung scan QR Code mesin.
             </p>
         </div>
     </div>
@@ -33,11 +33,11 @@
         </div>
     </div>
 
-    <!-- Bottom: Plan Choices -->
+    <!-- Bottom: plant Choices -->
     <div class="row justify-content-center g-4">
-        <!-- Plan 1 Card -->
+        <!-- Plant 1 Card -->
         <div class="col-md-5 col-lg-4">
-            <a href="<?= base_url('checklist/plan/plan-1') ?>" class="text-decoration-none h-100 d-block">
+            <a href="<?= base_url('checklist/plant/plant-1') ?>" class="text-decoration-none h-100 d-block">
                 <div class="card h-100 border-0 shadow-sm hover-elevate rounded-4 overflow-hidden" 
                      style="transition: transform 0.2s, box-shadow 0.2s;">
                     <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center text-center"
@@ -47,15 +47,15 @@
                             <i class="bi bi-building" style="font-size: 2rem; color: var(--primary);"></i>
                         </div>
                         
-                        <h4 class="fw-bold text-dark mb-0">PLAN 1</h4>
+                        <h4 class="fw-bold text-dark mb-0">Plant 1</h4>
                     </div>
                 </div>
             </a>
         </div>
 
-        <!-- Plan 2 Card -->
+        <!-- Plant 2 Card -->
         <div class="col-md-5 col-lg-4">
-            <a href="<?= base_url('checklist/plan/plan-2') ?>" class="text-decoration-none h-100 d-block">
+            <a href="<?= base_url('checklist/plant/plant-2') ?>" class="text-decoration-none h-100 d-block">
                 <div class="card h-100 border-0 shadow-sm hover-elevate rounded-4 overflow-hidden" 
                      style="transition: transform 0.2s, box-shadow 0.2s;">
                     <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center text-center"
@@ -65,7 +65,7 @@
                             <i class="bi bi-buildings" style="font-size: 2rem; color: var(--info);"></i>
                         </div>
                         
-                        <h4 class="fw-bold text-dark mb-0">PLAN 2</h4>
+                        <h4 class="fw-bold text-dark mb-0">Plant 2</h4>
                     </div>
                 </div>
             </a>

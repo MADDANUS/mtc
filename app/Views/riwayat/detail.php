@@ -54,7 +54,7 @@
       <h5 class="mb-0 fw-bold text-uppercase"><i class="bi bi-clipboard-check me-2 text-primary"></i>Detail <?= strtolower($header['jenis_check']) === 'overhaul' ? 'Inspection' : 'Checklist' ?> Report</h5>
     </div>
   <div class="ms-auto d-flex align-items-center gap-2">
-    <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
+    <?php if (!has_any_role(['leader', 'sheadprd', 'sheadmtc'])): ?>
 <a href="<?= site_url('riwayat/download-pdf/' . $header['id_transaksi']) ?>" class="btn btn-sm btn-outline-danger shadow-sm" target="_blank">
       <i class="bi bi-eye-fill me-1"></i> Preview PDF
     </a>
@@ -210,7 +210,8 @@
           <th style="width:5%;">NO</th>
           <th colspan="2" style="width:30%;">ITEM CHECK</th>
           <th style="width:20%;">POINT CHECK</th>
-          <?php if (strtolower($header['departemen_check']) !== 'mfg 2'): ?>
+          <?php $isCNC = (stripos($header['kategori'] ?? '', 'CNC') !== false); ?>
+          <?php if ($isCNC): ?>
           <th style="width:15%;">STANDAR ITEM</th>
           <?php endif; ?>
           <th style="width:10%;">HASIL</th>
@@ -221,7 +222,7 @@
         <?php foreach ($details as $d): ?>
           <?php if ($d['is_section_start']): ?>
             <tr class="section-header">
-              <?php $colSpan = strtolower($header['departemen_check']) === 'mfg 2' ? 6 : 7; ?>
+              <?php $colSpan = $isCNC ? 7 : 6; ?>
               <td colspan="<?= $colSpan ?>"><?= esc($d['dynamic_section_header']) ?></td>
             </tr>
           <?php endif; ?>
@@ -243,7 +244,7 @@
               <td rowspan="<?= (int) $d['point_rowspan'] ?>"><?= esc($d['point_check']) ?></td>
             <?php endif; ?>
 
-            <?php if (strtolower($header['departemen_check']) !== 'mfg 2'): ?>
+            <?php if ($isCNC): ?>
             <?php if ($d['show_standard']): ?>
               <td rowspan="<?= (int) $d['standard_rowspan'] ?>"><?= nl2br(esc($d['standard_check'])) ?></td>
             <?php endif; ?>
@@ -421,9 +422,9 @@
         </div>
         <h6 class="mb-0 fw-bold text-dark">
           <?php if (!empty($header['approval_l2_by'])): ?>
-            <span class="text-decoration-underline" style="font-size:0.9rem;">Mr. Rohmad</span>
+            <span class="text-decoration-underline" style="font-size:0.9rem;"><?= esc($header['approver_l2_nama']) ?></span>
           <?php else: ?>
-            <span class="text-muted">( Mr. Rohmad )</span>
+            <span class="text-muted">( ........................................ )</span>
           <?php endif; ?>
         </h6>
         <span class="small text-muted" style="font-size:0.75rem;">
@@ -448,9 +449,9 @@
         </div>
         <h6 class="mb-0 fw-bold text-dark">
           <?php if ($header['status'] === 'Approved'): ?>
-            <span class="text-decoration-underline" style="font-size:0.9rem;">Mr. Royadi</span>
+            <span class="text-decoration-underline" style="font-size:0.9rem;"><?= esc($header['approver_nama']) ?></span>
           <?php else: ?>
-            <span class="text-muted">( Mr. Royadi )</span>
+            <span class="text-muted">( ........................................ )</span>
           <?php endif; ?>
         </h6>
         <span class="small text-muted" style="font-size:0.75rem;">
@@ -526,15 +527,15 @@
   $canApprove = false;
   $statusLaporan = $header['status'];
   if ($isOverhaul) {
-      if ($role === 'admin' && $statusLaporan !== 'Approved') $canApprove = true;
-      elseif ($role === 'leader' && $statusLaporan === 'Pending') $canApprove = true;
-      elseif ($role === 'sheadprd' && $statusLaporan === 'Approved L1') $canApprove = true;
-      elseif ($role === 'sheadmtc' && $statusLaporan === 'Approved L2') $canApprove = true;
-  } else {
-      if (in_array($role, ['member', 'admin']) && $statusLaporan === 'Pending') {
-          $canApprove = true;
-      }
-  }
+      if (has_role('admin') && $statusLaporan !== 'Approved') $canApprove = true;
+      elseif (has_role('leader') && $statusLaporan === 'Pending') $canApprove = true;
+      elseif (has_role('sheadprd') && $statusLaporan === 'Approved L1') $canApprove = true;
+      elseif (has_role('sheadmtc') && $statusLaporan === 'Approved L2') $canApprove = true;
+    } else {
+        if (has_any_role(['member', 'leader mtc', 'admin']) && $statusLaporan === 'Pending') {
+            $canApprove = true;
+        }
+    }
 ?>
 
 <?php if ($canApprove): ?>

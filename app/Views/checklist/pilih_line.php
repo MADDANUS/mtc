@@ -2,13 +2,13 @@
 
 <div class="row mb-4">
   <div class="col-12 mb-2">
-    <a href="<?= site_url('checklist/plan/' . $planSlug) ?>" class="btn btn-sm btn-outline-secondary">
+    <a href="<?= site_url('checklist/plant/' . $plantSlug) ?>" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left"></i> Kembali
     </a>
   </div>
   <div class="col-md-8 mx-auto text-center">
     <h5 class="mb-1 fw-bold">
-      <i class="bi bi-diagram-3 me-2 text-primary"></i>Pilih Line — <span style="color:var(--accent)"><?= strtoupper(str_replace('-', ' ', $planSlug)) ?> <?= esc($departemenName) ?> (<?= esc($jenisName) ?>)</span>
+      <i class="bi bi-diagram-3 me-2 text-primary"></i>Pilih Line — <span style="color:var(--accent)"><?= strtoupper(str_replace('-', ' ', $plantSlug)) ?> <?= esc($departemenName) ?> (<?= esc($jenisName) ?>)</span>
     </h5>
     <p class="text-muted small mt-1 mb-0">Pilih area / line tempat mesin yang akan diperiksa.</p>
   </div>
@@ -18,7 +18,7 @@
   <?php if (!empty($lines)): ?>
     <?php foreach ($lines as $lineName): ?>
       <div class="col-6 col-md-4 col-lg-3">
-        <a href="<?= site_url("checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}?line=" . urlencode($lineName)) ?>"
+        <a href="<?= site_url("checklist/plant/{$plantSlug}/{$departemenSlug}/{$jenisSlug}?line=" . urlencode($lineName)) ?>"
            class="card card-hover h-100 shadow-sm border-0 rounded-4 text-decoration-none"
            style="transition: transform 0.2s, box-shadow 0.2s;">
           <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center text-center"

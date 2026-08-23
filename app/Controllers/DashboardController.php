@@ -17,7 +17,7 @@ class DashboardController extends BaseController
         if (has_role(Role::Admin->value)) {
             return $this->admin();
         }
-        if (has_any_role([Role::Sheadmtc->value, Role::Sheadprd->value, Role::Leader->value, Role::Member->value])) {
+        if (has_any_role([Role::Sheadmtc->value, Role::Sheadprd->value, Role::Leader->value, Role::Member->value, Role::LeaderMember->value])) {
             return $this->leaderStyleDashboard('Dashboard Master');
         }
         
@@ -81,9 +81,17 @@ class DashboardController extends BaseController
                                            ->orWhere('laporan_abnormal.action', '')
                                        ->groupEnd();
                                        
-        if (!has_any_role([Role::Leader->value, Role::Sheadmtc->value, Role::Admin->value, Role::Member->value]) && has_role(Role::Sheadprd->value)) {
-            $findingsQuery->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin', 'left')
-                          ->where('master_mesin.departemen', \App\Enums\Departemen::MFG1->value);
+        if (has_any_role([Role::Sheadprd->value, Role::Sheadmtc->value, Role::Leader->value])) {
+            $findingsQuery->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin', 'left');
+            if ($userDepts = session()->get('departemen')) {
+                $findingsQuery->whereIn('master_mesin.departemen', array_map('trim', explode(',', $userDepts)));
+            }
+            if ($userPlan = session()->get('plant')) {
+                $findingsQuery->whereIn('master_mesin.plant', array_map('trim', explode(',', $userPlan)));
+            }
+            if (($userLine = session()->get('line')) && $userLine !== '-') {
+                $findingsQuery->whereIn('master_mesin.line', array_map('trim', explode(',', $userLine)));
+            }
         }
         $findings = $findingsQuery->countAllResults();
 

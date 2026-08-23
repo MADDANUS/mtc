@@ -45,7 +45,7 @@
 
 <?php
 $isEdit = $isEdit ?? false;
-$editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("checklist/{$departemenSlug}/{$jenisSlug}/store");
+$editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("checklist/plant/{$plantSlug}/{$departemenSlug}/{$jenisSlug}/store");
 ?>
 
 <form id="checklistForm" action="<?= $editUrl ?>" method="post" enctype="multipart/form-data" novalidate>

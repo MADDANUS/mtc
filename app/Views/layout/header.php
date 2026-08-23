@@ -648,54 +648,40 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
         <i class="bi bi-grid-1x2-fill"></i>Dashboard
       </a>
       
-      <?php if (has_any_role(['magang', 'member', 'admin'])): ?>
+      <?php if (has_any_role(['magang', 'member', 'leader mtc', 'admin'])): ?>
         <a href="<?= site_url('checklist') ?>" class="menu-item <?= ($seg1 === 'checklist' || $seg1 === 'scan') ? 'active' : '' ?>">
           <i class="bi bi-clipboard-check-fill"></i>Checking
         </a>
       <?php endif; ?>
 
       <?php $isFromApproval = (isset($_GET['from']) && $_GET['from'] === 'approval'); ?>
-      <?php if (has_any_role(['admin', 'member', 'leader', 'sheadprd', 'sheadmtc'])): ?>
+      <?php if (has_any_role(['admin', 'member', 'leader mtc', 'leader', 'sheadprd', 'sheadmtc'])): ?>
         <a href="<?= site_url('approval') ?>" class="menu-item <?= ($seg1 === 'approval' || $isFromApproval) ? 'active' : '' ?>">
           <i class="bi bi-bell-fill"></i>Approval
           <?php
             // Hitung jumlah dokumen pending untuk badge
             try {
-              $__db = \Config\Database::connect();
               $__cnt = 0;
-              if (has_role('leader')) {
-                $__line = session()->get('line');
-                $__q = $__db->table('transaksi_check tc')
-                  ->join('master_mesin mm', 'mm.id_mesin = tc.id_mesin', 'left')
-                  ->where('tc.jenis_check', 'Overhaul')->where('tc.status', 'Pending');
-                if ($__line) $__q->whereIn('mm.line', array_map('trim', explode(',', $__line)));
-                $__cnt = $__q->countAllResults();
-              } elseif (has_role('sheadprd')) {
-                $__cnt = $__db->table('transaksi_check')->whereIn('jenis_check', ['Overhaul', 'Preventive'])->where('status', 'Approved L1')->countAllResults();
-                $__cnt += $__db->table('approval_bulanan')->where('status', 'Approved L1')->countAllResults();
-              } elseif (has_role('sheadmtc')) {
-                $__cnt = $__db->table('transaksi_check')->whereIn('jenis_check', ['Overhaul', 'Preventive'])->where('status', 'Approved L2')->countAllResults();
-                $__cnt += $__db->table('approval_bulanan')->where('status', 'Approved L2')->countAllResults();
-              } elseif (has_role('member')) {
-                $__cnt = $__db->table('transaksi_check')->where('jenis_check', 'Preventive')->where('status', 'Pending')->countAllResults();
-                $__approvalSvc = new \App\Services\ApprovalService();
-                $__approvalModel = new \App\Models\ApprovalBulananModel();
-                $__belumSelesaiRows = $__approvalSvc->getBelumSelesaiRows(date('Y-m'), $__approvalModel);
-                foreach ($__belumSelesaiRows as $__r) {
-                  if (isset($__r['persen']) && $__r['persen'] == 100) {
-                      $__cnt++;
+              if (has_any_role(['leader', 'sheadprd', 'sheadmtc', 'member', 'leader mtc', 'admin'])) {
+                  $__transaksiModel = new \App\Models\TransaksiCheckModel();
+                  $__transaksiRows = $__transaksiModel->getInboxApprovalTransaksi(session()->get('line'));
+                  $__cnt += count($__transaksiRows);
+                  
+                  if (has_any_role(['member', 'leader mtc', 'admin', 'sheadprd', 'sheadmtc'])) {
+                      $__approvalModel = new \App\Models\ApprovalBulananModel();
+                      $__approvalRows = $__approvalModel->getInboxApprovalKontrol();
+                      $__cnt += count($__approvalRows);
+                      
+                      if (has_any_role(['member', 'leader mtc', 'admin'])) {
+                          $__approvalSvc = new \App\Services\ApprovalService();
+                          $__belumSelesaiRows = $__approvalSvc->getBelumSelesaiRows(date('Y-m'), $__approvalModel);
+                          foreach ($__belumSelesaiRows as $__r) {
+                              if (isset($__r['persen']) && $__r['persen'] == 100) {
+                                  $__cnt++;
+                              }
+                          }
+                      }
                   }
-                }
-              } elseif (has_role('admin')) {
-                $__cnt = $__db->table('transaksi_check')->whereNotIn('status', ['Approved'])->countAllResults();
-                $__approvalSvc = new \App\Services\ApprovalService();
-                $__approvalModel = new \App\Models\ApprovalBulananModel();
-                $__belumSelesaiRows = $__approvalSvc->getBelumSelesaiRows(date('Y-m'), $__approvalModel);
-                foreach ($__belumSelesaiRows as $__r) {
-                  if (isset($__r['persen']) && $__r['persen'] == 100) {
-                      $__cnt++;
-                  }
-                }
               }
               if ($__cnt > 0): ?>
                 <span class="badge bg-danger ms-auto" style="font-size:0.65rem;"><?= $__cnt ?></span>
@@ -706,7 +692,6 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
       <?php endif; ?>
 
       <!-- HISTORY MENU (COLLAPSE) -->
-      <?php if (!has_role('magang')): ?>
       <?php 
         $isLaporanOpen = ($seg1 === 'riwayat' || $seg1 === 'kontrol' || $seg1 === 'abnormal' || $seg1 === 'laporan');
       ?>
@@ -746,7 +731,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
             <i class="bi bi-file-earmark-text"></i>Checklist Report
           </a>
           <?php endif; ?>
-          <?php if (has_any_role(['sheadprd', 'sheadmtc', 'admin', 'member'])): ?>
+          <?php if (has_any_role(['sheadprd', 'sheadmtc', 'admin', 'member', 'leader mtc', 'magang'])): ?>
           <a href="<?= site_url('kontrol') ?>" class="menu-item <?= $seg1 === 'kontrol' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
             <i class="bi bi-calendar2-check"></i>Checklist Control
           </a>
@@ -770,14 +755,14 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
           <?php endif; ?>
           <?php endif; ?>
 
-          <?php if (has_any_role(['member', 'admin'])): ?>
+          <?php if (has_any_role(['member', 'leader mtc', 'admin'])): ?>
             <a href="<?= site_url('laporan/durasi') ?>" class="menu-item <?= $seg1 === 'laporan' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
               <i class="bi bi-bar-chart-line"></i>Duration Report
             </a>
           <?php endif; ?>
         </div>
       </div>
-      <?php endif; ?>
+
 
 
       
@@ -786,7 +771,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
       </a>
 
       <?php 
-        $hasMasterData = has_any_role(['admin', 'member', 'leader_member']);
+        $hasMasterData = has_any_role(['admin', 'member', 'leader mtc']);
         $isMasterDataOpen = ($seg2 === 'mesin' || $seg2 === 'user' || $seg2 === 'pic' || $seg2 === 'parameter');
       ?>
       <?php if ($hasMasterData): ?>
@@ -801,7 +786,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
               <i class="bi bi-gear-wide-connected"></i>Master Mesin
             </a>
             
-            <?php if (has_any_role(['admin', 'leader_member'])): ?>
+            <?php if (has_any_role(['admin', 'leader mtc'])): ?>
               <a href="<?= site_url('admin/user') ?>" class="menu-item <?= $seg2 === 'user' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
                 <i class="bi bi-people"></i>Master User
               </a>
@@ -812,6 +797,33 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
                 <i class="bi bi-sliders"></i>Master Parameter
               </a>
             <?php endif; ?>
+
+          </div>
+        </div>
+      <?php endif; ?>
+
+      <?php 
+        $isLogRiwayatOpen = ($seg2 === 'audit-log' || $seg2 === 'log-mesin' || $seg2 === 'log-user');
+      ?>
+      <?php if (has_role('admin')): ?>
+        <a href="#logRiwayatMenu" data-bs-toggle="collapse" class="menu-item <?= $isLogRiwayatOpen ? 'active' : '' ?> mt-2">
+          <i class="bi bi-clock-history"></i>Log Riwayat
+          <i class="bi bi-chevron-down ms-auto" style="font-size: 0.8rem;"></i>
+        </a>
+        <div class="collapse <?= $isLogRiwayatOpen ? 'show' : '' ?>" id="logRiwayatMenu">
+          <div style="padding-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+            
+            <a href="<?= site_url('admin/audit-log') ?>" class="menu-item <?= $seg2 === 'audit-log' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
+              <i class="bi bi-journal-text"></i>Log Riwayat Dokumen
+            </a>
+
+            <a href="<?= site_url('admin/log-mesin') ?>" class="menu-item <?= $seg2 === 'log-mesin' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
+              <i class="bi bi-gear-wide-connected"></i>Log Hapus Mesin
+            </a>
+
+            <a href="<?= site_url('admin/log-user') ?>" class="menu-item <?= $seg2 === 'log-user' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
+              <i class="bi bi-people"></i>Log Hapus User
+            </a>
 
           </div>
         </div>

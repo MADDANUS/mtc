@@ -17,7 +17,7 @@ class RoleFilter implements FilterInterface
 
         $allowedRoles = $arguments ?? [];
 
-        if (! empty($allowedRoles) && ! in_array(session()->get('role'), $allowedRoles, true)) {
+        if (! empty($allowedRoles) && ! has_any_role($allowedRoles)) {
             return redirect()->to('/dashboard')->with('error', 'Anda tidak memiliki akses ke halaman tersebut.');
         }
     }

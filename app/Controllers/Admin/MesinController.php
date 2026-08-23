@@ -34,7 +34,7 @@ class MesinController extends BaseController
         // Get filter inputs
         $q = $this->request->getGet('q');
         $departemen = $this->request->getGet('departemen');
-        $plan = $this->request->getGet('plan');
+        $plant = $this->request->getGet('plant');
         $line = $this->request->getGet('line');
         $jenis = $this->request->getGet('jenis');
 
@@ -46,8 +46,8 @@ class MesinController extends BaseController
                     ->groupEnd();
         }
 
-        if (!empty($plan) && $plan !== 'all') {
-            $builder->where('plan', $plan);
+        if (!empty($plant) && $plant !== 'all') {
+            $builder->where('plant', $plant);
         }
 
         if (!empty($departemen) && $departemen !== 'all') {
@@ -86,8 +86,8 @@ class MesinController extends BaseController
         $lineModel = new LineModel();
         
         $lineQuery = $lineModel->select('nama_line');
-        if (!empty($plan) && $plan !== 'all') {
-            $lineQuery->where('plan', $plan);
+        if (!empty($plant) && $plant !== 'all') {
+            $lineQuery->where('plant', $plant);
         }
         if (!empty($departemen) && $departemen !== 'all') {
             $lineQuery->where('departemen', $departemen);
@@ -110,7 +110,7 @@ class MesinController extends BaseController
             'allLines' => $filteredLines,
             'filters' => [
                 'q' => $q,
-                'plan' => $plan,
+                'plant' => $plant,
                 'departemen' => $departemen,
                 'line' => $line,
                 'jenis' => $jenis
@@ -145,7 +145,7 @@ class MesinController extends BaseController
             'no_mesin'        => $this->request->getPost('no_mesin'),
             'type_mesin'      => $this->request->getPost('type_mesin'),
             'serial_nomor'    => $this->request->getPost('serial_nomor'),
-            'plan'            => $this->request->getPost('plan'),
+            'plant'            => $this->request->getPost('plant'),
             'departemen'      => $this->request->getPost('departemen'),
             'line'            => $this->request->getPost('line') ?: null,
             'bar_feeder_type' => $this->request->getPost('bar_feeder_type'),
@@ -170,9 +170,12 @@ class MesinController extends BaseController
             $tanggalMulai = date('Y-m-01', strtotime('+1 month')); // Lempar ke bulan depan
         }
 
+        $planTujuan = $this->request->getPost('plant');
+
         $riwayatModel = new \App\Models\RiwayatMesinModel();
         $riwayatModel->insert([
             'id_mesin' => $idMesin,
+            'plant' => $planTujuan,
             'departemen' => $departemenTujuan,
             'line' => $lineTujuan,
             'tanggal_mulai' => $tanggalMulai,
@@ -218,7 +221,7 @@ class MesinController extends BaseController
             'no_mesin'        => $this->request->getPost('no_mesin'),
             'type_mesin'      => $this->request->getPost('type_mesin'),
             'serial_nomor'    => $this->request->getPost('serial_nomor'),
-            'plan'            => $this->request->getPost('plan'),
+            'plant'            => $this->request->getPost('plant'),
             'departemen'      => $this->request->getPost('departemen'),
             'line'            => $this->request->getPost('line') ?: null,
             'bar_feeder_type' => $this->request->getPost('bar_feeder_type'),
@@ -245,10 +248,11 @@ class MesinController extends BaseController
         $this->model->update($id, $newData);
 
         // --- TAHAP 3: PENCATATAN RIWAYAT PINDAH ---
+        $planBaru = $this->request->getPost('plant');
         $departemenBaru = $this->request->getPost('departemen');
         $lineBaru = $this->request->getPost('line') ?: null;
 
-        if ($oldMesin['departemen'] !== $departemenBaru || $oldMesin['line'] !== $lineBaru) {
+        if ($oldMesin['departemen'] !== $departemenBaru || $oldMesin['line'] !== $lineBaru || $oldMesin['plant'] !== $planBaru) {
             $bulanIni = date('Y-m');
             $approvalModel = new \App\Models\ApprovalBulananModel();
             
@@ -294,6 +298,7 @@ class MesinController extends BaseController
             // Buka riwayat baru
             $riwayatModel->insert([
                 'id_mesin' => $id,
+                'plant' => $planBaru,
                 'departemen' => $departemenBaru,
                 'line' => $lineBaru,
                 'tanggal_mulai' => $tanggalMulaiBaru,
@@ -315,12 +320,35 @@ class MesinController extends BaseController
     {
         $redirectUrl = session()->get('last_mesin_url') ?? '/admin/mesin';
 
-        if (! $this->model->find($id)) {
+        $mesin = $this->model->find($id);
+        if (! $mesin) {
             return $this->redirectNotFound($redirectUrl, 'Mesin');
         }
 
-        $this->model->delete($id);
-        return $this->redirectSuccess($redirectUrl, 'Mesin berhasil dihapus.');
+        $alasan = $this->request->getPost('alasan');
+        if (empty($alasan)) {
+            return $this->redirectError($redirectUrl, 'Alasan penghapusan harus diisi.');
+        }
+
+        $logModel = new \App\Models\LogHapusMesinModel();
+        $logData = $mesin;
+        $logData['waktu_dihapus'] = date('Y-m-d H:i:s');
+        $logData['dihapus_oleh'] = session()->get('nama') ?? 'System';
+        $logData['alasan_dihapus'] = $alasan;
+        
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        $logModel->insert($logData);
+        $this->model->delete($id, true); // Hard delete
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->redirectError($redirectUrl, 'Gagal menghapus mesin.');
+        }
+
+        return $this->redirectSuccess($redirectUrl, 'Mesin berhasil dihapus permanen beserta histori alasannya.');
     }
 
     public function export()
@@ -366,7 +394,7 @@ class MesinController extends BaseController
         $sheet->setCellValue('A1', 'No Mesin');
         $sheet->setCellValue('B1', 'Type Mesin');
         $sheet->setCellValue('C1', 'Serial Nomor');
-        $sheet->setCellValue('D1', 'Plan');
+        $sheet->setCellValue('D1', 'plant');
         $sheet->setCellValue('E1', 'Departemen');
         $sheet->setCellValue('F1', 'Line');
         $sheet->setCellValue('G1', 'Bar Feeder Type');
@@ -378,7 +406,7 @@ class MesinController extends BaseController
             $sheet->setCellValue('A' . $row, $m['no_mesin']);
             $sheet->setCellValue('B' . $row, $m['type_mesin']);
             $sheet->setCellValue('C' . $row, $m['serial_nomor']);
-            $sheet->setCellValue('D' . $row, $m['plan'] ?? 'Plan 1');
+            $sheet->setCellValue('D' . $row, $m['plant'] ?? 'Plant 1');
             $sheet->setCellValue('E' . $row, $m['departemen']);
             $sheet->setCellValue('F' . $row, $m['line']);
             $sheet->setCellValue('G' . $row, $m['bar_feeder_type']);
@@ -406,7 +434,7 @@ class MesinController extends BaseController
         $sheet->setCellValue('A1', 'No Mesin');
         $sheet->setCellValue('B1', 'Type Mesin');
         $sheet->setCellValue('C1', 'Serial Nomor');
-        $sheet->setCellValue('D1', 'Plan');
+        $sheet->setCellValue('D1', 'plant');
         $sheet->setCellValue('E1', 'Departemen');
         $sheet->setCellValue('F1', 'Line');
         $sheet->setCellValue('G1', 'Bar Feeder Type');
@@ -464,7 +492,7 @@ class MesinController extends BaseController
                 $noMesin       = trim($sheet->getCell('A' . $row)->getValue() ?? '');
                 $typeMesin     = trim($sheet->getCell('B' . $row)->getValue() ?? '');
                 $serialNomor   = trim($sheet->getCell('C' . $row)->getValue() ?? '');
-                $plan          = trim($sheet->getCell('D' . $row)->getValue() ?? '');
+                $plant          = trim($sheet->getCell('D' . $row)->getValue() ?? '');
                 $departemen    = trim($sheet->getCell('E' . $row)->getValue() ?? '');
                 $line          = trim($sheet->getCell('F' . $row)->getValue() ?? '');
                 $barFeederType = trim($sheet->getCell('G' . $row)->getValue() ?? '');
@@ -485,8 +513,8 @@ class MesinController extends BaseController
                     continue;
                 }
                 
-                if (empty($plan)) {
-                    $plan = 'Plan 1'; // Default plan
+                if (empty($plant)) {
+                    $plant = 'Plant 1'; // Default plant
                 }
 
                 // AUTO-CORRECT LOKASI
@@ -519,7 +547,7 @@ class MesinController extends BaseController
                         'no_mesin'        => $noMesin,
                         'type_mesin'      => $typeMesin,
                         'serial_nomor'    => $serialNomor,
-                        'plan'            => $plan,
+                        'plant'            => $plant,
                         'departemen'      => $departemen,
                         'line'            => empty($line) ? null : $line,
                         'bar_feeder_type' => empty($barFeederType) ? null : $barFeederType,
@@ -549,7 +577,8 @@ class MesinController extends BaseController
                     // --- RIWAYAT MESIN OTOMATIS (UPDATE) ---
                     $departemenBaru = $departemen;
                     $lineBaru = empty($line) ? null : $line;
-                    if ($existing['departemen'] !== $departemenBaru || $existing['line'] !== $lineBaru) {
+                    $plantBaru = $plant;
+                    if ($existing['departemen'] !== $departemenBaru || $existing['line'] !== $lineBaru || $existing['plant'] !== $plantBaru) {
                         $bulanIni = date('Y-m');
                         $approvalModel = new \App\Models\ApprovalBulananModel();
                         $approvalLama = $approvalModel->where('departemen', $existing['departemen'])
@@ -585,6 +614,7 @@ class MesinController extends BaseController
                                      ->update();
                         $riwayatModel->insert([
                             'id_mesin' => $existing['id_mesin'],
+                            'plant' => $plantBaru,
                             'departemen' => $departemenBaru,
                             'line' => $lineBaru,
                             'tanggal_mulai' => $tanggalMulaiBaru,
@@ -604,7 +634,7 @@ class MesinController extends BaseController
                         'no_mesin'        => $noMesin,
                         'type_mesin'      => $typeMesin,
                         'serial_nomor'    => $serialNomor,
-                        'plan'            => $plan,
+                        'plant'            => $plant,
                         'departemen'      => $departemen,
                         'line'            => empty($line) ? null : $line,
                         'bar_feeder_type' => empty($barFeederType) ? null : $barFeederType,
@@ -628,6 +658,7 @@ class MesinController extends BaseController
                     $riwayatModel = new \App\Models\RiwayatMesinModel();
                     $riwayatModel->insert([
                         'id_mesin' => $idMesin,
+                        'plant' => $plant,
                         'departemen' => $departemenTujuan,
                         'line' => $lineTujuan,
                         'tanggal_mulai' => $tanggalMulai,
@@ -694,7 +725,7 @@ class MesinController extends BaseController
             'no_mesin'        => $noMesinRule,
             'serial_nomor'    => $serialNomorRule,
             'type_mesin'      => 'permit_empty|max_length[100]',
-            'plan'            => 'required|in_list[Plan 1,Plan 2]',
+            'plant'            => 'required|in_list[Plant 1,Plant 2]',
             'departemen'      => 'required|in_list[MFG 1,MFG 2]',
             'line'            => 'permit_empty|max_length[50]',
             'bar_feeder_type' => 'permit_empty|max_length[100]',
@@ -766,7 +797,7 @@ class MesinController extends BaseController
     public function deleteRiwayat()
     {
         // Hanya admin yang boleh hapus
-        if (!has_role(Role::Admin->value)) {
+        if (!has_any_role([Role::Admin->value, Role::Member->value, Role::LeaderMember->value])) {
             return $this->response->setJSON(['status' => false, 'message' => 'Akses ditolak.']);
         }
 
@@ -791,8 +822,8 @@ class MesinController extends BaseController
 
     public function formHistory()
     {
-        if (!has_role(Role::Admin->value)) {
-            return $this->redirectError('/admin/mesin', 'Hanya Admin yang dapat mengakses form update riwayat mesin massal.');
+        if (!has_any_role([Role::Admin->value, Role::Member->value, Role::LeaderMember->value])) {
+            return $this->redirectError('/admin/mesin', 'Hanya Admin, Member, dan Leader Member yang dapat mengakses form update riwayat mesin massal.');
         }
         
         $months = [];

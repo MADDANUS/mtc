@@ -1,0 +1,1 @@
+<?php $db = new PDO('mysql:host=localhost;dbname=mtce_db', 'root', ''); $stmt = $db->query('SELECT id_transaksi, jenis_check, departemen_check, line_check, status FROM transaksi_check WHERE status IN (\'Approved L1\', \'Approved L2\')'); print_r($stmt->fetchAll(PDO::FETCH_ASSOC));

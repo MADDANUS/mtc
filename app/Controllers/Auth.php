@@ -28,11 +28,13 @@ class Auth extends BaseController
         }
 
         session()->set([
-            'user_id'   => $user['id'],
-            'nama'      => $user['nama'],
-            'role'      => $user['role'],
-            'line'      => $user['line'],
-            'logged_in' => true,
+            'user_id'    => $user['id'],
+            'nama'       => $user['nama'],
+            'role'       => $user['role'],
+            'line'       => $user['line'],
+            'departemen' => $user['departemen'] ?? null,
+            'plant'      => $user['plant'] ?? null,
+            'logged_in'  => true,
         ]);
 
         return redirect()->to('/dashboard');

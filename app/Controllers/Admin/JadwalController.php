@@ -91,6 +91,10 @@ class JadwalController extends BaseController
      */
     public function events()
     {
+        $plant = $this->request->getGet('plant');
+        if ($plant && $plant !== 'Semua Plant') {
+            $this->jadwalModel->where('plant', $plant);
+        }
         $schedules = $this->jadwalModel->findAll();
 
         $events = [];
@@ -111,7 +115,8 @@ class JadwalController extends BaseController
 
             // Label: tampilkan rentang tanggal Senin-Jumat di judul
             $fridayTs = strtotime('+4 days', $mondayTs);
-            $label = esc($s['departemen'] . ' - ' . $s['kategori'] . ' (' . date('d', $mondayTs) . '-' . date('d', $fridayTs) . '/' . date('m', $mondayTs) . ')');
+            $plantLabel = $s['plant'] ?: 'Plant 1';
+            $label = esc($plantLabel . ' - ' . $s['departemen'] . ' - ' . $s['kategori'] . ' (' . date('d', $mondayTs) . '-' . date('d', $fridayTs) . '/' . date('m', $mondayTs) . ')');
 
             $events[] = [
                 'id'              => (int) $s['id_jadwal'],
@@ -140,12 +145,13 @@ class JadwalController extends BaseController
      */
     public function store()
     {
-        if (!has_any_role([Role::Admin->value, Role::Member->value])) {
+        if (!has_any_role([Role::Admin->value, Role::Member->value, Role::LeaderMember->value])) {
             return $this->redirectError('/admin/jadwal', 'Anda tidak berhak menambah jadwal.');
         }
 
         $validCats = implode(',', $this->getValidCategories());
         $rules = [
+            'plant'               => 'required|in_list[Plant 1,Plant 2]',
             'departemen'          => 'required|in_list[MFG 1,MFG 2]',
             'kategori'        => "required|in_list[{$validCats}]",
             'tanggal_rencana' => 'required|valid_date[Y-m-d]',
@@ -155,6 +161,7 @@ class JadwalController extends BaseController
             return $this->redirectValidationError();
         }
 
+        $plant              = $this->request->getPost('plant');
         $departemen         = $this->request->getPost('departemen');
         $kategori       = $this->request->getPost('kategori');
         $tanggalRencana = $this->request->getPost('tanggal_rencana');
@@ -162,18 +169,20 @@ class JadwalController extends BaseController
         // Hitung bulan_tahun dan periode_ke menggunakan fungsi tersentralisasi
         list($bulanTahun, $periodeKe) = $this->hitungBulanDanPekan($tanggalRencana);
 
-        // Cek duplikasi bulanan: Kategori per departemen hanya boleh dijadwalkan SATU kali per bulan
-        $exist = $this->jadwalModel->where('departemen', $departemen)
+        // Cek duplikasi bulanan: Kategori per departemen per plant hanya boleh dijadwalkan SATU kali per bulan
+        $exist = $this->jadwalModel->where('plant', $plant)
+                                   ->where('departemen', $departemen)
                                    ->where('kategori', $kategori)
                                    ->where('bulan_tahun', $bulanTahun)
                                    ->first();
 
         if ($exist) {
             $existDate = date('d/m/Y', strtotime($exist['tanggal_rencana']));
-            return redirect()->back()->withInput()->with('error', "Jadwal untuk {$departemen} - {$kategori} pada bulan ini sudah terdaftar (tanggal {$existDate}, Pekan ke-{$exist['periode_ke']}). Hapus jadwal lama terlebih dahulu jika ingin mengubah.");
+            return redirect()->back()->withInput()->with('error', "Jadwal <b>{$plant} - {$departemen} - {$kategori}</b> pada bulan ini sudah terdaftar (tanggal {$existDate}, Pekan ke-{$exist['periode_ke']}). Hapus jadwal lama terlebih dahulu jika ingin mengubah.");
         }
 
         $this->jadwalModel->insert([
+            'plant'               => $plant,
             'departemen'          => $departemen,
             'kategori'        => $kategori,
             'bulan_tahun'     => $bulanTahun,
@@ -189,7 +198,7 @@ class JadwalController extends BaseController
      */
     public function delete(int $id)
     {
-        if (!has_any_role([Role::Admin->value, Role::Member->value])) {
+        if (!has_any_role([Role::Admin->value, Role::Member->value, Role::LeaderMember->value])) {
             return $this->redirectError('/admin/jadwal', 'Anda tidak berhak menghapus jadwal.');
         }
 
@@ -308,7 +317,7 @@ class JadwalController extends BaseController
      */
     public function import()
     {
-        if (!has_any_role([Role::Admin->value, Role::Member->value])) {
+        if (!has_any_role([Role::Admin->value, Role::Member->value, Role::LeaderMember->value])) {
             return $this->redirectError('/admin/jadwal', 'Anda tidak berhak memproses impor.');
         }
 
@@ -410,21 +419,24 @@ class JadwalController extends BaseController
 
             // Hitung bulan dan pekan menggunakan fungsi tersentralisasi
             list($bulanTahun, $periodeKe) = $this->hitungBulanDanPekan($tanggalRencana);
+            $plant = 'Plant 1'; // Default plant for Excel import until template is updated
 
             // Cek duplikasi bulanan
-            $exist = $this->jadwalModel->where('departemen', $departemen)
+            $exist = $this->jadwalModel->where('plant', $plant)
+                                       ->where('departemen', $departemen)
                                        ->where('kategori', $kategori)
                                        ->where('bulan_tahun', $bulanTahun)
                                        ->first();
 
             if ($exist) {
                 $bulanStr = format_bulan_indo($bulanTahun);
-                $errors[] = "Baris {$rowNumber}: Jadwal <b>{$departemen} - {$kategori}</b> sudah ada di bulan {$bulanStr} (Pekan ke-{$exist['periode_ke']}).";
+                $errors[] = "Baris {$rowNumber}: Jadwal <b>{$plant} - {$departemen} - {$kategori}</b> sudah ada di bulan {$bulanStr} (Pekan ke-{$exist['periode_ke']}).";
                 $skipCount++;
                 continue;
             }
 
             $this->jadwalModel->insert([
+                'plant'               => $plant,
                 'departemen'          => $departemen,
                 'kategori'        => $kategori,
                 'bulan_tahun'     => $bulanTahun,

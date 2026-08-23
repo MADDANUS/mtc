@@ -128,16 +128,16 @@ class LaporanAbnormalModel extends Model
 
     public function getDashboardSummaryAbnormal(string $bulan): array
     {
-        return $this->select('master_mesin.departemen, IF(laporan_abnormal.action IS NULL OR laporan_abnormal.action = \'\', master_mesin.line, COALESCE(riwayat_mesin.line, master_mesin.line)) as line, transaksi_check.kategori, SUM(CASE WHEN laporan_abnormal.action IS NULL OR laporan_abnormal.action = \'\' THEN 1 ELSE 0 END) as totalOpen, COUNT(laporan_abnormal.id_abnormal) as totalAll')
+        return $this->select('master_mesin.departemen, COALESCE(riwayat_mesin.plant, master_mesin.plant) as plant, IF(laporan_abnormal.action IS NULL OR laporan_abnormal.action = \'\', master_mesin.line, COALESCE(riwayat_mesin.line, master_mesin.line)) as line, transaksi_check.kategori, SUM(CASE WHEN laporan_abnormal.action IS NULL OR laporan_abnormal.action = \'\' THEN 1 ELSE 0 END) as totalOpen, COUNT(laporan_abnormal.id_abnormal) as totalAll')
                     ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
                     ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
                     ->join('riwayat_mesin', 'riwayat_mesin.id_mesin = laporan_abnormal.id_mesin AND riwayat_mesin.tanggal_mulai <= DATE(laporan_abnormal.pengecekan_tanggal) AND (riwayat_mesin.tanggal_selesai IS NULL OR riwayat_mesin.tanggal_selesai >= DATE(laporan_abnormal.pengecekan_tanggal))', 'left')
                     ->like('laporan_abnormal.pengecekan_tanggal', $bulan . '-', 'after')
-                    ->groupBy('master_mesin.departemen, line, transaksi_check.kategori')
+                    ->groupBy('plant, master_mesin.departemen, line, transaksi_check.kategori')
                     ->findAll();
     }
 
-    public function getOverhaulLaporan(string $departemen, string $bulan, string $search, ?int $perPage = null): array
+    public function getOverhaulLaporan(string $departemen, string $bulan, string $search, ?int $perPage = null, string $line = ''): array
     {
         $builder = $this->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.departemen, transaksi_check.kategori, master_parameter_check.bagian_check, master_parameter_check.sub_item_check')
                         ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
@@ -158,6 +158,10 @@ class LaporanAbnormalModel extends Model
                     ->orLike('master_mesin.no_mesin', $search)
                     ->orLike('master_mesin.type_mesin', $search)
                     ->groupEnd();
+        }
+        if (!empty($line)) {
+            $builder->join('riwayat_mesin', 'riwayat_mesin.id_mesin = laporan_abnormal.id_mesin AND riwayat_mesin.tanggal_mulai <= DATE(laporan_abnormal.pengecekan_tanggal) AND (riwayat_mesin.tanggal_selesai IS NULL OR riwayat_mesin.tanggal_selesai >= DATE(laporan_abnormal.pengecekan_tanggal))', 'left');
+            $builder->where('IF(laporan_abnormal.action IS NULL OR laporan_abnormal.action = \'\', master_mesin.line, COALESCE(riwayat_mesin.line, master_mesin.line))', $line);
         }
         $builder->orderBy('laporan_abnormal.pengecekan_tanggal', 'DESC')
                 ->orderBy('laporan_abnormal.id_abnormal', 'DESC');
@@ -184,9 +188,10 @@ class LaporanAbnormalModel extends Model
 
     public function getOverhaulDashboardSummaryLaporan(string $departemen, string $bulan): array
     {
-        $builder = $this->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.departemen')
+        $builder = $this->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.departemen, COALESCE(riwayat_mesin.plant, master_mesin.plant) as plant, IF(laporan_abnormal.action IS NULL OR laporan_abnormal.action = \'\', master_mesin.line, COALESCE(riwayat_mesin.line, master_mesin.line)) as line')
                     ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
                     ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
+                    ->join('riwayat_mesin', 'riwayat_mesin.id_mesin = laporan_abnormal.id_mesin AND riwayat_mesin.tanggal_mulai <= DATE(laporan_abnormal.pengecekan_tanggal) AND (riwayat_mesin.tanggal_selesai IS NULL OR riwayat_mesin.tanggal_selesai >= DATE(laporan_abnormal.pengecekan_tanggal))', 'left')
                     ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value)
                     ->where('master_mesin.departemen', $departemen);
         $this->applySemesterFilter($builder, $bulan);

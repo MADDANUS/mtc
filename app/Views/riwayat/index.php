@@ -46,7 +46,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
       $downloadUrl = site_url("riwayat/download-pdf-all/{$departemenSlug}") . '?' . http_build_query($pdfParams);
       $excelUrl = site_url("riwayat/export-excel/{$departemenSlug}") . '?' . http_build_query($pdfParams);
     ?>
-    <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
+    <?php if (!has_any_role(['leader', 'sheadprd', 'sheadmtc'])): ?>
     <a href="<?= $excelUrl ?>" class="btn btn-sm btn-outline-success shadow-sm" target="_blank">
       <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel
     </a>
@@ -54,7 +54,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
       <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
     </a>
     <?php endif; ?>
-    <?php if (in_array(session()->get('role'), ['staff', 'admin'], true)): ?>
+    <?php if (has_any_role(['staff', 'admin'])): ?>
       <a href="<?= site_url('checklist') ?>" class="btn btn-sm btn-primary shadow-sm">
         <i class="bi bi-plus-lg"></i> Buat Baru
       </a>
@@ -88,7 +88,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
             </th>
             <th style="width: 8%;" class="align-middle">
               <a href="#" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em; cursor: default;" onclick="return false;">
-                PLAN
+                plant
               </a>
             </th>
             <th style="width: 8%;" class="align-middle">
@@ -141,11 +141,11 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
               </select>
             </th>
             <th class="p-1" style="min-width: 100px;">
-              <select name="plan" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Plan..." onchange="this.form.submit()" style="font-size: 0.75rem;">
+              <select name="plant" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari plant..." onchange="this.form.submit()" style="font-size: 0.75rem;">
                 <option value=""></option>
-                <option value="all">Semua Plan</option>
+                <option value="all">Semua plant</option>
                 <?php if (!empty($availablePlans)) foreach ($availablePlans as $pl): ?>
-                  <option value="<?= esc($pl) ?>" <?= isset($selectedFilters['plan']) && $selectedFilters['plan'] === $pl ? 'selected' : '' ?>><?= esc($pl) ?></option>
+                  <option value="<?= esc($pl) ?>" <?= isset($selectedFilters['plant']) && $selectedFilters['plant'] === $pl ? 'selected' : '' ?>><?= esc($pl) ?></option>
                 <?php endforeach; ?>
               </select>
             </th>
@@ -239,7 +239,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
 </div>
 </form>
 
-<?php if (session()->get('role') === 'admin'): ?>
+<?php if (has_role('admin')): ?>
 <!-- Delete Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -251,7 +251,11 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
       <form id="deleteForm" method="post" action="">
         <?= csrf_field() ?>
         <div class="modal-body px-4 pt-3 pb-2">
-          <p class="text-muted mb-0" style="font-size:0.88rem;">Apakah Anda yakin ingin menghapus riwayat pengecekan ini? Data detail pengecekan dan Abnormal Report yang terkait juga akan dihapus secara permanen.</p>
+          <p class="text-muted mb-3" style="font-size:0.88rem;">Apakah Anda yakin ingin menghapus riwayat pengecekan ini? Data detail pengecekan dan Abnormal Report yang terkait juga akan dihapus secara permanen.</p>
+          <div class="mb-2">
+            <label for="deleteReason" class="form-label" style="font-size:0.85rem; font-weight:600;">Alasan Penghapusan <span class="text-danger">*</span></label>
+            <textarea class="form-control" name="alasan" id="deleteReason" rows="3" required placeholder="Wajib: Tuliskan alasan mengapa laporan ini dihapus..." style="font-size:0.85rem;"></textarea>
+          </div>
         </div>
         <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
           <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-3" data-bs-dismiss="modal">Batal</button>

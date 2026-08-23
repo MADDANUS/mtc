@@ -26,27 +26,27 @@ $routes->get('ganti-password', 'Auth::gantiPasswordForm', ['filter' => 'auth']);
 $routes->post('ganti-password', 'Auth::updatePassword', ['filter' => 'auth']);
 
 // Checklist Dinamis (magang, member, admin bisa buat pengecekan)
-$routes->group('checklist', ['filter' => 'role:admin,magang,member'], static function ($routes) {
+$routes->group('checklist', ['filter' => 'role:admin,magang,member,leader mtc'], static function ($routes) {
     // 0. API Check Duplicate
     $routes->post('check-duplicate', 'ChecklistController::checkDuplicate');
 
-    // 1. Pilih Plan
+    // 1. Pilih plant
     $routes->get('/', 'ChecklistController::pilihPlan');
     
     // 1b. Pilih Departemen
-    $routes->get('plan/(:segment)', 'ChecklistController::pilihDepartemen/$1');
+    $routes->get('plant/(:segment)', 'ChecklistController::pilihDepartemen/$1');
     
     // 2. Pilih Jenis Pengecekan
-    $routes->get('plan/(:segment)/(:segment)', 'ChecklistController::pilihJenis/$1/$2');
+    $routes->get('plant/(:segment)/(:segment)', 'ChecklistController::pilihJenis/$1/$2');
     
     // 3. Pilih Kategori (Line / Kategori)
-    $routes->get('plan/(:segment)/(:segment)/(:segment)', 'ChecklistController::indexKategori/$1/$2/$3');
+    $routes->get('plant/(:segment)/(:segment)/(:segment)', 'ChecklistController::indexKategori/$1/$2/$3');
     
     // 4. Form Checklist (Create)
-    $routes->get('plan/(:segment)/(:segment)/(:segment)/create/(:segment)', 'ChecklistController::create/$1/$2/$3/$4');
+    $routes->get('plant/(:segment)/(:segment)/(:segment)/create/(:segment)', 'ChecklistController::create/$1/$2/$3/$4');
     
     // 5. Simpan Pengecekan
-    $routes->post('plan/(:segment)/(:segment)/(:segment)/store', 'ChecklistController::store/$1/$2/$3');
+    $routes->post('plant/(:segment)/(:segment)/(:segment)/store', 'ChecklistController::store/$1/$2/$3');
 });
 
 // Riwayat & Detail Transaksi (semua role login, scoping data ditangani di controller)
@@ -54,11 +54,11 @@ $routes->group('riwayat', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/', 'RiwayatController::index');
     $routes->get('redirect-detail', 'RiwayatController::redirectDetail');
     $routes->get('departemen/(:segment)', 'RiwayatController::departemen/$1');
-    $routes->get('download-pdf-all/(:segment)', 'RiwayatController::downloadPdfAll/$1', ['filter' => 'role:member,admin,magang']);
-    $routes->get('export-excel/(:segment)', 'RiwayatController::exportExcel/$1', ['filter' => 'role:member,admin,magang']);
-    $routes->get('download-pdf/(:num)', 'RiwayatController::downloadPdf/$1', ['filter' => 'role:member,admin,magang']);
+    $routes->get('download-pdf-all/(:segment)', 'RiwayatController::downloadPdfAll/$1', ['filter' => 'role:member,leader mtc,admin,magang,leader mtc']);
+    $routes->get('export-excel/(:segment)', 'RiwayatController::exportExcel/$1', ['filter' => 'role:member,leader mtc,admin,magang,leader mtc']);
+    $routes->get('download-pdf/(:num)', 'RiwayatController::downloadPdf/$1', ['filter' => 'role:member,leader mtc,admin,magang,leader mtc']);
     $routes->get('(:num)', 'RiwayatController::detail/$1');
-    $routes->post('approve/(:num)', 'RiwayatController::approve/$1', ['filter' => 'role:member,sheadprd,sheadmtc,admin,leader']);
+    $routes->post('approve/(:num)', 'RiwayatController::approve/$1', ['filter' => 'role:member,leader mtc,sheadprd,sheadmtc,admin,leader']);
     
     // Khusus Admin: Edit & Hapus Riwayat
     $routes->get('edit/(:num)', 'RiwayatController::edit/$1', ['filter' => 'role:admin']);
@@ -68,7 +68,7 @@ $routes->group('riwayat', ['filter' => 'auth'], static function ($routes) {
 });
 
 // Scan QR Code (magang, member, admin)
-$routes->group('scan', ['filter' => 'role:magang,member,admin'], static function ($routes) {
+$routes->group('scan', ['filter' => 'role:magang,member,leader mtc,admin'], static function ($routes) {
     $routes->get('/', 'ScanController::index');
     $routes->get('mesin/(:num)', 'ScanController::mesin/$1');
 });
@@ -76,9 +76,9 @@ $routes->group('scan', ['filter' => 'role:magang,member,admin'], static function
 // Checklist Control Bulanan (semua role login)
 $routes->group('kontrol', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/', 'KontrolController::index');
-    $routes->get('pdf', 'KontrolController::pdf', ['filter' => 'role:member,admin']);
-    $routes->get('pdf-all-categories', 'KontrolController::pdfAllCategories', ['filter' => 'role:member,admin']);
-    $routes->get('pdf-all-summary', 'KontrolController::pdfAllSummary', ['filter' => 'role:member,admin']);
+    $routes->get('pdf', 'KontrolController::pdf', ['filter' => 'role:member,leader mtc,admin']);
+    $routes->get('pdf-all-categories', 'KontrolController::pdfAllCategories', ['filter' => 'role:member,leader mtc,admin']);
+    $routes->get('pdf-all-summary', 'KontrolController::pdfAllSummary', ['filter' => 'role:member,leader mtc,admin']);
     $routes->post('update-cell', 'KontrolController::updateCell');
     $routes->post('approve', 'KontrolController::approveBulanan');
     $routes->post('delete-approval', 'KontrolController::deleteApprovalBulanan');
@@ -87,17 +87,17 @@ $routes->group('kontrol', ['filter' => 'auth'], static function ($routes) {
 // Abnormal Report Condition (semua role login)
 $routes->group('abnormal', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/', 'AbnormalController::index');
-    $routes->get('pdf', 'AbnormalController::pdf', ['filter' => 'role:member,admin']);
-    $routes->get('pdf-all-categories', 'AbnormalController::pdfAllCategories', ['filter' => 'role:member,admin']);
-    $routes->get('pdf-all-summary', 'AbnormalController::pdfAllSummary', ['filter' => 'role:member,admin']);
-    $routes->get('excel-all-summary', 'AbnormalController::excelAllSummary', ['filter' => 'role:member,admin']);
+    $routes->get('pdf', 'AbnormalController::pdf', ['filter' => 'role:member,leader mtc,admin']);
+    $routes->get('pdf-all-categories', 'AbnormalController::pdfAllCategories', ['filter' => 'role:member,leader mtc,admin']);
+    $routes->get('pdf-all-summary', 'AbnormalController::pdfAllSummary', ['filter' => 'role:member,leader mtc,admin']);
+    $routes->get('excel-all-summary', 'AbnormalController::excelAllSummary', ['filter' => 'role:member,leader mtc,admin']);
     $routes->post('update', 'AbnormalController::update');
     $routes->post('approve', 'AbnormalController::approveBulanan');
     
     // Abnormal Khusus Overhaul
-    $routes->get('overhaul', 'AbnormalController::overhaul');
-    $routes->get('overhaul/pdf', 'AbnormalController::pdfOverhaul', ['filter' => 'role:member,admin']);
-    $routes->get('overhaul/pdf-all-summary', 'AbnormalController::pdfAllSummaryOverhaul', ['filter' => 'role:member,admin']);
+    $routes->get('overhaul', 'AbnormalController::overhaul', ['filter' => 'role:admin,member,leader mtc,leader,sheadprd,sheadmtc']);
+    $routes->get('overhaul/pdf', 'AbnormalController::pdfOverhaul', ['filter' => 'role:member,leader mtc,admin']);
+    $routes->get('overhaul/pdf-all-summary', 'AbnormalController::pdfAllSummaryOverhaul', ['filter' => 'role:member,leader mtc,admin']);
     $routes->post('overhaul/update', 'AbnormalController::updateOverhaul');
     
     // Upload Foto Perbaikan (semua yang bisa akses abnormal)
@@ -106,14 +106,17 @@ $routes->group('abnormal', ['filter' => 'auth'], static function ($routes) {
 });
 
 // Laporan Durasi (member, admin, magang)
-$routes->get('laporan/durasi', 'LaporanController::durasi', ['filter' => 'role:member,admin,magang']);
-$routes->get('laporan/durasi-pdf', 'LaporanController::durasiPdf', ['filter' => 'role:member,admin,magang']);
+$routes->get('admin/user/export', 'Admin\UserController::export', ['filter' => 'role:admin,sheadmtc,sheadprd,leader,leader mtc']);
+$routes->get('admin/audit-log', 'Admin\AuditLogController::index', ['filter' => 'role:admin']);
+  $routes->get('admin/log-mesin', 'Admin\LogMesinController::index', ['filter' => 'role:admin']);
+  $routes->get('admin/log-user', 'Admin\LogUserController::index', ['filter' => 'role:admin']);
+  $routes->get('testqueries', 'TestQueries::index');
+  $routes->get('laporan/durasi-pdf', 'LaporanController::durasiPdf', ['filter' => 'role:member,leader mtc,admin,magang,leader mtc']);
 
 // Approval Inbox (semua role kecuali magang)
-$routes->get('approval', 'ApprovalController::index', ['filter' => 'role:admin,member,leader,sheadprd,sheadmtc']);
+$routes->get('approval', 'ApprovalController::index', ['filter' => 'role:admin,member,leader mtc,leader,sheadprd,sheadmtc']);
 
-// Admin - Master Mesin (admin = full CRUD, member/sheadprd/sheadmtc = view-only)
-$routes->group('admin/mesin', ['filter' => 'role:admin,member,sheadprd,sheadmtc,leader', 'namespace' => 'App\Controllers\Admin'], static function ($routes) {
+$routes->group('admin/mesin', ['filter' => 'role:admin,member,leader mtc,sheadprd,sheadmtc,leader', 'namespace' => 'App\Controllers\Admin'], static function ($routes) {
     $routes->get('/', 'MesinController::index');
     $routes->get('create', 'MesinController::create');
     $routes->post('store', 'MesinController::store');
@@ -131,7 +134,7 @@ $routes->group('admin/mesin', ['filter' => 'role:admin,member,sheadprd,sheadmtc,
 });
 
 // Admin - Master User (admin only)
-$routes->group('admin/user', ['filter' => 'role:admin,leader_member', 'namespace' => 'App\Controllers\Admin'], static function ($routes) {
+$routes->group('admin/user', ['filter' => 'role:admin,leader mtc', 'namespace' => 'App\Controllers\Admin'], static function ($routes) {
     $routes->get('/', 'UserController::index');
     $routes->get('create', 'UserController::create');
     $routes->post('store', 'UserController::store');

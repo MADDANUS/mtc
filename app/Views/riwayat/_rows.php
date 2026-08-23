@@ -17,7 +17,7 @@
   <tr>
     <td class="fw-semibold text-muted text-center"><?= $no++ ?></td>
     <td class="text-muted" style="font-size: 0.85rem;"><?= esc($r['nama_pic']) ?></td>
-    <td class="fw-medium text-dark" style="font-size: 0.85rem; text-center"><?= esc($r['plan'] ?? '-') ?></td>
+    <td class="fw-medium text-dark" style="font-size: 0.85rem; text-center"><?= esc($r['plant'] ?? '-') ?></td>
     <td class="fw-medium text-dark" style="font-size: 0.85rem; text-center"><?= esc($r['departemen_check'] ?? '-') ?></td>
     <td class="fw-medium text-dark" style="font-size: 0.85rem; text-center"><?= strtoupper(esc($r['line'] ?? '-')) ?></td>
     <td>
@@ -60,7 +60,7 @@
         <a href="<?= site_url('riwayat/' . $r['id_transaksi']) . $qs ?>" class="btn btn-sm btn-outline-primary py-1 px-2">
           Detail
         </a>
-        <?php if (session()->get('role') === 'admin'): ?>
+        <?php if (has_role('admin')): ?>
           <a href="<?= site_url('riwayat/edit/' . $r['id_transaksi']) . $qs ?>" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Edit Riwayat">
             <i class="bi bi-pencil"></i>
           </a>

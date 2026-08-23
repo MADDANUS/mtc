@@ -12,6 +12,7 @@ class ApprovalBulananModel extends Model
         'bulan_tahun',
         'type',
         'kategori',
+        'plant',
         'departemen',
         'line',
         'status',
@@ -27,27 +28,11 @@ class ApprovalBulananModel extends Model
 
     public function getPendingKontrolByRole(): array
     {
-        $builder = $this->where('type', 'kontrol');
-        $statuses = [];
-        if (has_role(\App\Enums\Role::Sheadprd->value)) {
-            $statuses[] = 'Approved L1';
-        }
-        if (has_role(\App\Enums\Role::Sheadmtc->value)) {
-            $statuses[] = 'Approved L2';
-        }
-        if (has_role(\App\Enums\Role::Member->value)) {
-            $statuses[] = 'Pending';
-        }
-
-        if (!empty($statuses)) {
-            $builder->whereIn('status', $statuses);
-        } else {
-            $builder->where('1=0');
-        }
-        return $builder->orderBy('updated_at', 'DESC')->findAll();
+        // Panggil getInboxApprovalKontrol karena logika filter Plant/Dept/Line-nya sudah terpusat di sana
+        return $this->getInboxApprovalKontrol();
     }
 
-    public function getApprovalWithUsers(string $departemen, string $kategori, string $bulan, ?string $line): ?array
+    public function getApprovalWithUsers(string $departemen, string $kategori, string $bulan, ?string $line, ?string $plant = null): ?array
     {
         $builder = $this->select('approval_bulanan.*, u1.nama as l1_name, u2.nama as l2_name, u3.nama as final_name')
                         ->join('users u1', 'u1.id = approval_bulanan.approved_l1_by', 'left')
@@ -60,6 +45,9 @@ class ApprovalBulananModel extends Model
         if ($line) {
             $builder->where('approval_bulanan.line', $line);
         }
+        if ($plant) {
+            $builder->where('approval_bulanan.plantt', $plant);
+        }
         return $builder->first();
     }
 
@@ -70,31 +58,37 @@ class ApprovalBulananModel extends Model
                     ->findAll();
     }
 
-    public function getApprovalKontrol(string $departemen, string $line, string $kategori, string $bulanTahun): ?array
+    public function getApprovalKontrol(string $departemen, string $line, string $kategori, string $bulanTahun, ?string $plant = null): ?array
     {
-        return $this->where('type', 'kontrol')
-                    ->where('departemen', $departemen)
-                    ->where('line', $line)
-                    ->where('kategori', $kategori)
-                    ->where('bulan_tahun', $bulanTahun)
-                    ->first();
+        $builder = $this->where('type', 'kontrol')
+                        ->where('departemen', $departemen)
+                        ->where('line', $line)
+                        ->where('kategori', $kategori)
+                        ->where('bulan_tahun', $bulanTahun);
+        if ($plant) {
+            $builder->where('plant', $plant);
+        }
+        return $builder->first();
     }
 
-    public function deleteApprovalKontrol(string $departemen, string $line, string $kategori, string $bulanTahun): bool
+    public function deleteApprovalKontrol(string $departemen, string $line, string $kategori, string $bulanTahun, ?string $plant = null): bool
     {
-        return $this->where('type', 'kontrol')
-                    ->where('departemen', $departemen)
-                    ->where('line', $line)
-                    ->where('kategori', $kategori)
-                    ->where('bulan_tahun', $bulanTahun)
-                    ->delete();
+        $builder = $this->where('type', 'kontrol')
+                        ->where('departemen', $departemen)
+                        ->where('line', $line)
+                        ->where('kategori', $kategori)
+                        ->where('bulan_tahun', $bulanTahun);
+        if ($plant) {
+            $builder->where('plant', $plant);
+        }
+        return $builder->delete();
     }
 
     public function getInboxApprovalKontrol(): array
     {
-        $builder = $this->select('approval_bulanan.id_approval AS doc_id, approval_bulanan.type AS jenis_check, approval_bulanan.kategori, approval_bulanan.departemen, approval_bulanan.line, approval_bulanan.bulan_tahun AS doc_date, approval_bulanan.status, "kontrol" AS doc_source, NULL AS departemen_check, NULL AS nama_pic, NULL AS nama_staff, NULL AS no_mesin, NULL AS type_mesin, NULL AS persen', false);
+        $builder = $this->select('approval_bulanan.id_approval AS doc_id, approval_bulanan.type AS jenis_check, approval_bulanan.kategori, approval_bulanan.plant, approval_bulanan.departemen, approval_bulanan.line, approval_bulanan.bulan_tahun AS doc_date, approval_bulanan.status, "kontrol" AS doc_source, NULL AS departemen_check, NULL AS nama_pic, NULL AS nama_staff, NULL AS no_mesin, NULL AS type_mesin, NULL AS persen', false);
 
-        if (has_any_role([\App\Enums\Role::Member->value, \App\Enums\Role::Admin->value])) {
+        if (has_any_role([\App\Enums\Role::Member->value, \App\Enums\Role::LeaderMember->value, \App\Enums\Role::Admin->value])) {
             $builder->whereNotIn('approval_bulanan.status', ['Final', 'Approved Final']);
         } else {
             $addedConditions = false;
@@ -103,13 +97,20 @@ class ApprovalBulananModel extends Model
             if (has_role(\App\Enums\Role::Sheadprd->value)) {
                 $builder->orGroupStart()
                             ->where('approval_bulanan.status', 'Approved L1');
+                
+                $userPlans = session()->get('plant');
+                if ($userPlans) {
+                    $plansArray = array_map('trim', explode(',', $userPlans));
+                    $builder->whereIn('approval_bulanan.plant', $plansArray);
+                }
+                
                 $userDepts = session()->get('departemen');
                 if ($userDepts) {
                     $deptsArray = array_map('trim', explode(',', $userDepts));
                     $builder->whereIn('approval_bulanan.departemen', $deptsArray);
                 }
-                $userLines = session()->get('line');
-                if ($userLines) {
+                
+                if (($userLines = session()->get('line')) && $userLines !== '-') {
                     $linesArray = array_map('trim', explode(',', $userLines));
                     $builder->whereIn('approval_bulanan.line', $linesArray);
                 }
@@ -118,15 +119,23 @@ class ApprovalBulananModel extends Model
             }
             
             if (has_role(\App\Enums\Role::Sheadmtc->value)) {
-                $builder->orWhere('approval_bulanan.status', 'Approved L2');
+                $builder->orGroupStart()
+                            ->where('approval_bulanan.status', 'Approved L2');
+                
+                $userPlans = session()->get('plant');
+                if ($userPlans) {
+                    $plansArray = array_map('trim', explode(',', $userPlans));
+                    $builder->whereIn('approval_bulanan.plant', $plansArray);
+                }
+                
+                $builder->groupEnd();
                 $addedConditions = true;
             }
             
-            $builder->groupEnd();
-            
             if (!$addedConditions) {
-                $builder->where('1=0');
+                return [];
             }
+            $builder->groupEnd();
         }
 
         return $builder->orderBy('approval_bulanan.bulan_tahun', 'DESC')->findAll();
@@ -134,7 +143,7 @@ class ApprovalBulananModel extends Model
 
     public function getExistingApprovals(?string $bulan = null): array
     {
-        $builder = $this->select('bulan_tahun, departemen, line, kategori, status')
+        $builder = $this->select('bulan_tahun, plant, departemen, line, kategori, status')
                     ->where('type', 'kontrol');
         
         if ($bulan) {

@@ -3,7 +3,7 @@
 <!-- Include FullCalendar JS -->
 <script src="<?= base_url('assets/js/fullcalendar.min.js') ?>"></script>
 
-<?php $canEditJadwal = in_array(session()->get('role'), ['admin', 'member'], true); ?>
+<?php $canEditJadwal = has_any_role(['admin', 'member', 'leader mtc']); ?>
 <?php if ($canEditJadwal): ?>
 <!-- Modal Import Excel -->
 <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
@@ -71,7 +71,10 @@
     background: #f1f5f9 !important;
     border-color: #cbd5e1 !important;
   }
-  .fc-button-active {
+  /* Active state for plant filter buttons based on parent attribute */
+  #calendar[data-active-plant="Semua Plant"] .fc-btnSemuaPlant-button,
+  #calendar[data-active-plant="Plant 1"] .fc-btnPlant1-button,
+  #calendar[data-active-plant="Plant 2"] .fc-btnPlant2-button {
     background-color: #0d6efd !important;
     border-color: #0d6efd !important;
     color: #ffffff !important;
@@ -184,6 +187,14 @@
         <!-- Hidden: auto-calculated -->
         <input type="hidden" name="bulan_tahun" id="inputBulanTahun">
         <input type="hidden" name="periode_ke" id="inputPeriodeKe">
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-muted mb-1">Plant</label>
+          <select name="plant" id="plantSelect" class="form-select rounded-3" required>
+            <option value="Plant 1">Plant 1</option>
+            <option value="Plant 2">Plant 2</option>
+          </select>
+        </div>
 
         <div class="mb-3">
           <label class="form-label small fw-semibold text-muted mb-1">Departemen MFG</label>
@@ -315,25 +326,58 @@ document.addEventListener('DOMContentLoaded', function() {
   <?php endif; ?>
 
   // === FullCalendar ===
+  let currentPlant = 'Semua Plant';
   const calendarEl = document.getElementById('calendar');
-  const deleteModal = new bootstrap.Modal(document.getElementById('deleteEventModal'));
+  const deleteModalEl = document.getElementById('deleteEventModal');
+  const deleteModal = deleteModalEl ? new bootstrap.Modal(deleteModalEl) : null;
   const deleteForm = document.getElementById('deleteEventForm');
   const deleteTitle = document.getElementById('deleteEventTitle');
   const deleteRange = document.getElementById('deleteEventRange');
 
   const calendar = new FullCalendar.Calendar(calendarEl, {
+    customButtons: {
+      btnSemuaPlant: {
+        text: 'Semua Plant',
+        click: function() {
+          currentPlant = 'Semua Plant';
+          calendar.refetchEvents();
+          updateActivePlantButton();
+        }
+      },
+      btnPlant1: {
+        text: 'Plant 1',
+        click: function() {
+          currentPlant = 'Plant 1';
+          calendar.refetchEvents();
+          updateActivePlantButton();
+        }
+      },
+      btnPlant2: {
+        text: 'Plant 2',
+        click: function() {
+          currentPlant = 'Plant 2';
+          calendar.refetchEvents();
+          updateActivePlantButton();
+        }
+      }
+    },
     initialView: 'dayGridMonth',
-    contentHeight: 'auto', // Kalender membesar sesuai isi, tanpa scroll dalam
+    contentHeight: 'auto',
     aspectRatio: 1.2,
     weekends: true,
-    firstDay: 0, // Minggu di kiri
+    firstDay: 0,
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
-      right: 'dayGridMonth'
+      right: 'btnSemuaPlant,btnPlant1,btnPlant2 dayGridMonth'
     },
     locale: 'id',
-    events: '<?= site_url("admin/jadwal/events") ?>',
+    events: {
+      url: '<?= site_url("admin/jadwal/events") ?>',
+      extraParams: function() {
+        return { plant: currentPlant };
+      }
+    },
     editable: false,
 
     // Meredupkan event jika berbeda bulan dengan view yang sedang aktif
@@ -390,9 +434,12 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php endif; ?>
   });
 
-
+  function updateActivePlantButton() {
+    calendarEl.setAttribute('data-active-plant', currentPlant);
+  }
 
   calendar.render();
+  updateActivePlantButton(); // set initial state
 
   // === Intercept form submit untuk peringatan duplikasi mfg di minggu yang sama ===
   const addEventForm = document.getElementById('addEventForm');

@@ -51,7 +51,7 @@
   <?= view('partials/pdf_preventive', ['header' => $header, 'details' => $details]) ?>
 <?php endif; ?>
 
-<?= view('partials/pdf_signature', ['header' => $header]) ?>
+
 
 </div>
 </body>

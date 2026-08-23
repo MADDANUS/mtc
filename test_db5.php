@@ -1,0 +1,1 @@
+<?php $db = new PDO('mysql:host=localhost;dbname=mtce_db', 'root', ''); $stmt = $db->query('SELECT departemen, plant, line FROM master_mesin WHERE id_mesin = 11'); print_r($stmt->fetchAll(PDO::FETCH_ASSOC));

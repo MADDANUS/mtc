@@ -23,7 +23,7 @@ class UserController extends BaseController
         return view('admin/user/index', [
             'title'  => 'Master User',
             'daftar' => $this->model
-                ->orderBy("FIELD(role, 'admin', 'sheadmtc', 'sheadprd', 'leader', 'leader_member', 'member', 'magang')")
+                ->orderBy("FIELD(role, 'admin', 'sheadmtc', 'sheadprd', 'leader', 'leader mtc', 'member', 'magang')")
                 ->orderBy('nama', 'ASC')
                 ->findAll(),
         ]);
@@ -52,7 +52,7 @@ class UserController extends BaseController
         $rolePost = $this->request->getPost('role');
         $roleStr = is_array($rolePost) ? implode(',', $rolePost) : ($rolePost ?: 'magang');
         
-        $noAssignmentRoles = ['admin', 'member', 'magang', 'leader_member'];
+        $noAssignmentRoles = ['admin', 'member', 'magang', 'leader mtc'];
         
         // If ALL selected roles are in noAssignmentRoles, then no assignment needed
         $requiresAssignment = false;
@@ -69,7 +69,7 @@ class UserController extends BaseController
             $departemen = '-';
             $lineStr = '-';
         } else {
-            $planPost = $this->request->getPost('plan');
+            $planPost = $this->request->getPost('plant');
             $planStr = is_array($planPost) ? implode(', ', $planPost) : ($planPost ?: '-');
             
             $linePost = $this->request->getPost('line');
@@ -84,7 +84,7 @@ class UserController extends BaseController
             'username'   => $this->request->getPost('username'),
             'password'   => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
             'role'       => $roleStr,
-            'plan'       => $planStr,
+            'plant'       => $planStr,
             'departemen' => $departemen,
             'line'       => $lineStr,
         ]);
@@ -128,7 +128,7 @@ class UserController extends BaseController
         $rolePost = $this->request->getPost('role');
         $roleStr = is_array($rolePost) ? implode(',', $rolePost) : ($rolePost ?: 'magang');
         
-        $noAssignmentRoles = ['admin', 'member', 'magang', 'leader_member'];
+        $noAssignmentRoles = ['admin', 'member', 'magang', 'leader mtc'];
 
         // If ALL selected roles are in noAssignmentRoles, then no assignment needed
         $requiresAssignment = false;
@@ -145,7 +145,7 @@ class UserController extends BaseController
             $departemen = '-';
             $lineStr = '-';
         } else {
-            $planPost = $this->request->getPost('plan');
+            $planPost = $this->request->getPost('plant');
             $planStr = is_array($planPost) ? implode(', ', $planPost) : ($planPost ?: '-');
             
             $linePost = $this->request->getPost('line');
@@ -159,7 +159,7 @@ class UserController extends BaseController
             'nama'       => $this->request->getPost('nama'),
             'username'   => $this->request->getPost('username'),
             'role'       => $roleStr,
-            'plan'       => $planStr,
+            'plant'       => $planStr,
             'departemen' => $departemen,
             'line'       => $lineStr,
         ];
@@ -193,26 +193,49 @@ class UserController extends BaseController
 
     public function delete(int $id)
     {
+        if (!has_role(\App\Enums\Role::Admin->value)) {
+            return $this->redirectError('/admin/user', 'Hanya admin yang dapat menghapus user.');
+        }
+
         if ((int) $id === (int) session()->get('user_id')) {
             return $this->redirectError('/admin/user', 'Tidak bisa menghapus akun yang sedang login.');
         }
 
-        if (! $this->model->find($id)) {
+        $user = $this->model->find($id);
+        if (! $user) {
             return $this->redirectNotFound('/admin/user', 'User');
         }
 
-        try {
-            $this->model->delete($id);
-            return $this->redirectSuccess('/admin/user', 'User berhasil dihapus.');
-        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
-            return $this->redirectError('/admin/user', 'User ini tidak bisa dihapus karena memiliki data transaksi atau riwayat pengecekan terkait.');
+        $alasan = $this->request->getPost('alasan');
+        if (empty($alasan)) {
+            return $this->redirectError('/admin/user', 'Alasan penghapusan harus diisi.');
         }
+
+        $logModel = new \App\Models\LogHapusUserModel();
+        $logData = $user;
+        $logData['waktu_dihapus'] = date('Y-m-d H:i:s');
+        $logData['dihapus_oleh'] = session()->get('nama') ?? 'System';
+        $logData['alasan_dihapus'] = $alasan;
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        $logModel->insert($logData);
+        $this->model->delete($id, true); // Hard delete
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->redirectError('/admin/user', 'Gagal menghapus user.');
+        }
+
+        return $this->redirectSuccess('/admin/user', 'User berhasil dihapus permanen beserta histori alasannya.');
     }
 
     public function export()
     {
         $users = $this->model
-            ->orderBy("FIELD(role, 'admin', 'sheadmtc', 'sheadprd', 'leader', 'leader_member', 'member', 'magang')")
+            ->orderBy("FIELD(role, 'admin', 'sheadmtc', 'sheadprd', 'leader', 'leader mtc', 'member', 'magang')")
             ->orderBy('nama', 'ASC')
             ->findAll();
         
@@ -224,14 +247,14 @@ class UserController extends BaseController
         $output = fopen('php://output', 'w');
         
         // Header CSV
-        fputcsv($output, ['Nama', 'Username', 'Role', 'Plan', 'Departemen', 'Line', 'Password']);
+        fputcsv($output, ['Nama', 'Username', 'Role', 'plant', 'Departemen', 'Line', 'Password']);
         
         foreach ($users as $u) {
             fputcsv($output, [
                 $u['nama'],
                 $u['username'],
                 $u['role'],
-                $u['plan'] ?? '',
+                $u['plant'] ?? '',
                 $u['departemen'] ?? '',
                 $u['line'] ?? '',
                 '' // Password dikosongkan saat ekspor demi keamanan
@@ -269,7 +292,7 @@ class UserController extends BaseController
                 $nama       = trim($row[0]);
                 $username   = trim($row[1]);
                 $role       = strtolower(trim($row[2]));
-                $plan       = isset($row[3]) ? trim($row[3]) : '';
+                $plant       = isset($row[3]) ? trim($row[3]) : '';
                 $departemen = isset($row[4]) ? trim($row[4]) : '';
                 $line       = isset($row[5]) ? trim($row[5]) : '';
                 $password   = isset($row[6]) ? trim($row[6]) : '';
@@ -280,7 +303,7 @@ class UserController extends BaseController
                 }
                 
                 if (! in_array($role, [Role::Magang->value, Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, Role::Leader->value, Role::LeaderMember->value], true)) {
-                    $errors[] = "Baris {$rowNum}: Role '{$role}' tidak valid. Harus Role::Magang->value, Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, 'leader', atau 'leader_member'.";
+                    $errors[] = "Baris {$rowNum}: Role '{$role}' tidak valid. Harus Role::Magang->value, Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, 'leader', atau 'leader mtc'.";
                     continue;
                 }
                 
@@ -290,7 +313,7 @@ class UserController extends BaseController
                     $updateData = [
                         'nama'       => $nama,
                         'role'       => $role,
-                        'plan'       => empty($plan) ? null : $plan,
+                        'plant'       => empty($plant) ? null : $plant,
                         'departemen' => empty($departemen) ? null : $departemen,
                         'line'       => empty($line) ? null : $line,
                     ];
@@ -305,7 +328,7 @@ class UserController extends BaseController
                         'nama'       => $nama,
                         'username'   => $username,
                         'role'       => $role,
-                        'plan'       => empty($plan) ? null : $plan,
+                        'plant'       => empty($plant) ? null : $plant,
                         'departemen' => empty($departemen) ? null : $departemen,
                         'line'       => empty($line) ? null : $line,
                         'password'   => password_hash($passToSave, PASSWORD_DEFAULT),
@@ -336,8 +359,9 @@ class UserController extends BaseController
 
         return [
             'nama'   => 'required|max_length[100]',
-            'role'   => 'required|in_list[magang,member,sheadprd,sheadmtc,admin,leader,leader_member]',
-            'line'   => 'permit_empty|in_list[' . $validLines . ']',
+            'role'   => 'required',
+            'role.*' => 'in_list[magang,member,sheadprd,sheadmtc,admin,leader,leader mtc]',
+            'line.*' => 'permit_empty|in_list[' . $validLines . ']',
         ];
     }
 }

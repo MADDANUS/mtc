@@ -121,6 +121,7 @@ class KontrolService
 
     public function pdfAllCategories($request)
     {
+        $plant         = $request->getGet('plant') ?: 'Plant 1';
         $departemen   = $request->getGet('departemen') ?: Departemen::MFG1->value;
         $bulan    = $request->getGet('bulan') ?: date('Y-m');
         $line     = $request->getGet('line') ?: null;
@@ -148,7 +149,7 @@ class KontrolService
             $columnDates = $this->calculateColumnDates($schedule);
 
             $approvalModel = new \App\Models\ApprovalBulananModel();
-            $approval = $approvalModel->getApprovalWithUsers($departemen, $cat, $bulan, $line ?: 'NONE') ?: [];
+            $approval = $approvalModel->getApprovalWithUsers($departemen, $cat, $bulan, $line ?: 'NONE', $plant) ?: [];
 
             $allGrids[] = [
                 'kategori'    => $cat,
@@ -163,7 +164,8 @@ class KontrolService
         $bulanList = $this->buildBulanList();
 
         $data = [
-            'title'      => "Checklist Control - {$departemen} - Semua Kategori",
+            'title'      => "Checklist Control - {$plant} - {$departemen} - Semua Kategori",
+            'plant'       => $plant,
             'departemen'     => $departemen,
             'bulan'      => $bulan,
             'line'       => $line,
@@ -177,6 +179,7 @@ class KontrolService
     public function pdfAllSummary($request)
     {
         $bulan = $request->getGet('bulan') ?: date('Y-m');
+        $filterPlant = $request->getGet('filter_plant') === 'all' ? '' : ($request->getGet('filter_plant') ?: '');
         $filterLokasi = $request->getGet('filter_lokasi') === 'all' ? '' : ($request->getGet('filter_lokasi') ?: '');
         $filterLine = $request->getGet('filter_line') === 'all' ? '' : ($request->getGet('filter_line') ?: '');
         $filterKategori = $request->getGet('filter_kategori') === 'all' ? '' : ($request->getGet('filter_kategori') ?: '');
@@ -189,71 +192,84 @@ class KontrolService
         $allGrids = [];
         $db = \Config\Database::connect();
         
-        foreach ($departemenList as $departemen => $lines) {
-            if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
-            
-            foreach ($lines as $line) {
-                if (!empty($filterLine) && $line !== $filterLine) continue;
-                
-                $hasCam = (new \App\Models\MesinModel())->hasCamMachine($departemen, $line);
-                $categories = $hasCam 
-                    ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam']
-                    : ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
-                
-                foreach ($categories as $cat) {
-                    if (!empty($filterKategori) && $cat !== $filterKategori) continue;
-                    
-                    $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $cat, $bulan, $line);
-                    
-                    if (empty($grid)) continue;
+        $plansToIterate = ['Plant 1', 'Plant 2'];
 
-                    // Skip if completely unfilled (no PIC assigned)
-                    $hasData = false;
-                    foreach ($grid as $row) {
-                        if ($row['pic_nama'] !== 'PIC' && !empty($row['pic_nama'])) {
-                            $hasData = true;
-                            break;
-                        }
-                    }
-                    if (!$hasData) continue;
-                    $jadwalModel = new \App\Models\JadwalPreventiveModel();
-            $schedule = $jadwalModel->getJadwalForChecklist($departemen, $cat, $bulan);
-                                   
-                    $columnDates = [];
-                    $hasSchedule = false;
-                    $tglRencanaStr = '-';
-                    if ($schedule) {
-                        $hasSchedule = true;
-                        $tglRencanaStr = date('d-m-Y', strtotime($schedule['tanggal_rencana']));
+        foreach ($plansToIterate as $pln) {
+            if (!empty($filterPlant) && $pln !== $filterPlant) continue;
+
+            foreach ($departemenList as $departemen => $lines) {
+                if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
+                
+                foreach ($lines as $line) {
+                    if (!empty($filterLine) && $line !== $filterLine) continue;
+                    
+                    $hasCam = (new \App\Models\MesinModel())->hasCamMachine($departemen, $line);
+                    $categories = $hasCam 
+                        ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam']
+                        : ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
+                    
+                    foreach ($categories as $cat) {
+                        if (!empty($filterKategori) && $cat !== $filterKategori) continue;
                         
-                        $tglRencanaTs = strtotime($schedule['tanggal_rencana']);
-                        $dayOfWeek      = (int) date('N', $tglRencanaTs);
-                        $mondayTs       = strtotime('-' . ($dayOfWeek - 1) . ' days', $tglRencanaTs);
+                        $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $cat, $bulan, $line);
+                        
+                        if (empty($grid)) continue;
 
-                        for ($d = 0; $d < 5; $d++) {
-                            $columnDates[$d + 1] = date('Y-m-d', strtotime("+$d days", $mondayTs));
+                        // Skip if completely unfilled (no PIC assigned)
+                        $hasData = false;
+                        foreach ($grid as $row) {
+                            if ($row['plant'] !== $pln) continue; // Ensure the machine belongs to this plant
+                            if ($row['pic_nama'] !== 'PIC' && !empty($row['pic_nama'])) {
+                                $hasData = true;
+                                break;
+                            }
                         }
-                    }
+                        if (!$hasData) continue;
 
-                    $approvalModel = new \App\Models\ApprovalBulananModel();
-        $approval = $approvalModel->getApprovalWithUsers($departemen, $cat, $bulan, $line);
-        // DUMMY ASSIGNMENT TO KEEP REST WORKING
-        $approvalQuery = true;
+                        // Filter grid to only include machines for this plant
+                        $filteredGrid = array_filter($grid, function($row) use ($pln) {
+                            return $row['plant'] === $pln;
+                        });
+                        
+                        if (empty($filteredGrid)) continue;
 
-                    
+                        $jadwalModel = new \App\Models\JadwalPreventiveModel();
+                        $schedule = $jadwalModel->getJadwalForChecklist($departemen, $cat, $bulan);
+                                       
+                        $columnDates = [];
+                        $hasSchedule = false;
+                        $tglRencanaStr = '-';
+                        if ($schedule) {
+                            $hasSchedule = true;
+                            $tglRencanaStr = date('d-m-Y', strtotime($schedule['tanggal_rencana']));
+                            
+                            $tglRencanaTs = strtotime($schedule['tanggal_rencana']);
+                            $dayOfWeek      = (int) date('N', $tglRencanaTs);
+                            $mondayTs       = strtotime('-' . ($dayOfWeek - 1) . ' days', $tglRencanaTs);
 
-                    $allGrids[] = [
-                        'departemen'      => $departemen,
-                        'line'        => $line,
-                        'kategori'    => $cat,
-                        'grid'        => $grid,
-                        'hasSchedule' => $hasSchedule,
+                            for ($d = 0; $d < 5; $d++) {
+                                $columnDates[$d + 1] = date('Y-m-d', strtotime("+$d days", $mondayTs));
+                            }
+                        }
+
+                        $approvalModel = new \App\Models\ApprovalBulananModel();
+                        $approval = $approvalModel->getApprovalWithUsers($departemen, $cat, $bulan, $line, $pln);
+                        $approvalQuery = true;
+
+                        $allGrids[] = [
+                            'plant'            => $pln,
+                            'departemen'      => $departemen,
+                            'line'        => $line,
+                            'kategori'    => $cat,
+                            'grid'        => array_values($filteredGrid),
+                            'hasSchedule' => $hasSchedule,
                         'tglRencana'  => $tglRencanaStr,
                         'columnDates' => $columnDates,
                         'approvalData'=> $approval
                     ];
                 }
             }
+        }
         }
         
         $bulanList = [];
@@ -357,6 +373,7 @@ class KontrolService
     {
         $bulan = $request->getGet('bulan') ?: date('Y-m');
         $filterLokasi = $request->getGet('filter_lokasi') === 'all' ? '' : ($request->getGet('filter_lokasi') ?: '');
+        $filterPlant = $request->getGet('filter_plant') === 'all' ? '' : ($request->getGet('filter_plant') ?: '');
         $filterLine = $request->getGet('filter_line') === 'all' ? '' : ($request->getGet('filter_line') ?: '');
         $filterKategori = $request->getGet('filter_kategori') === 'all' ? '' : ($request->getGet('filter_kategori') ?: '');
         $filterStatus = $request->getGet('filter_status') === 'all' ? '' : ($request->getGet('filter_status') ?: '');
@@ -372,7 +389,8 @@ class KontrolService
         $totalMesin = [];
         $linesByLokasi = [];
         foreach($totalMesinQuery as $tm) {
-            $totalMesin[$tm['departemen']][$tm['line']] = (int) $tm['total'];
+            $pln = $tm['plant'] ?? 'Plant 1';
+            $totalMesin[$pln][$tm['departemen']][$tm['line']] = (int) $tm['total'];
             $linesByLokasi[$tm['departemen']][] = $tm['line'];
         }
 
@@ -382,7 +400,8 @@ class KontrolService
                            
         $checkedData = [];
         foreach($checkedQuery as $cq) {
-            $checkedData[$cq['departemen']][$cq['line']][$cq['kategori']] = (int) $cq['checked_count'];
+            $pln = $cq['plant'] ?? 'Plant 1';
+            $checkedData[$pln][$cq['departemen']][$cq['line']][$cq['kategori']] = (int) $cq['checked_count'];
         }
 
         // 3. Approval status
@@ -391,11 +410,16 @@ class KontrolService
                         
         $approvalData = [];
         foreach($approvals as $ap) {
-            $approvalData[$ap['departemen']][$ap['line']][$ap['kategori']] = $ap['status'];
+            $pln = $ap['plant'] ?? 'Plant 1';
+            $approvalData[$pln][$ap['departemen']][$ap['line']][$ap['kategori']] = $ap['status'];
         }
 
         // Categories mapping
         $mesinModel = new \App\Models\MesinModel();
+        $kategoriByLokasi = [
+            Departemen::MFG1->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
+            Departemen::MFG2->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'],
+        ];
         
         // Buat list 12 bulan terakhir untuk dropdown filter
         $bulanList = $this->buildBulanList();
@@ -403,36 +427,43 @@ class KontrolService
         // Build flat array for summary rows
         $summaryRows = [];
         $notCheckedRows = [];
-        foreach ($kategoriByLokasi as $departemen => $categories) {
-            if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
+        
+        $plansToIterate = ['Plant 1', 'Plant 2'];
+
+        foreach ($plansToIterate as $pln) {
+            if (!empty($filterPlant) && $pln !== $filterPlant) continue;
             
-            $lines = isset($linesByLokasi[$departemen]) ? array_unique($linesByLokasi[$departemen]) : [];
-            sort($lines);
+            foreach ($kategoriByLokasi as $departemen => $categories) {
+                if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
+                
+                $lines = isset($linesByLokasi[$departemen]) ? array_unique($linesByLokasi[$departemen]) : [];
+                sort($lines);
 
-            foreach ($lines as $line) {
-                if (!empty($filterLine) && $line !== $filterLine) continue;
+                foreach ($lines as $line) {
+                    if (!empty($filterLine) && $line !== $filterLine) continue;
 
-                foreach ($categories as $kategori) {
-                    if (!empty($filterKategori) && $kategori !== $filterKategori) continue;
-                    
-                    $total = $totalMesin[$departemen][$line] ?? 0;
-                    if ($total == 0) continue;
-                    
-                    $checked = $checkedData[$departemen][$line][$kategori] ?? 0;
-                    
-                    if ($checked == 0) {
-                        $notCheckedRows[] = [
-                            'departemen'   => $departemen,
-                            'line'     => $line,
-                            'kategori' => $kategori
-                        ];
-                        continue;
-                    }
-                    
-                    $percent = $total > 0 ? round(($checked / $total) * 100) : 0;
-                    $status = $approvalData[$departemen][$line][$kategori] ?? '';
-                    
-                    // Hitung status teks dan warna badge yang akurat sesuai progress
+                    foreach ($categories as $kategori) {
+                        if (!empty($filterKategori) && $kategori !== $filterKategori) continue;
+                        
+                        $total = $totalMesin[$pln][$departemen][$line] ?? 0;
+                        if ($total == 0) continue;
+                        
+                        $checked = $checkedData[$pln][$departemen][$line][$kategori] ?? 0;
+                        
+                        if ($checked == 0) {
+                            $notCheckedRows[] = [
+                                'plant'         => $pln,
+                                'departemen'   => $departemen,
+                                'line'     => $line,
+                                'kategori' => $kategori
+                            ];
+                            continue;
+                        }
+                        
+                        $percent = $total > 0 ? round(($checked / $total) * 100) : 0;
+                        $status = $approvalData[$pln][$departemen][$line][$kategori] ?? '';
+                        
+                        // Hitung status teks dan warna badge yang akurat sesuai progress
                     $badgeClass = 'bg-secondary';
                     $statusText = 'Belum Selesai (' . $percent . '%)';
                     
@@ -454,13 +485,17 @@ class KontrolService
 
                     // Eksekusi: History Checklist Control HANYA boleh menampilkan dokumen yang SUDAH 100% SELESAI DAN APPROVED FINAL.
                     // Jika belum 100% atau belum di-approve final, maka sembunyikan dari History (otomatis masuk ke menu Approval).
-                    if ($percent < 100 || !in_array($status, ['Final', 'Approved Final'], true)) {
-                        continue;
+                    // Pengecualian: Role 'magang' dapat melihat semua data terlepas dari status progress/approval.
+                    if (!has_role('magang')) {
+                        if ($percent < 100 || !in_array($status, ['Final', 'Approved Final'], true)) {
+                            continue;
+                        }
                     }
                     
                     if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
 
                     $summaryRows[] = [
+                        'plant'            => $pln,
                         'departemen'      => $departemen,
                         'line'        => $line,
                         'kategori'    => $kategori,
@@ -473,6 +508,7 @@ class KontrolService
                 }
             }
         }
+    }
 
         // Sort the flat array
         usort($summaryRows, function($a, $b) use ($sortBy, $order) {
@@ -526,10 +562,11 @@ class KontrolService
      */
     public function approveBulanan($request)
     {
-        if (!has_any_role([\App\Enums\Role::Admin->value, \App\Enums\Role::Member->value, \App\Enums\Role::Leader->value, \App\Enums\Role::Sheadprd->value, \App\Enums\Role::Sheadmtc->value])) {
+        if (!has_any_role([\App\Enums\Role::Admin->value, \App\Enums\Role::Member->value, \App\Enums\Role::LeaderMember->value, \App\Enums\Role::Leader->value, \App\Enums\Role::Sheadprd->value, \App\Enums\Role::Sheadmtc->value])) {
             return redirect()->to('/dashboard')->with('error', 'Akses ditolak.');
         }
 
+        $plant     = $request->getPost('plant') ?: 'Plant 1';
         $departemen   = $request->getPost('departemen');
         $line     = $request->getPost('line');
         $kategori = $request->getPost('kategori');
@@ -541,7 +578,7 @@ class KontrolService
 
         $db = \Config\Database::connect();
         $approvalModel = new \App\Models\ApprovalBulananModel();
-        $approval = $approvalModel->getApprovalKontrol($departemen, $line, $kategori, $bulan);
+        $approval = $approvalModel->getApprovalKontrol($departemen, $line, $kategori, $bulan, $plant);
 
         $currentStatus = $approval ? $approval['status'] : 'Pending';
         $userId        = session()->get('user_id');
@@ -549,6 +586,7 @@ class KontrolService
 
         $data = [
             'type'        => 'kontrol',
+            'plant'        => $plant,
             'departemen'      => $departemen,
             'line'        => $line,
             'kategori'    => $kategori,
@@ -563,7 +601,7 @@ class KontrolService
             $data['approved_final_by'] = $userId;
             $data['approved_final_at'] = $now;
         } elseif ($currentStatus === 'Pending') {
-            if (!has_role(Role::Member->value)) return ["status" => false, "message" => 'Laporan butuh persetujuan Member.'];
+            if (!has_any_role([\App\Enums\Role::Member->value, \App\Enums\Role::LeaderMember->value])) return ["status" => false, "message" => 'Laporan butuh persetujuan Member/Leader MTC.'];
             
             $data['status'] = 'Approved L1';
             $data['approved_l1_by'] = $userId;
@@ -618,13 +656,14 @@ class KontrolService
             return ['status' => false, 'message' => 'Akses ditolak. Hanya Admin.'];
         }
 
+        $plant     = $request->getPost('plant') ?: 'Plant 1';
         $departemen   = $request->getPost('departemen');
         $line     = $request->getPost('line');
         $kategori = $request->getPost('kategori');
         $bulan    = $request->getPost('bulan_tahun');
 
         $approvalModel = new \App\Models\ApprovalBulananModel();
-        $approvalModel->deleteApprovalKontrol($departemen, $line, $kategori, $bulan);
+        $approvalModel->deleteApprovalKontrol($departemen, $line, $kategori, $bulan, $plant);
 
         return ["status" => true, "message" => 'Data approval Checklist Control berhasil dihapus (Reset ke Belum Selesai).'];
     }

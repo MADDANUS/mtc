@@ -54,11 +54,11 @@
         <?php else: ?>
           <div style="height:20px; margin-bottom:20px;"></div>
         <?php endif; ?>
-        <div style="font-weight:bold; font-size:0.9rem;">
+        <div style="font-size:0.9rem;">
           <?php if (!empty($header['approval_l2_by'])): ?>
-            <span style="text-decoration:underline;">Mr. Rohmad</span>
+            <span style="text-decoration:underline;"><?= esc($header['approver_l2_nama']) ?></span>
           <?php else: ?>
-            <span style="color:#999;">( Mr. Rohmad )</span>
+            <span style="color:#999;">( ........................................ )</span>
           <?php endif; ?>
         </div>
         <div style="font-size:0.8rem; color:#555;">Tgl: <?= !empty($header['approval_l2_at']) ? format_tanggal_indo($header['approval_l2_at'], false, true) : '( ..................... )' ?></div>
@@ -71,11 +71,11 @@
         <?php else: ?>
           <div style="height:20px; margin-bottom:20px;"></div>
         <?php endif; ?>
-        <div style="font-weight:bold; font-size:0.9rem;">
+        <div style="font-size:0.9rem;">
           <?php if ($header['status'] === 'Approved'): ?>
-            <span style="text-decoration:underline;">Mr. Royadi</span>
+            <span style="text-decoration:underline;"><?= esc($header['approver_nama']) ?></span>
           <?php else: ?>
-            <span style="color:#999;">( Mr. Royadi )</span>
+            <span style="color:#999;">( ........................................ )</span>
           <?php endif; ?>
         </div>
         <div style="font-size:0.8rem; color:#555;">Tgl: <?= ($header['status'] === 'Approved') ? format_tanggal_indo($header['approved_at'], false, true) : '( ..................... )' ?></div>

@@ -79,7 +79,7 @@
   <?= view('partials/pdf_preventive', ['header' => $header, 'details' => $details]) ?>
 <?php endif; ?>
 
-<?= view('partials/pdf_signature', ['header' => $header]) ?>
+
 
 <?php if ($reportIndex < count($allReports) - 1): ?>
   <div style="page-break-after: always;"></div>

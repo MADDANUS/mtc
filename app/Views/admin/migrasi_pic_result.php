@@ -1,4 +1,4 @@
-﻿<?= view('layout/header', ['title' => $title]) ?>
+<?= view('layout/header', ['title' => $title]) ?>
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
   <h5 class="mb-0"><?= esc($title) ?></h5>
@@ -50,7 +50,7 @@
 <?php if ($countBerhasil > 0): ?>
 <div class="card mb-4">
   <div class="card-header bg-success text-white fw-semibold">
-    ✅ Akun Berhasil Dibuat (<?= $countBerhasil ?>)
+    ? Akun Berhasil Dibuat (<?= $countBerhasil ?>)
   </div>
   <div class="table-responsive">
     <table class="table table-sm table-bordered table-hover mb-0">
@@ -76,7 +76,7 @@
 <?php if ($countDilewati > 0): ?>
 <div class="card mb-4">
   <div class="card-header bg-warning text-dark fw-semibold">
-    ⚠️ Dilewati — Sudah Punya Akun (<?= $countDilewati ?>)
+    ?? Dilewati � Sudah Punya Akun (<?= $countDilewati ?>)
   </div>
   <div class="table-responsive">
     <table class="table table-sm table-bordered mb-0">
@@ -101,7 +101,7 @@
 <?php if ($countGagal > 0): ?>
 <div class="card mb-4">
   <div class="card-header bg-danger text-white fw-semibold">
-    ❌ Gagal (<?= $countGagal ?>)
+    ? Gagal (<?= $countGagal ?>)
   </div>
   <div class="table-responsive">
     <table class="table table-sm table-bordered mb-0">

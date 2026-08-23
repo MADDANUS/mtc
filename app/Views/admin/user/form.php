@@ -49,7 +49,7 @@
           $availableRoles = [
             'magang' => 'PIC (Magang)',
             'member' => 'PIC MTC (Member)',
-            'leader_member' => 'Leader Member (MTC)',
+            'leader mtc' => 'Leader MTC',
             'sheadprd' => 'Section Head Produksi',
             'leader' => 'Leader Produksi',
             'sheadmtc' => 'Section Head MTC',
@@ -68,19 +68,19 @@
     <div id="assignmentFields">
 
     <div class="mb-3">
-      <label class="form-label">Plan <span class="text-muted small">(Bisa pilih lebih dari 1)</span></label>
+      <label class="form-label">plant <span class="text-muted small">(Bisa pilih lebih dari 1)</span></label>
       <?php 
-        $planVal = old('plan', isset($user['plan']) ? explode(', ', $user['plan']) : []); 
+        $planVal = old('plant', isset($user['plant']) ? explode(', ', $user['plant']) : []); 
         if (!is_array($planVal)) $planVal = [$planVal];
       ?>
       <div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="checkbox" name="plan[]" id="plan1" value="Plan 1" <?= in_array('Plan 1', $planVal) ? 'checked' : '' ?>>
-          <label class="form-check-label" for="plan1">Plan 1</label>
+          <input class="form-check-input" type="checkbox" name="plant[]" id="plan1" value="Plant 1" <?= in_array('Plant 1', $planVal) ? 'checked' : '' ?>>
+          <label class="form-check-label" for="plan1">Plant 1</label>
         </div>
         <div class="form-check form-check-inline">
-          <input class="form-check-input" type="checkbox" name="plan[]" id="plan2" value="Plan 2" <?= in_array('Plan 2', $planVal) ? 'checked' : '' ?>>
-          <label class="form-check-label" for="plan2">Plan 2</label>
+          <input class="form-check-input" type="checkbox" name="plant[]" id="plan2" value="Plant 2" <?= in_array('Plant 2', $planVal) ? 'checked' : '' ?>>
+          <label class="form-check-label" for="plan2">Plant 2</label>
         </div>
       </div>
     </div>
@@ -110,9 +110,9 @@
         if (!is_array($lineVal)) $lineVal = [$lineVal];
       ?>
       <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
-        <?php foreach ($linesGrouped ?? [] as $plan => $departemens): ?>
+        <?php foreach ($linesGrouped ?? [] as $plant => $departemens): ?>
           <?php foreach ($departemens as $departemen => $lines): ?>
-            <div class="fw-bold small text-muted mt-2 mb-1"><?= esc($plan) ?> - <?= esc($departemen) ?></div>
+            <div class="fw-bold small text-muted mt-2 mb-1"><?= esc($plant) ?> - <?= esc($departemen) ?></div>
             <?php foreach ($lines as $line): ?>
               <div class="form-check form-check-inline ms-2">
                 <input class="form-check-input" type="checkbox" name="line[]" id="line_<?= md5($line) ?>" value="<?= esc($line) ?>" <?= in_array($line, $lineVal) ? 'checked' : '' ?>>
@@ -137,7 +137,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const roleCheckboxes = document.querySelectorAll('.role-checkbox');
     const assignmentFields = document.getElementById('assignmentFields');
-    const noAssignmentRoles = ['admin', 'member', 'magang', 'leader_member'];
+    const noAssignmentRoles = ['admin', 'member', 'magang', 'leader mtc'];
 
     function toggleAssignmentFields() {
         let requiresAssignment = false;

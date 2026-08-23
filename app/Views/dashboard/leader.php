@@ -2,7 +2,7 @@
 
 <?php
   $roleSession = session()->get('role');
-  $isApproverRole = in_array($roleSession, ['sheadprd', 'sheadmtc', 'leader'], true);
+  $isApproverRole = has_any_role(['sheadprd', 'sheadmtc', 'leader']);
 ?>
 
 <?php if ($isApproverRole): ?>
@@ -141,11 +141,11 @@
                 </span>
               <?php elseif ($st === 'Approved L1'): ?>
                 <span class="badge bg-info text-dark">
-                  <?= $myRole === 'sheadprd' ? 'Menunggu Approval Anda' : 'Approved L1' ?>
+                  <?= has_role('sheadprd') ? 'Menunggu Approval Anda' : 'Approved L1' ?>
                 </span>
               <?php elseif ($st === 'Approved L2'): ?>
                 <span class="badge bg-primary">
-                  <?= $myRole === 'sheadmtc' ? 'Menunggu Approval Anda' : 'Approved L2' ?>
+                  <?= has_role('sheadmtc') ? 'Menunggu Approval Anda' : 'Approved L2' ?>
                 </span>
               <?php else: ?>
                 <span class="badge bg-secondary"><?= esc($st) ?></span>
@@ -168,7 +168,7 @@
     <?php endif; ?>
 
     <!-- TABEL 2: CHECKLIST CONTROL BULANAN - HANYA UNTUK SHEAD (1 & 2) ATAU JIKA ADA ISINYA -->
-    <?php if (in_array(session()->get('role'), ['sheadprd', 'sheadmtc'], true) || $hasPendingKontrol): ?>
+    <?php if (has_any_role(['sheadprd', 'sheadmtc']) || $hasPendingKontrol): ?>
     <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-grid-3x3-gap me-2 text-success"></i>Checklist Control Bulanan</h6>
     <?php if ($hasPendingKontrol): ?>
     <div class="table-responsive">
@@ -215,11 +215,11 @@
                 </span>
               <?php elseif ($st === 'Approved L1'): ?>
                 <span class="badge bg-info text-dark">
-                  <?= $myRole === 'sheadprd' ? 'Menunggu Approval Anda' : 'Approved L1' ?>
+                  <?= has_role('sheadprd') ? 'Menunggu Approval Anda' : 'Approved L1' ?>
                 </span>
               <?php elseif ($st === 'Approved L2'): ?>
                 <span class="badge bg-primary">
-                  <?= $myRole === 'sheadmtc' ? 'Menunggu Approval Anda' : 'Approved L2' ?>
+                  <?= has_role('sheadmtc') ? 'Menunggu Approval Anda' : 'Approved L2' ?>
                 </span>
               <?php else: ?>
                 <span class="badge bg-secondary"><?= esc($st) ?></span>

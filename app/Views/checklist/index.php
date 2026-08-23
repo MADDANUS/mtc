@@ -2,8 +2,8 @@
 
 <?php
 // Helper to build the create form URL preserving the dynamic machine ID and Line
-$getCreateUrl = function(string $categorySlug) use ($planSlug, $departemenSlug, $jenisSlug, $idMesin, $line) {
-    $url = "checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}/create/{$categorySlug}";
+$getCreateUrl = function(string $categorySlug) use ($plantSlug, $departemenSlug, $jenisSlug, $idMesin, $line) {
+    $url = "checklist/plant/{$plantSlug}/{$departemenSlug}/{$jenisSlug}/create/{$categorySlug}";
     $params = [];
     if (!empty($idMesin)) {
         $params[] = 'id_mesin=' . (int)$idMesin;
@@ -21,12 +21,12 @@ $getCreateUrl = function(string $categorySlug) use ($planSlug, $departemenSlug, 
 <div class="page-header">
   <div>
     <?php
-    $backUrl = site_url('checklist/plan/' . $planSlug); // default
+    $backUrl = site_url('checklist/plant/' . $plantSlug); // default
     if (!empty($idMesin)) {
         $backUrl = site_url("scan/mesin/{$idMesin}");
     } elseif (!empty($line)) {
         // Kembali ke halaman Pilih Line
-        $backUrl = site_url("checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}");
+        $backUrl = site_url("checklist/plant/{$plantSlug}/{$departemenSlug}/{$jenisSlug}");
     }
     ?>
     <a href="<?= $backUrl ?>" class="btn btn-sm btn-outline-secondary mb-2">

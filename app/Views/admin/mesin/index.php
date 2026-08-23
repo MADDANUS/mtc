@@ -51,7 +51,7 @@
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
   <h5 class="mb-0">Master Mesin</h5>
   <div class="d-flex align-items-center gap-2 flex-wrap">
-    <?php if (in_array(session()->get('role'), ['admin', 'member'])): ?>
+    <?php if (has_any_role(['admin', 'member', 'leader mtc'])): ?>
       <!-- Form Impor Excel -->
       <form action="<?= site_url('admin/mesin/import') ?>" method="post" enctype="multipart/form-data" class="d-flex align-items-center gap-1 border rounded p-1 bg-white shadow-sm" style="max-height: 38px;">
         <?= csrf_field() ?>
@@ -88,7 +88,7 @@
             <th>No Mesin</th>
             <th>Type</th>
             <th>Serial Nomor</th>
-            <th>Plan</th>
+            <th>Plant</th>
             <th>Departemen</th>
             <th>Line</th>
             <th>Bar Feeder</th>
@@ -109,14 +109,14 @@
             </td>
             <td>
               <?php if (session()->get('role') === 'leader'): ?>
-                <!-- Untuk leader, plan kita ambil berdasarkan departemen user atau biarkan all -->
-                <input type="hidden" name="plan" value="<?= esc($filters['plan'] ?? 'all') ?>">
+                <!-- Untuk leader, plant kita ambil berdasarkan departemen user atau biarkan all -->
+                <input type="hidden" name="plant" value="<?= esc($filters['plant'] ?? 'all') ?>">
                 -
               <?php else: ?>
-                <select name="plan" id="filterPlan" class="form-select form-select-sm" onchange="document.getElementById('filterLine').value = 'all'; this.form.submit();">
+                <select name="plant" id="filterPlan" class="form-select form-select-sm" onchange="document.getElementById('filterLine').value = 'all'; this.form.submit();">
                   <option value="all">Semua</option>
-                  <option value="Plan 1" <?= ($filters['plan'] ?? '') === 'Plan 1' ? 'selected' : '' ?>>Plan 1</option>
-                  <option value="Plan 2" <?= ($filters['plan'] ?? '') === 'Plan 2' ? 'selected' : '' ?>>Plan 2</option>
+                  <option value="Plant 1" <?= ($filters['plant'] ?? '') === 'Plant 1' ? 'selected' : '' ?>>Plant 1</option>
+                  <option value="Plant 2" <?= ($filters['plant'] ?? '') === 'Plant 2' ? 'selected' : '' ?>>Plant 2</option>
                 </select>
               <?php endif; ?>
             </td>
@@ -179,7 +179,7 @@
               <td><?= esc($m['no_mesin']) ?></td>
               <td><?= esc($m['type_mesin']) ?></td>
               <td><?= esc($m['serial_nomor']) ?></td>
-              <td><span class="badge bg-primary"><?= esc($m['plan'] ?? 'Plan 1') ?></span></td>
+              <td><span class="badge bg-primary"><?= esc($m['plant'] ?? 'Plant 1') ?></span></td>
               <td><span class="badge bg-secondary"><?= esc($m['departemen']) ?></span></td>
               <td><span class="badge bg-info text-dark"><?= esc($m['line'] ?? '-') ?></span></td>
               <td><span class="text-muted small"><?= esc($m['bar_feeder_type'] ?? '-') ?></span></td>
@@ -194,7 +194,7 @@
                           data-serial="<?= esc($m['serial_nomor']) ?>">
                     <i class="bi bi-qr-code"></i> QR
                   </button>
-                  <?php if (in_array(session()->get('role'), ['admin', 'member'])): ?>
+                  <?php if (has_any_role(['admin', 'member', 'leader mtc'])): ?>
                     <button type="button" class="btn btn-outline-info btn-sm py-1 px-2 btn-riwayat-mesin" 
                             data-id="<?= $m['id_mesin'] ?>" 
                             data-no="<?= esc($m['no_mesin']) ?>"
@@ -204,10 +204,10 @@
                     <a href="<?= site_url('admin/mesin/edit/' . $m['id_mesin']) ?>" class="btn btn-outline-primary btn-sm py-1 px-2" title="Edit Mesin">
                       <i class="bi bi-pencil"></i>
                     </a>
-                    <a href="<?= site_url('admin/mesin/delete/' . $m['id_mesin']) ?>" class="btn btn-outline-danger btn-sm py-1 px-2"
-                       onclick="return confirm('Hapus mesin <?= esc($m['no_mesin'], 'js') ?>?');" title="Hapus Mesin">
+                    <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2" 
+                            onclick="openDeleteModal(<?= $m['id_mesin'] ?>, '<?= esc($m['no_mesin'], 'js') ?>')" title="Hapus Mesin">
                       <i class="bi bi-trash"></i>
-                    </a>
+                    </button>
                   <?php endif; ?>
                 </div>
               </td>
@@ -584,6 +584,42 @@
     }
 
   });
+</script>
+<!-- Modal Konfirmasi Hapus Mesin -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="" method="post" id="deleteForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteModalLabel">Konfirmasi Hapus Mesin</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Anda yakin ingin menghapus mesin <strong id="deleteMesinLabel"></strong> secara permanen?</p>
+          <div class="mb-3">
+            <label for="deleteReason" class="form-label">Keterangan / Alasan Dihapus <span class="text-danger">*</span></label>
+            <textarea class="form-control" name="alasan" id="deleteReason" rows="3" required placeholder="Tuliskan alasan mengapa mesin ini dihapus..."></textarea>
+          </div>
+          <div class="alert alert-warning mb-0">
+            <i class="bi bi-exclamation-triangle"></i> Data mesin akan dipindahkan ke Log Riwayat Terhapus dan dihapus dari master secara fisik.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-danger">Ya, Hapus Permanen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openDeleteModal(id, noMesin) {
+      document.getElementById('deleteMesinLabel').innerText = noMesin;
+      document.getElementById('deleteForm').action = '<?= site_url('admin/mesin/delete/') ?>' + id;
+      document.getElementById('deleteReason').value = '';
+      new bootstrap.Modal(document.getElementById('deleteModal')).show();
+  }
 </script>
 
 <?= view('layout/footer') ?>

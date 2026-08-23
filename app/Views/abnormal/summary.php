@@ -72,7 +72,12 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                 <thead class="table-light">
                     <!-- Baris Kolom dan Sorting -->
                     <tr>
-                        <th class="ps-4" style="width: 20%;">
+                        <th class="ps-4" style="width: 15%;">
+                            <span class="text-white d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                                PLANT
+                            </span>
+                        </th>
+                        <th style="width: 20%;">
                             <a href="<?= $getSortUrl('departemen') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
                                 DEPARTEMEN <?= $getSortIcon('departemen') ?>
                             </a>
@@ -102,6 +107,13 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                     <!-- NEW FILTER ROW -->
                     <tr class="bg-white">
                         <th class="ps-4 py-2">
+                            <select name="filter_plant" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Plant..." onchange="document.getElementById('filterForm').submit();">
+                                <option value="all" <?= ($filterPlant ?? '') === 'all' ? 'selected' : '' ?>>Semua Plant</option>
+                                <option value="Plant 1" <?= ($filterPlant ?? '') === 'Plant 1' ? 'selected' : '' ?>>Plant 1</option>
+                                <option value="Plant 2" <?= ($filterPlant ?? '') === 'Plant 2' ? 'selected' : '' ?>>Plant 2</option>
+                            </select>
+                        </th>
+                        <th class="py-2">
                             <select name="filter_lokasi" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Departemen..." onchange="document.getElementById('filterForm').submit();">
                                 <option value=""></option>
                                 <option value="all" <?= ($filterLokasi ?? '') === 'all' ? 'selected' : '' ?>>Semua Departemen</option>
@@ -152,12 +164,13 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                 <tbody class="border-top-0">
                     <?php if(empty($summaryRows)): ?>
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">Tidak ada data ditemukan.</td>
+                            <td colspan="7" class="text-center py-4 text-muted">Tidak ada data ditemukan.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($summaryRows as $row): ?>
                             <tr>
-                                <td class="ps-4 fw-bold text-dark"><?= esc($row['departemen']) ?></td>
+                                <td class="ps-4 fw-bold text-dark"><?= esc($row['plant'] ?? 'Plant 1') ?></td>
+                                <td class="fw-bold text-dark"><?= esc($row['departemen']) ?></td>
                                 <td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25"><?= esc($row['line']) ?></span></td>
                                 <td class="fw-medium text-dark"><?= esc($row['kategori']) ?></td>
                                 <td>

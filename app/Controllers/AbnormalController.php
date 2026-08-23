@@ -244,6 +244,12 @@ class AbnormalController extends BaseController
         return $this->response->setJSON($result);
     }
 
+    public function testQuery() {
+        $m = new \App\Models\LaporanAbnormalModel();
+        $res = $m->getOverhaulLaporan('MFG 1', '2026-08', '', 15);
+        return $this->response->setJSON($res);
+    }
+
     public function deleteFotoPerbaikan()
     {
         $service = new AbnormalService();

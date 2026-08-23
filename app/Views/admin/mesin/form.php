@@ -22,11 +22,11 @@
              value="<?= esc(old('serial_nomor', $mesin['serial_nomor'] ?? '')) ?>">
     </div>
       <div class="mb-3">
-        <label class="form-label fw-semibold">Plan <span class="text-danger">*</span></label>
-        <?php $planVal = old('plan', $mesin['plan'] ?? 'Plan 1'); ?>
-        <select name="plan" class="form-select" required>
-          <option value="Plan 1" <?= $planVal === 'Plan 1' ? 'selected' : '' ?>>Plan 1</option>
-          <option value="Plan 2" <?= $planVal === 'Plan 2' ? 'selected' : '' ?>>Plan 2</option>
+        <label class="form-label fw-semibold">plant <span class="text-danger">*</span></label>
+        <?php $planVal = old('plant', $mesin['plant'] ?? 'Plant 1'); ?>
+        <select name="plant" class="form-select" required>
+          <option value="Plant 1" <?= $planVal === 'Plant 1' ? 'selected' : '' ?>>Plant 1</option>
+          <option value="Plant 2" <?= $planVal === 'Plant 2' ? 'selected' : '' ?>>Plant 2</option>
         </select>
       </div>
       <div class="mb-3">
@@ -79,7 +79,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const planSelect = document.querySelector('select[name="plan"]');
+    const planSelect = document.querySelector('select[name="plant"]');
     const lokasiSelect = document.querySelector('select[name="departemen"]');
     const typeInput = document.querySelector('input[name="type_mesin"]');
     const serialInput = document.querySelector('input[name="serial_nomor"]');

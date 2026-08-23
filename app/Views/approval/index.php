@@ -41,7 +41,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
             <th style="width:12%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Tipe Dokumen</th>
             <th style="width:12%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Kategori</th>
             <th style="width:16%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">No Mesin</th>
-            <th style="width:11%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Plan</th>
+            <th style="width:11%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Plant</th>
             <th style="width:11%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Departemen / Line</th>
             <th style="width:12%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Dibuat Oleh</th>
             <th style="width:12%;" class="fw-bold text-uppercase text-secondary" style="font-size:0.72rem; letter-spacing:0.08em;">Tanggal / Bulan</th>
@@ -88,11 +88,11 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                 <?php endforeach; ?>
               </select>
             </th>
-            <!-- Filter Plan -->
+            <!-- Filter plant -->
             <th class="p-1" style="min-width:130px;">
-              <select name="plan" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Plan..." onchange="this.form.submit()" style="font-size:0.75rem;">
+              <select name="plant" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari plant..." onchange="this.form.submit()" style="font-size:0.75rem;">
                 <option value=""></option>
-                <option value="all" <?= ($filterPlan === 'all') ? 'selected' : '' ?>>Semua Plan</option>
+                <option value="all" <?= ($filterPlan === 'all') ? 'selected' : '' ?>>Semua plant</option>
                 <?php foreach ($uniquePlan as $pl): ?>
                   <option value="<?= esc($pl) ?>" <?= ($filterPlan === $pl) ? 'selected' : '' ?>><?= esc($pl) ?></option>
                 <?php endforeach; ?>
@@ -241,7 +241,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                   <div class="fw-semibold text-dark" style="font-size:0.85rem;"><?= $tdMesin ?></div>
                   <div class="text-muted small" style="font-size:0.75rem;"><?= !$isKontrol ? esc($doc['type_mesin'] ?? '-') : '-' ?></div>
                 </td>
-                <td class="fw-medium text-dark" style="font-size:0.85rem; text-center"><?= esc($doc['plan'] ?? '-') ?></td>
+                <td class="fw-medium text-dark" style="font-size:0.85rem; text-center"><?= esc($doc['plant'] ?? '-') ?></td>
                 <td style="font-size:0.82rem; color:var(--text-secondary);"><?= $departemenLine ?></td>
                 <td style="font-size:0.85rem;"><?= $dibuatOleh ?></td>
                 <td style="font-size:0.8rem; color:var(--text-secondary);"><?= $tanggal ?></td>
@@ -258,7 +258,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                       </a>
                     <?php endif; ?>
 
-                                        <?php if (session()->get('role') === 'admin' && ($doc['doc_source'] ?? '') === 'transaksi'): ?>
+                    <?php if (has_role('admin') && ($doc['doc_source'] ?? '') === 'transaksi'): ?>
                       <a href="<?= site_url('riwayat/edit/' . $doc['doc_id']) ?>?from=approval" class="btn btn-sm btn-outline-warning py-1 px-2" style="font-size:0.8rem;" title="Edit">
                         <i class="bi bi-pencil"></i>
                       </a>
@@ -269,7 +269,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                         onclick="konfirmasiHapus(<?= $doc['doc_id'] ?>, '<?= esc($keterangan, 'js') ?>')">
                         <i class="bi bi-trash"></i>
                       </button>
-                    <?php elseif (session()->get('role') === 'admin' && ($doc['doc_source'] ?? '') === 'kontrol'): ?>
+                    <?php elseif (has_role('admin') && ($doc['doc_source'] ?? '') === 'kontrol'): ?>
                       <button type="button"
                         class="btn btn-sm btn-outline-danger py-1 px-2"
                         style="font-size:0.8rem;"

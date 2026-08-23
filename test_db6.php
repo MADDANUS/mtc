@@ -1,0 +1,1 @@
+<?php $db = new PDO('mysql:host=localhost;dbname=mtce_db', 'root', ''); $stmt = $db->query('SELECT id_mesin FROM transaksi_check WHERE id_transaksi = 148'); print_r($stmt->fetchAll(PDO::FETCH_ASSOC));

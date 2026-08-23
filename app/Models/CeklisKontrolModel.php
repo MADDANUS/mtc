@@ -30,7 +30,7 @@ class CeklisKontrolModel extends Model
     {
         // 1. Ambil semua mesin untuk departemen dan bulan ini dari tabel riwayat_mesin
         $mesinModel = new MesinModel();
-        $builder = $mesinModel->select('master_mesin.*, riwayat_mesin.departemen as r_lokasi, riwayat_mesin.line as r_line')
+        $builder = $mesinModel->select('master_mesin.*, riwayat_mesin.departemen as r_lokasi, riwayat_mesin.line as r_line, riwayat_mesin.plant as r_plant')
                               ->join('riwayat_mesin', 'master_mesin.id_mesin = riwayat_mesin.id_mesin')
                               ->where('riwayat_mesin.departemen', $departemen);
         
@@ -52,10 +52,11 @@ class CeklisKontrolModel extends Model
 
         $daftarMesin = $builder->orderBy('master_mesin.no_mesin', 'ASC')->findAll();
 
-        // Timpa field departemen dan line dengan departemen historisnya agar display grid akurat
+        // Timpa field departemen, plan, dan line dengan historisnya agar display grid akurat
         foreach ($daftarMesin as &$m) {
             $m['departemen'] = $m['r_lokasi'];
             $m['line'] = $m['r_line'];
+            $m['plant'] = $m['r_plant'] ?? $m['plant'];
         }
         unset($m); // Mencegah bug pass-by-reference pada foreach berikutnya
 
@@ -249,6 +250,7 @@ class CeklisKontrolModel extends Model
     {
         $sql = "
             SELECT 
+                r.plant,
                 r.departemen, 
                 r.line, 
                 c.kategori, 
@@ -267,7 +269,7 @@ class CeklisKontrolModel extends Model
             $params[] = $bulanTahun;
         }
         
-        $sql .= " GROUP BY c.bulan_tahun, r.departemen, r.line, c.kategori";
+        $sql .= " GROUP BY c.bulan_tahun, r.plant, r.departemen, r.line, c.kategori";
         
         return $this->db->query($sql, $params)->getResultArray();
     }

@@ -9,6 +9,7 @@ class JadwalPreventiveModel extends Model
     protected $table         = 'jadwal_preventive';
     protected $primaryKey    = 'id_jadwal';
     protected $allowedFields = [
+        'plant',
         'departemen',
         'kategori',
         'bulan_tahun',

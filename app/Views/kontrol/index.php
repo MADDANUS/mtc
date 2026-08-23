@@ -22,7 +22,7 @@
     <i class="bi bi-arrow-left me-1"></i> <?= $backLabel ?>
   </a>
   <div class="ms-auto d-flex gap-2">
-    <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
+    <?php if (!has_any_role(['leader', 'sheadprd', 'sheadmtc'])): ?>
 <a href="<?= site_url('kontrol/pdf?departemen=' . urlencode($departemen) . '&kategori=' . urlencode($kategori) . '&bulan=' . urlencode($bulan) . '&line=' . urlencode($line)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
       <i class="bi bi-eye-fill me-1"></i> Preview PDF
     </a>
@@ -84,7 +84,7 @@
             <th rowspan="3" style="width: 5%; font-weight:700; vertical-align: middle;">NO</th>
             <th rowspan="3" style="width: 25%; font-weight:700; vertical-align: middle; text-align: left;" class="ps-4">MESIN</th>
             <th colspan="5" style="width: 35%; font-weight:700;">WAKTU</th>
-            <th rowspan="3" style="width: 12%; font-weight:700; vertical-align: middle;">OUT OF PLAN</th>
+            <th rowspan="3" style="width: 12%; font-weight:700; vertical-align: middle;">Out of Plan</th>
             <th rowspan="3" style="width: 16%; font-weight:700; vertical-align: middle; text-align: left;" class="ps-4">ULASAN</th>
             <th rowspan="3" style="width: 7%; font-weight:700; vertical-align: middle;">DETAIL</th>
           </tr>
@@ -144,7 +144,7 @@
                       data-periode="<?= $p ?>"
                       data-status="<?= $status ?>"
                       data-pic="<?= $cell ? esc($cell['pic_nama']) : '' ?>"
-                      data-out-of-plan="<?= $cell ? esc($cell['out_of_plan']) : '' ?>"
+                      data-out-of-plant="<?= $cell ? esc($cell['out_of_plan']) : '' ?>"
                       data-ulasan="<?= $cell ? esc($cell['ulasan']) : '' ?>">
                     <?php if ($status): ?>
                       <span class="badge <?= $badgeClass ?> rounded-circle d-inline-flex align-items-center justify-content-center fw-bold" style="width: 26px; height: 26px; font-size: 0.8rem; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">
@@ -227,7 +227,7 @@
                       data-periode="<?= $p ?>"
                       data-status="<?= $status ?>"
                       data-pic="<?= esc($pic) ?>"
-                      data-out-of-plan="<?= $cell ? esc($cell['out_of_plan']) : '' ?>"
+                      data-out-of-plant="<?= $cell ? esc($cell['out_of_plan']) : '' ?>"
                       data-ulasan="<?= $cell ? esc($cell['ulasan']) : '' ?>">
                     <?php
                       $picParts = explode(' - ', $pic);
@@ -300,9 +300,9 @@
         </div>
         <h6 class="mb-0 fw-bold text-dark">
           <?php if (isset($approvalData['approved_l2_by'])): ?>
-            <span class="text-decoration-underline">Mr. Rohmad</span>
+            <span class="text-decoration-underline"><?= esc($approvalData['l2_name'] ?? 'Section Head') ?></span>
           <?php else: ?>
-            <span class="text-muted">( Mr. Rohmad )</span>
+            <span class="text-muted">( ........................................ )</span>
           <?php endif; ?>
         </h6>
         <span class="small text-muted">
@@ -329,9 +329,9 @@
         </div>
         <h6 class="mb-0 fw-bold text-dark">
           <?php if (isset($approvalData['approved_final_by'])): ?>
-            <span class="text-decoration-underline">Mr. Royadi</span>
+            <span class="text-decoration-underline"><?= esc($approvalData['final_name'] ?? 'Section Head MTC') ?></span>
           <?php else: ?>
-            <span class="text-muted">( Mr. Royadi )</span>
+            <span class="text-muted">( ........................................ )</span>
           <?php endif; ?>
         </h6>
         <span class="small text-muted">
@@ -348,13 +348,13 @@
 </div>
 
 <?php
-  $role = session()->get('role');
-  $canApproveKontrol = false;
-  if ($role === 'admin' && $approvalStatus !== 'Approved Final' && $allChecked) $canApproveKontrol = true;
-  elseif ($role === 'member' && $approvalStatus === 'Pending' && $allChecked) $canApproveKontrol = true;
-  elseif ($role === 'sheadprd' && $approvalStatus === 'Approved L1') $canApproveKontrol = true;
-  elseif ($role === 'sheadmtc' && $approvalStatus === 'Approved L2') $canApproveKontrol = true;
-?>
+    $role = session()->get('role');
+    $canApproveKontrol = false;
+    if (has_role('admin') && $approvalStatus !== 'Approved Final' && $allChecked) $canApproveKontrol = true;
+    elseif (has_any_role(['member', 'leader mtc']) && $approvalStatus === 'Pending' && $allChecked) $canApproveKontrol = true;
+    elseif (has_role('sheadprd') && $approvalStatus === 'Approved L1') $canApproveKontrol = true;
+    elseif (has_role('sheadmtc') && $approvalStatus === 'Approved L2') $canApproveKontrol = true;
+  ?>
 
 <?php if (session()->getFlashdata('success')): ?>
   <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -369,7 +369,7 @@
   </div>
 <?php endif; ?>
 
-<?php if (($role === 'member' || $role === 'admin') && $approvalStatus !== 'Approved Final' && !$allChecked): ?>
+<?php if (($role === 'member' || $role === 'leader mtc' || $role === 'admin') && $approvalStatus !== 'Approved Final' && !$allChecked): ?>
   <div class="alert alert-warning mt-3 mb-3 shadow-sm">
     <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Perhatian:</strong> Anda belum bisa menyetujui Checklist Control ini karena belum semua mesin/item diperiksa (PIC belum terisi semua). Selesaikan pengisian tabel di atas terlebih dahulu.
   </div>
@@ -400,7 +400,7 @@
 </div>
 <?php endif; ?>
 
-<?php if (session()->get('role') === 'admin' && isset($approvalData['id_approval'])): ?>
+<?php if (has_role('admin') && isset($approvalData['id_approval'])): ?>
 <div class="card border-danger mt-3 mb-3 shadow-sm">
   <div class="card-body d-flex justify-content-between align-items-center p-3">
     <div>

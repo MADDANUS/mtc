@@ -169,6 +169,7 @@ class AbnormalService
             'title'          => 'Abnormal Report Condition',
             'reports'        => $reports,
             'lokasiFilter'   => $departemenFilter,
+            'departemenFilter' => $departemenFilter,
             'lineFilter'     => $lineFilter,
             'searchFilter'   => $searchFilter,
             'kategoriFilter' => $kategoriFilter,
@@ -196,6 +197,7 @@ class AbnormalService
     public function summary($request)
     {
         $bulan = $request->getGet('bulan') ?: date('Y-m');
+        $filterPlant = $request->getGet('filter_plant') === 'all' ? '' : ($request->getGet('filter_plant') ?: '');
         $filterLokasi = $request->getGet('filter_lokasi') === 'all' ? '' : ($request->getGet('filter_lokasi') ?: '');
         $filterLine = $request->getGet('filter_line') === 'all' ? '' : ($request->getGet('filter_line') ?: '');
         $filterKategori = $request->getGet('filter_kategori') === 'all' ? '' : ($request->getGet('filter_kategori') ?: '');
@@ -207,6 +209,7 @@ class AbnormalService
 
         $summaryData = $this->calculateSummaryData([
             'bulan'          => $bulan,
+            'filterPlant'    => $filterPlant,
             'filterLokasi'   => $filterLokasi,
             'filterLine'     => $filterLine,
             'filterKategori' => $filterKategori,
@@ -221,6 +224,7 @@ class AbnormalService
             'bulan'            => $bulan,
             'bulanList'        => $bulanList,
             'summaryRows'      => $summaryData['summaryRows'],
+            'filterPlant'      => $filterPlant,
             'filterLokasi'     => $filterLokasi,
             'filterLine'       => $filterLine,
             'filterKategori'   => $filterKategori,
@@ -245,9 +249,14 @@ class AbnormalService
      */
     public function overhaul($request)
     {
+        if ($request->getGet('view') === 'summary' || (!$request->getGet('departemen') && !$request->getGet('search'))) {
+            return $this->summaryOverhaul($request);
+        }
+
         $departemenFilter = $request->getGet('departemen') ?: Departemen::MFG1->value;
         $searchFilter = $request->getGet('search') ?: '';
         $bulanFilter  = $request->getGet('bulan') ?: date('Y-m');
+        $lineFilter   = $request->getGet('line') ?: '';
 
         
         $abnormalModel = new \App\Models\LaporanAbnormalModel();
@@ -255,7 +264,7 @@ class AbnormalService
         $perPage = (int) ($request->getGet('per_page') ?: 15);
         $currentPage = (int) ($request->getGet('page_abnormal_overhaul') ?: 1);
 
-        $reports = $abnormalModel->getOverhaulLaporan($departemenFilter, $bulanFilter, $searchFilter, $perPage);
+        $reports = $abnormalModel->getOverhaulLaporan($departemenFilter, $bulanFilter, $searchFilter, $perPage, $lineFilter);
 
         $pager = $abnormalModel->pager;
         $totalItems = $pager ? $pager->getTotal('abnormal_overhaul') : 0;
@@ -270,8 +279,10 @@ class AbnormalService
             'title'          => 'Abnormal Report Overhaul',
             'reports'        => $reports,
             'lokasiFilter'   => $departemenFilter,
+            'departemenFilter' => $departemenFilter,
             'searchFilter'   => $searchFilter,
             'bulanFilter'    => $bulanFilter,
+            'lineFilter'     => $lineFilter,
             'masterPic'      => $masterPic,
             'bulanList'      => $bulanList,
             'totalItems'     => $totalItems,
@@ -309,11 +320,12 @@ class AbnormalService
 
         $db = \Config\Database::connect();
         $builder = $db->table('laporan_abnormal')
-                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.departemen, transaksi_check.kategori, master_parameter_check.bagian_check, master_parameter_check.sub_item_check')
+                      ->select('laporan_abnormal.*, master_mesin.no_mesin, master_mesin.type_mesin, master_mesin.departemen, transaksi_check.kategori, master_parameter_check.bagian_check, master_parameter_check.sub_item_check, COALESCE(riwayat_mesin.plant, master_mesin.plant) as plant, IF(laporan_abnormal.action IS NULL OR laporan_abnormal.action = \'\', master_mesin.line, COALESCE(riwayat_mesin.line, master_mesin.line)) as line')
                       ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin')
                       ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
                       ->join('transaksi_check_detail', 'transaksi_check_detail.id_detail = laporan_abnormal.id_detail', 'left')
-                      ->join('master_parameter_check', 'master_parameter_check.id_parameter = transaksi_check_detail.id_parameter', 'left');
+                      ->join('master_parameter_check', 'master_parameter_check.id_parameter = transaksi_check_detail.id_parameter', 'left')
+                      ->join('riwayat_mesin', 'riwayat_mesin.id_mesin = laporan_abnormal.id_mesin AND riwayat_mesin.tanggal_mulai <= DATE(laporan_abnormal.pengecekan_tanggal) AND (riwayat_mesin.tanggal_selesai IS NULL OR riwayat_mesin.tanggal_selesai >= DATE(laporan_abnormal.pengecekan_tanggal))', 'left');
                       
         $builder->where('transaksi_check.jenis_check', JenisCheck::Overhaul->value);
 
@@ -325,50 +337,61 @@ class AbnormalService
 
         $abnormalData = [];
         foreach ($reports as $r) {
+            $pln = $r['plant'] ?? 'Plant 1';
             $departemen = trim($r['departemen']);
-            $line = trim($r['type_mesin']);
+            $line = trim($r['line'] ?? '');
             
-            if (!isset($abnormalData[$departemen])) $abnormalData[$departemen] = [];
-            if (!isset($abnormalData[$departemen][$line])) $abnormalData[$departemen][$line] = ['totalOpen' => 0, 'totalAll' => 0];
+            if (!isset($abnormalData[$pln])) $abnormalData[$pln] = [];
+            if (!isset($abnormalData[$pln][$departemen])) $abnormalData[$pln][$departemen] = [];
+            if (!isset($abnormalData[$pln][$departemen][$line])) $abnormalData[$pln][$departemen][$line] = ['totalOpen' => 0, 'totalAll' => 0];
 
-            $abnormalData[$departemen][$line]['totalAll']++;
+            $abnormalData[$pln][$departemen][$line]['totalAll']++;
             if (empty($r['action'])) {
-                $abnormalData[$departemen][$line]['totalOpen']++;
+                $abnormalData[$pln][$departemen][$line]['totalOpen']++;
             }
         }
 
         $bulanList = $this->buildBulanList();
 
         $summaryRows = [];
-        foreach ($linesByLokasi as $departemen => $lines) {
-            if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
-            
-            foreach ($lines as $line) {
-                if (!empty($filterLine) && $line !== $filterLine) continue;
+        $filterPlant = $request->getGet('filter_plant') === 'all' ? '' : ($request->getGet('filter_plant') ?: '');
+        $availableLines = [];
 
-                $abData = $abnormalData[$departemen][$line] ?? ['totalOpen' => 0, 'totalAll' => 0];
-                $totalOpen = $abData['totalOpen'];
-                $totalAll  = $abData['totalAll'];
+        foreach ($abnormalData as $pln => $depts) {
+            if (!empty($filterPlant) && $pln !== $filterPlant) continue;
+
+            foreach ($depts as $departemen => $lines) {
+                if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
                 
-                if ($totalAll == 0) continue;
-                
-                if ($totalOpen > 0) {
-                    $badgeClass = 'bg-danger';
-                    $statusText = 'Belum Perbaikan';
-                } else {
-                    $badgeClass = 'bg-success';
-                    $statusText = 'Sudah Perbaikan';
+                foreach ($lines as $line => $abData) {
+                    $availableLines[] = $line;
+
+                    if (!empty($filterLine) && $line !== $filterLine) continue;
+
+                    $totalOpen = $abData['totalOpen'];
+                    $totalAll  = $abData['totalAll'];
+                    
+                    if ($totalAll == 0) continue;
+                    
+                    if ($totalOpen > 0) {
+                        $badgeClass = 'bg-danger';
+                        $statusText = 'Belum Perbaikan';
+                    } else {
+                        $badgeClass = 'bg-success';
+                        $statusText = 'Sudah Perbaikan';
+                    }
+                    
+                    if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
+
+                    $summaryRows[] = [
+                        'plant'           => $pln,
+                        'departemen'      => $departemen,
+                        'line'        => $line,
+                        'totalOpen'   => $totalOpen,
+                        'statusText'  => $statusText,
+                        'badgeClass'  => $badgeClass
+                    ];
                 }
-                
-                if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
-
-                $summaryRows[] = [
-                    'departemen'      => $departemen,
-                    'line'        => $line,
-                    'totalOpen'   => $totalOpen,
-                    'statusText'  => $statusText,
-                    'badgeClass'  => $badgeClass
-                ];
             }
         }
 
@@ -382,17 +405,8 @@ class AbnormalService
             return ($order === 'asc') ? $cmp : -$cmp;
         });
 
-        $availableLines = [];
-        if (!empty($filterLokasi)) {
-            $availableLines = isset($linesByLokasi[$filterLokasi]) ? array_unique($linesByLokasi[$filterLokasi]) : [];
-        } else {
-            foreach ($linesByLokasi as $lines) {
-                $availableLines = array_merge($availableLines, $lines);
-            }
-            $availableLines = array_unique($availableLines);
-        }
+        $availableLines = array_unique($availableLines);
         sort($availableLines);
-        $bulanList = $this->buildBulanList();
 
         return [
             'is_summary'       => true,
@@ -400,6 +414,7 @@ class AbnormalService
             'bulan'            => $bulan,
             'bulanList'        => $bulanList,
             'summaryRows'      => $summaryRows,
+            'filterPlant'      => $filterPlant,
             'filterLokasi'     => $filterLokasi,
             'filterLine'       => $filterLine,
             'filterStatus'     => $filterStatus,
@@ -477,7 +492,7 @@ class AbnormalService
             
             $abnormalData = [];
             foreach ($reports as $r) {
-                $line = trim($r['type_mesin']);
+                $line = trim($r['line'] ?? '');
                 if (!isset($abnormalData[$line])) $abnormalData[$line] = ['totalOpen' => 0, 'totalAll' => 0];
                 $abnormalData[$line]['totalAll']++;
                 if (empty($r['action'])) {
@@ -653,6 +668,7 @@ class AbnormalService
     private function calculateSummaryData(array $filters): array
     {
         $bulan          = $filters['bulan'];
+        $filterPlant    = $filters['filterPlant'] ?? '';
         $filterLokasi   = $filters['filterLokasi'];
         $filterLine     = $filters['filterLine'];
         $filterKategori = $filters['filterKategori'];
@@ -673,8 +689,9 @@ class AbnormalService
                            
         $abnormalData = [];
         foreach($allAbnormal as $oa) {
+            $pln = $oa['plant'] ?? 'Plant 1';
             $kategori = $oa['kategori'] ?: 'Penerangan'; // Default fallback
-            $abnormalData[$oa['departemen']][$oa['line']][$kategori] = [
+            $abnormalData[$pln][$oa['departemen']][$oa['line']][$kategori] = [
                 'totalOpen' => (int) $oa['totalOpen'],
                 'totalAll'  => (int) $oa['totalAll']
             ];
@@ -686,42 +703,49 @@ class AbnormalService
         ];
 
         $summaryRows = [];
-        foreach ($kategoriByLokasi as $departemen => $categories) {
-            if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
-            
-            $lines = isset($linesByLokasi[$departemen]) ? array_unique($linesByLokasi[$departemen]) : [];
-            sort($lines);
+        $plansToIterate = ['Plant 1', 'Plant 2'];
 
-            foreach ($lines as $line) {
-                if (!empty($filterLine) && $line !== $filterLine) continue;
+        foreach ($plansToIterate as $pln) {
+            if (!empty($filterPlant) && $pln !== $filterPlant) continue;
 
-                foreach ($categories as $kategori) {
-                    if (!empty($filterKategori) && $kategori !== $filterKategori) continue;
-                    
-                    $abData = $abnormalData[$departemen][$line][$kategori] ?? ['totalOpen' => 0, 'totalAll' => 0];
-                    $totalOpen = $abData['totalOpen'];
-                    $totalAll  = $abData['totalAll'];
-                    
-                    if ($totalAll == 0) continue;
-                    
-                    if ($totalOpen > 0) {
-                        $badgeClass = 'bg-danger';
-                        $statusText = 'Belum Perbaikan';
-                    } else {
-                        $badgeClass = 'bg-success';
-                        $statusText = 'Sudah Perbaikan';
+            foreach ($kategoriByLokasi as $departemen => $categories) {
+                if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
+                
+                $lines = isset($linesByLokasi[$departemen]) ? array_unique($linesByLokasi[$departemen]) : [];
+                sort($lines);
+
+                foreach ($lines as $line) {
+                    if (!empty($filterLine) && $line !== $filterLine) continue;
+
+                    foreach ($categories as $kategori) {
+                        if (!empty($filterKategori) && $kategori !== $filterKategori) continue;
+                        
+                        $abData = $abnormalData[$pln][$departemen][$line][$kategori] ?? ['totalOpen' => 0, 'totalAll' => 0];
+                        $totalOpen = $abData['totalOpen'];
+                        $totalAll  = $abData['totalAll'];
+                        
+                        if ($totalAll == 0) continue;
+                        
+                        if ($totalOpen > 0) {
+                            $badgeClass = 'bg-danger';
+                            $statusText = 'Belum Perbaikan';
+                        } else {
+                            $badgeClass = 'bg-success';
+                            $statusText = 'Sudah Perbaikan';
+                        }
+                        
+                        if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
+
+                        $summaryRows[] = [
+                            'plant'           => $pln,
+                            'departemen'      => $departemen,
+                            'line'        => $line,
+                            'kategori'    => $kategori,
+                            'totalOpen'   => $totalOpen,
+                            'statusText'  => $statusText,
+                            'badgeClass'  => $badgeClass
+                        ];
                     }
-                    
-                    if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
-
-                    $summaryRows[] = [
-                        'departemen'      => $departemen,
-                        'line'        => $line,
-                        'kategori'    => $kategori,
-                        'totalOpen'   => $totalOpen,
-                        'statusText'  => $statusText,
-                        'badgeClass'  => $badgeClass
-                    ];
                 }
             }
         }

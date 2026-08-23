@@ -39,7 +39,7 @@
             <th>Nama</th>
             <th>Username</th>
             <th>Role</th>
-            <th>Plan</th>
+            <th>Plant</th>
             <th>Departemen</th>
             <th>Line</th>
             <th>Status</th>
@@ -53,10 +53,10 @@
               <td><?= esc($u['username']) ?></td>
               <td><span class="badge bg-secondary text-uppercase"><?= esc($u['role']) ?></span></td>
               <td>
-                <?php if (($u['plan'] ?? '-') === '-'): ?>
+                <?php if (($u['plant'] ?? '-') === '-'): ?>
                   -
                 <?php else: ?>
-                  <span class="badge bg-primary"><?= esc($u['plan'] ?? 'Plan 1') ?></span>
+                  <span class="badge bg-primary"><?= esc($u['plant'] ?? 'Plant 1') ?></span>
                 <?php endif; ?>
               </td>
               <td><?= esc($u['departemen'] ?? '-') ?></td>
@@ -75,9 +75,11 @@
                     <?= $isActive ? 'Inactive' : 'Active' ?>
                   </a>
                   <a href="<?= site_url('admin/user/edit/' . $u['id']) ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
-                  <?php if ((int) $u['id'] !== (int) session()->get('user_id')): ?>
-                    <a href="<?= site_url('admin/user/delete/' . $u['id']) ?>" class="btn btn-sm btn-outline-danger"
-                       onclick="return confirm('Hapus user <?= esc($u['nama'], 'js') ?>?');">Hapus</a>
+                  <?php if ((int) $u['id'] !== (int) session()->get('user_id') && has_role('admin')): ?>
+                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                            onclick="openDeleteModal(<?= $u['id'] ?>, '<?= esc($u['nama'], 'js') ?>')" title="Hapus User">
+                      Hapus
+                    </button>
                   <?php endif; ?>
                 </div>
               </td>
@@ -88,5 +90,42 @@
     </div>
   <?php endif; ?>
 </div>
+
+<!-- Modal Konfirmasi Hapus User -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="" method="post" id="deleteForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteModalLabel">Konfirmasi Hapus User</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Anda yakin ingin menghapus user <strong id="deleteUserLabel"></strong> secara permanen?</p>
+          <div class="mb-3">
+            <label for="deleteReason" class="form-label">Keterangan / Alasan Dihapus <span class="text-danger">*</span></label>
+            <textarea class="form-control" name="alasan" id="deleteReason" rows="3" required placeholder="Tuliskan alasan mengapa user ini dihapus..."></textarea>
+          </div>
+          <div class="alert alert-warning mb-0">
+            <i class="bi bi-exclamation-triangle"></i> Data user akan dipindahkan ke Log Riwayat Terhapus dan dihapus dari master secara fisik.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-danger">Ya, Hapus Permanen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openDeleteModal(id, namaUser) {
+      document.getElementById('deleteUserLabel').innerText = namaUser;
+      document.getElementById('deleteForm').action = '<?= site_url('admin/user/delete/') ?>' + id;
+      document.getElementById('deleteReason').value = '';
+      new bootstrap.Modal(document.getElementById('deleteModal')).show();
+  }
+</script>
 
 <?= view('layout/footer') ?>

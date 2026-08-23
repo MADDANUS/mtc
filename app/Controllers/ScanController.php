@@ -38,14 +38,14 @@ class ScanController extends BaseController
             return redirect()->to('/dashboard')->with('error', 'Mesin tidak ditemukan.');
         }
 
-        // Ubah departemen dan plan ke format slug
+        // Ubah departemen dan plant ke format slug
         $departemenSlug = strtolower(str_replace(' ', '-', $mesin['departemen']));
-        $planSlug = strtolower(str_replace(' ', '-', $mesin['plan'] ?? 'Plan 1'));
+        $plantSlug = strtolower(str_replace(' ', '-', $mesin['plant'] ?? 'Plant 1'));
 
         return view('scan/mesin', [
             'title'          => 'Mesin Terdeteksi',
             'mesin'          => $mesin,
-            'planSlug'       => $planSlug,
+            'plantSlug'       => $plantSlug,
             'departemenSlug' => $departemenSlug,
         ]);
     }

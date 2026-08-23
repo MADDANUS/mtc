@@ -26,16 +26,17 @@
         
         <div class="row g-2 mt-auto">
           <div class="col-6">
-            <a href="<?= site_url('checklist/plan/' . $planSlug . '/mfg-1/checklist-report') ?>" class="btn btn-outline-primary w-100 py-2 fw-bold rounded-3">MFG 1</a>
+            <a href="<?= site_url('checklist/plant/' . $plantSlug . '/mfg-1/checklist-report') ?>" class="btn btn-outline-primary w-100 py-2 fw-bold rounded-3">MFG 1</a>
           </div>
           <div class="col-6">
-            <a href="<?= site_url('checklist/plan/' . $planSlug . '/mfg-2/checklist-report') ?>" class="btn btn-outline-primary w-100 py-2 fw-bold rounded-3">MFG 2</a>
+            <a href="<?= site_url('checklist/plant/' . $plantSlug . '/mfg-2/checklist-report') ?>" class="btn btn-outline-primary w-100 py-2 fw-bold rounded-3">MFG 2</a>
           </div>
         </div>
       </div>
     </div>
   </div>
 
+  <?php if (!has_role('magang')): ?>
   <!-- Card Overhaul -->
   <div class="col-md-5">
     <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden card-hover transition" style="transition: transform 0.2s, box-shadow 0.2s;">
@@ -48,15 +49,16 @@
         
         <div class="row g-2 mt-auto">
           <div class="col-6">
-            <a href="<?= site_url('checklist/plan/' . $planSlug . '/mfg-1/overhaul') ?>" class="btn btn-outline-danger w-100 py-2 fw-bold rounded-3" style="color: #f43f5e; border-color: #f43f5e;">MFG 1</a>
+            <a href="<?= site_url('checklist/plant/' . $plantSlug . '/mfg-1/overhaul') ?>" class="btn btn-outline-danger w-100 py-2 fw-bold rounded-3" style="color: #f43f5e; border-color: #f43f5e;">MFG 1</a>
           </div>
           <div class="col-6">
-            <a href="<?= site_url('checklist/plan/' . $planSlug . '/mfg-2/overhaul') ?>" class="btn btn-outline-danger w-100 py-2 fw-bold rounded-3" style="color: #f43f5e; border-color: #f43f5e;">MFG 2</a>
+            <a href="<?= site_url('checklist/plant/' . $plantSlug . '/mfg-2/overhaul') ?>" class="btn btn-outline-danger w-100 py-2 fw-bold rounded-3" style="color: #f43f5e; border-color: #f43f5e;">MFG 2</a>
           </div>
         </div>
       </div>
     </div>
   </div>
+  <?php endif; ?>
 </div>
 
 <style>

@@ -32,9 +32,9 @@ class RiwayatController extends BaseController
     private function resolveLokasi(string $slug): ?string
     {
         return match (strtolower($slug)) {
-            'mfg2'  => Departemen::MFG2->value,
-            'mfg1'  => Departemen::MFG1->value,
-            'plan2' => Departemen::PLAN2->value,
+            'mfg2', 'mfg-2'  => Departemen::MFG2->value,
+            'mfg1', 'mfg-1'  => Departemen::MFG1->value,
+            'plant2', 'plant-2' => \App\Enums\Plant::PLANT2->value,
             'semua' => null,
             default => Departemen::MFG1->value,
         };
@@ -55,6 +55,11 @@ class RiwayatController extends BaseController
      */
     public function departemen(string $departemenSlug)
     {
+        $rawJenisCheck = $this->request->getGet('jenis_check');
+        if (strtolower($rawJenisCheck ?? '') === 'overhaul' && has_role('magang')) {
+            return redirect()->to('/dashboard')->with('error', 'Akses ditolak: Magang tidak memiliki akses ke Riwayat Overhaul.');
+        }
+
         $departemenName = $this->resolveLokasi($departemenSlug);
         
         $riwayatService = new \App\Services\RiwayatService();
@@ -105,7 +110,7 @@ class RiwayatController extends BaseController
         $jenisLabel = $filters['jenis_check'] === JenisCheck::Preventive->value ? 'Checklist Report' : ($filters['jenis_check'] === JenisCheck::Overhaul->value ? 'Inspection Report' : 'Pengecekan');
         $title = "Riwayat {$jenisLabel} — " . ($departemenName ?? 'Semua Departemen');
         
-        $availablePlans = ['Plan 1', 'Plan 2'];
+        $availablePlans = ['Plant 1', 'Plant 2'];
         $availableLines = $this->buildAvailableLines($departemenName);
         $availablePics = $this->buildAvailablePics($transaksiModel, $departemenName, $filters['jenis_check'] ?? null);
         $bulanList = $this->buildAvailableBulan($transaksiModel, $departemenName, $filters['jenis_check'] ?? null);
@@ -339,13 +344,19 @@ class RiwayatController extends BaseController
         if (!has_role(Role::Admin->value)) {
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
+
+        $alasanEdit = $this->request->getPost('alasan_edit');
+        if (empty($alasanEdit)) {
+            return redirect()->back()->withInput()->with('error', 'Alasan perubahan (edit) wajib diisi.');
+        }
+
         $riwayatService = new \App\Services\RiwayatService();
         $result = $riwayatService->updateTransaksi($id, $this->request, \Config\Services::validation());
         if (isset($result['errors'])) {
             return redirect()->back()->withInput()->with('errors', $result['errors']);
         }
         if (!$result['status']) {
-            return redirect()->back()->with('error', $result['message']);
+            return redirect()->back()->withInput()->with('error', $result['message']);
         }
         return redirect()->back()->with('success', $result['message'] ?? 'Riwayat berhasil diperbarui.');
     }
@@ -355,9 +366,15 @@ class RiwayatController extends BaseController
         if (!has_role(Role::Admin->value)) {
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
+        
+        $alasan = $this->request->getPost('alasan');
+        if (empty($alasan)) {
+            return redirect()->back()->with('error', 'Alasan penghapusan harus diisi.');
+        }
+
         $riwayatService = new \App\Services\RiwayatService();
-        if ($riwayatService->deleteTransaksi($id)) {
-            return redirect()->back()->with('success', 'Transaksi berhasil dihapus.');
+        if ($riwayatService->deleteTransaksi($id, $alasan)) {
+            return redirect()->back()->with('success', 'Transaksi berhasil dihapus beserta histori alasannya.');
         }
         return redirect()->back()->with('error', 'Transaksi tidak ditemukan.');
     }
@@ -396,15 +413,25 @@ class RiwayatController extends BaseController
             // Sesuai permintaan, Riwayat secara default HANYA menampilkan yang sudah selesai (Approved / Approved Final)
             // Laporan yang masih setengah jalan (Pending, Approved L1, Approved L2) akan tetap ada di halaman Approval.
             $statusFilter = ['Approved', 'Approved Final'];
+            if (has_role(\App\Enums\Role::Leader->value)) {
+                $statusFilter[] = 'Approved L1';
+                $statusFilter[] = 'Approved L2';
+            }
+            if (has_role(\App\Enums\Role::Sheadprd->value)) {
+                $statusFilter[] = 'Approved L2';
+            }
+            if (has_role('magang')) {
+                $statusFilter = null; // Magang dapat melihat semua status
+            }
         }
         
         $rawJenisCheck = $this->request->getGet('jenis_check');
-        if (has_role('magang') && !has_any_role(['admin', 'member', 'leader_member', 'leader', 'sheadprd', 'sheadmtc'])) {
-            $rawJenisCheck = 'Preventive Maintenance';
+        if (has_role('magang') && !has_any_role(['admin', 'member', 'leader mtc', 'leader', 'sheadprd', 'sheadmtc'])) {
+            $rawJenisCheck = 'Preventive';
         }
 
         return [
-            'plan'        => $this->request->getGet('plan') === 'all' ? null : ($this->request->getGet('plan') ?: null),
+            'plant'        => $this->request->getGet('plant') === 'all' ? null : ($this->request->getGet('plant') ?: null),
             'departemen'  => $departemenName,
             'id_mesin'    => $this->request->getGet('id_mesin') === 'all' ? null : ($this->request->getGet('id_mesin') ?: null),
             'line'        => $userLine ?: ($this->request->getGet('line') === 'all' ? null : ($this->request->getGet('line') ?: null)),

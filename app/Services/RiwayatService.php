@@ -263,13 +263,43 @@ class RiwayatService
         return ["status" => true, "message" => 'Approval berhasil dihapus dan status kembali ke Pending.'];
     }
 
-    public function deleteTransaksi(int $id): bool
+    public function deleteTransaksi(int $id, string $alasan = ''): bool
     {
         $transaksiModel = new TransaksiCheckModel();
         $header = $transaksiModel->find($id);
         if (!$header) {
             return false;
         }
+
+        // Fetch detail and abnormal to store full snapshot
+        $detailModel = new \App\Models\TransaksiCheckDetailModel();
+        $details = $detailModel->where('id_transaksi', $id)->findAll();
+        $abnormalModel = new \App\Models\LaporanAbnormalModel();
+        $abnormals = $abnormalModel->where('id_transaksi', $id)->findAll();
+
+        $snapshot = [
+            'header' => $header,
+            'details' => $details,
+            'abnormal' => $abnormals
+        ];
+
+        // Determine log category
+        $jenisSlug = strtolower(str_replace(' ', '-', $header['jenis_check']));
+        $kategoriDokumen = 'Ceklis Control (Preventive)';
+        if ($jenisSlug !== 'preventive' && $jenisSlug !== 'checklist-report') {
+            $kategoriDokumen = 'Inspection Report (Overhaul)';
+        }
+        
+        $logAuditModel = new \App\Models\LogAuditLaporanModel();
+        $logAuditModel->insert([
+            'kategori_dokumen' => $kategoriDokumen,
+            'aksi'             => 'Hapus',
+            'no_mesin'         => $header['no_mesin'] ?? $header['ss_no_mesin'] ?? '-',
+            'waktu_eksekusi'   => date('Y-m-d H:i:s'),
+            'dieksekusi_oleh'  => session()->get('nama') ?? 'System',
+            'alasan'           => $alasan ?: 'Penghapusan via sistem.',
+            'detail_perubahan' => json_encode($snapshot, JSON_PRETTY_PRINT)
+        ]);
 
         // --- Hapus Ceklis Kontrol yang bersangkutan ---
         $jenisSlug = strtolower(str_replace(' ', '-', $header['jenis_check']));
@@ -335,6 +365,18 @@ class RiwayatService
             return ["status" => false, "message" => 'Transaksi tidak ditemukan.'];
         }
 
+        // Fetch detail and abnormal to store old snapshot
+        $detailModel = new \App\Models\TransaksiCheckDetailModel();
+        $detailsOld = $detailModel->where('id_transaksi', $id)->findAll();
+        $abnormalModel = new \App\Models\LaporanAbnormalModel();
+        $abnormalsOld = $abnormalModel->where('id_transaksi', $id)->findAll();
+        
+        $snapshotOld = [
+            'header' => $header,
+            'details' => $detailsOld,
+            'abnormal' => $abnormalsOld
+        ];
+
         $idMesin      = (int) $request->getPost('id_mesin');
         $namaPic      = $request->getPost('nama_pic');
         $waktuMulai   = $request->getPost('waktu_mulai');
@@ -343,6 +385,8 @@ class RiwayatService
 
         $hasilCheck = $request->getPost('hasil_check') ?? [];
         $ulasan     = $request->getPost('ulasan') ?? [];
+        
+        $alasanEdit = $request->getPost('alasan_edit');
 
         $db = \Config\Database::connect();
         $db->transStart();
@@ -367,13 +411,48 @@ class RiwayatService
             $this->updateChecklistKontrolOnEdit($header, $idMesin, $hasilCheck, $ulasan, $waktuSelesai);
         }
 
+        // Fetch NEW state after update
+        $headerNew = $transaksiModel->find($id);
+        $detailsNew = $detailModel->where('id_transaksi', $id)->findAll();
+        $abnormalsNew = $abnormalModel->where('id_transaksi', $id)->findAll();
+
+        $snapshotNew = [
+            'header' => $headerNew,
+            'details' => $detailsNew,
+            'abnormal' => $abnormalsNew
+        ];
+
+        // Diff Summary
+        $diffSummary = [
+            'old_data' => $snapshotOld,
+            'new_data' => $snapshotNew
+        ];
+
+        // Determine log category
+        $jenisSlug = strtolower(str_replace(' ', '-', $header['jenis_check']));
+        $kategoriDokumen = 'Ceklis Control (Preventive)';
+        if ($jenisSlug !== 'preventive' && $jenisSlug !== 'checklist-report') {
+            $kategoriDokumen = 'Inspection Report (Overhaul)';
+        }
+        
+        $logAuditModel = new \App\Models\LogAuditLaporanModel();
+        $logAuditModel->insert([
+            'kategori_dokumen' => $kategoriDokumen,
+            'aksi'             => 'Edit',
+            'no_mesin'         => $headerNew['no_mesin'] ?? $headerNew['ss_no_mesin'] ?? '-',
+            'waktu_eksekusi'   => date('Y-m-d H:i:s'),
+            'dieksekusi_oleh'  => session()->get('nama') ?? 'System',
+            'alasan'           => $alasanEdit ?: 'Diedit via sistem.',
+            'detail_perubahan' => json_encode($diffSummary, JSON_PRETTY_PRINT)
+        ]);
+
         $db->transComplete();
 
         if ($db->transStatus() === false) {
             return ["status" => false, "message" => 'Terjadi kesalahan saat mengupdate riwayat.'];
         }
 
-        return ["status" => true, "message" => 'Riwayat berhasil diupdate.'];
+        return ["status" => true, "message" => 'Riwayat berhasil diupdate beserta log audisinya.'];
     }
 
     /**
@@ -383,7 +462,7 @@ class RiwayatService
     
     public function approveTransaksi($idTransaksi, $request)
     {
-        if (!has_any_role([Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, Role::Leader->value])) {
+        if (!has_any_role([\App\Enums\Role::Member->value, \App\Enums\Role::LeaderMember->value, \App\Enums\Role::Sheadprd->value, \App\Enums\Role::Sheadmtc->value, \App\Enums\Role::Admin->value, \App\Enums\Role::Leader->value])) {
             return ["status" => false, "message" => 'Anda tidak memiliki akses untuk menyetujui laporan.'];
         }
 
@@ -404,9 +483,10 @@ class RiwayatService
         $jenisSlug    = strtolower(str_replace(' ', '-', $transaksi['jenis_check']));
         $now          = date('Y-m-d H:i:s');
         $userId       = session()->get('user_id');
+        $userName     = session()->get('nama');
         $waktuSelesai = $transaksi['waktu_selesai'] ?? $now;
 
-        $result = $this->buildApprovalUpdateData($jenisSlug, $transaksi, $request, $now, $userId, $mesinInfo);
+        $result = $this->buildApprovalUpdateData($jenisSlug, $transaksi, $request, $now, $userId, $userName, $mesinInfo);
         if (isset($result['status'])) {
             return $result;
         }
@@ -470,11 +550,11 @@ class RiwayatService
      * Tentukan $updateData dan $newStatus berdasarkan role dan jenis transaksi.
      * Return [[$updateData, $newStatus]] jika OK, atau ['status'=>false, 'message'=>...] jika error.
      */
-    private function buildApprovalUpdateData(string $jenisSlug, array $transaksi, $request, string $now, $userId, $mesinInfo = null): array
+    private function buildApprovalUpdateData(string $jenisSlug, array $transaksi, $request, string $now, $userId, string $userName, $mesinInfo = null): array
     {
         if ($jenisSlug === 'overhaul') {
             if (has_role(Role::Admin->value)) {
-                return [['status' => 'Approved', 'approved_by' => $userId, 'approved_at' => $now], 'Approved'];
+                return [['status' => 'Approved', 'approved_by' => $userId, 'approved_at' => $now, 'ss_approved_name' => $userName], 'Approved'];
             }
             
             if ($transaksi['status'] === 'Pending') {
@@ -488,9 +568,9 @@ class RiwayatService
                         $userDepts = array_map('trim', explode(',', session()->get('departemen')));
                         if (!in_array($mesinInfo['departemen'], $userDepts)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di departemen ' . session()->get('departemen')];
                     }
-                    if (session()->get('plan')) {
-                        $userPlans = array_map('trim', explode(',', session()->get('plan')));
-                        if (!in_array($mesinInfo['plan'], $userPlans)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plan ' . session()->get('plan')];
+                    if (session()->get('plant')) {
+                        $userPlans = array_map('trim', explode(',', session()->get('plant')));
+                        if (!in_array($mesinInfo['plant'], $userPlans)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plant ' . session()->get('plant')];
                     }
                     if (session()->get('line')) {
                         $userLines = array_map('trim', explode(',', session()->get('line')));
@@ -499,9 +579,10 @@ class RiwayatService
                 }
                 
                 return [[
-                    'status'         => 'Approved L1',
-                    'approval_l1_by' => $userId,
-                    'approval_l1_at' => $now,
+                    'status'              => 'Approved L1',
+                    'approval_l1_by'      => $userId,
+                    'approval_l1_at'      => $now,
+                    'ss_approval_l1_name' => $userName,
                 ], 'Approved L1'];
             }
             
@@ -516,9 +597,9 @@ class RiwayatService
                         $userDepts = array_map('trim', explode(',', session()->get('departemen')));
                         if (!in_array($mesinInfo['departemen'], $userDepts)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di departemen ' . session()->get('departemen')];
                     }
-                    if (session()->get('plan')) {
-                        $userPlans = array_map('trim', explode(',', session()->get('plan')));
-                        if (!in_array($mesinInfo['plan'], $userPlans)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plan ' . session()->get('plan')];
+                    if (session()->get('plant')) {
+                        $userPlans = array_map('trim', explode(',', session()->get('plant')));
+                        if (!in_array($mesinInfo['plant'], $userPlans)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plant ' . session()->get('plant')];
                     }
                     if (session()->get('line')) {
                         $userLines = array_map('trim', explode(',', session()->get('line')));
@@ -527,9 +608,10 @@ class RiwayatService
                 }
                 
                 return [[
-                    'status'         => 'Approved L2',
-                    'approval_l2_by' => $userId,
-                    'approval_l2_at' => $now,
+                    'status'              => 'Approved L2',
+                    'approval_l2_by'      => $userId,
+                    'approval_l2_at'      => $now,
+                    'ss_approval_l2_name' => $userName,
                 ], 'Approved L2'];
             }
             
@@ -537,21 +619,22 @@ class RiwayatService
                 if (!has_role(Role::Sheadmtc->value)) {
                     return ["status" => false, "message" => 'Laporan butuh persetujuan dari Section Head MTC.'];
                 }
-                return [['status' => 'Approved', 'approved_by' => $userId, 'approved_at' => $now], 'Approved'];
+                return [['status' => 'Approved', 'approved_by' => $userId, 'approved_at' => $now, 'ss_approved_name' => $userName], 'Approved'];
             }
             
             return ["status" => false, "message" => 'Status laporan tidak valid untuk diproses.'];
         }
         
         // PREVENTIVE
-        if (!has_role(Role::Admin->value) && !has_role(Role::Member->value)) {
-            return ["status" => false, "message" => 'Hanya Admin atau Member MTC yang dapat menyetujui laporan Preventive.'];
+        if (!has_any_role([\App\Enums\Role::Admin->value, \App\Enums\Role::Member->value, \App\Enums\Role::LeaderMember->value])) {
+            return ["status" => false, "message" => 'Hanya Admin, Member, atau Leader MTC yang dapat menyetujui laporan Preventive.'];
         }
 
         return [[
-            'status'        => 'Approved',
-            'approved_by'   => $userId,
-            'approved_at'   => $now,
+            'status'           => 'Approved',
+            'approved_by'      => $userId,
+            'approved_at'      => $now,
+            'ss_approved_name' => $userName,
         ], 'Approved'];
     }
 
@@ -593,7 +676,7 @@ class RiwayatService
     /**
      * Upsert baris ceklis_kontrol setelah approve final (hanya Preventive).
      */
-    private function upsertCeklisKontrolOnApprove(int $idTransaksi, array $transaksi, string $waktuSelesai): void
+    public function upsertCeklisKontrolOnApprove(int $idTransaksi, array $transaksi, string $waktuSelesai): void
     {
         $jenisSlug = strtolower(str_replace(' ', '-', $transaksi['jenis_check']));
         if ($jenisSlug !== 'preventive' && $jenisSlug !== 'checklist-report') {

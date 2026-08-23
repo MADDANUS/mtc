@@ -55,7 +55,7 @@
 
   <!-- ROW 2: Kategori + Departemen -->
   <tr>
-    <td colspan="8" style="border:1.5pt solid #000; text-align:center; font-weight:bold; font-size:13px; padding:4px;"><?= strtoupper($kategori) ?> (<?= strtoupper($itemLokasi) ?><?= $itemLine ? ' / ' . strtoupper($itemLine) : '' ?>)</td>
+    <td colspan="8" style="border:1.5pt solid #000; text-align:center; font-weight:bold; font-size:13px; padding:4px;"><?= strtoupper($kategori) ?> (<?= isset($item['plant']) ? strtoupper($item['plant']) . ' - ' : (isset($plant) ? strtoupper($plant) . ' - ' : '') ?><?= strtoupper($itemLokasi) ?><?= $itemLine ? ' / ' . strtoupper($itemLine) : '' ?>)</td>
   </tr>
 
   <!-- ROW 3: Label NO. DOCUMENT / NO. REVISI -->
@@ -76,37 +76,17 @@
   </tr>
 </table>
 
-<!-- KETERANGAN CHECK LIST (standalone) -->
-<table class="keterangan-table">
-  <tr>
-    <td colspan="3" style="text-align:center; font-weight:bold; padding:3px 20px; background-color:#f2f2f2;">KETERANGAN CHECK LIST</td>
-  </tr>
-  <tr>
-    <td style="text-align:center; font-weight:bold; width:22px;">V</td>
-    <td style="text-align:center; width:14px;">:</td>
-    <td style="text-align:left; font-weight:bold; padding-left:8px;">OK</td>
-  </tr>
-  <tr>
-    <td style="text-align:center; font-weight:bold;">&#916;</td>
-    <td style="text-align:center;">:</td>
-    <td style="text-align:left; font-weight:bold; padding-left:8px;">PERLU TINDAKAN</td>
-  </tr>
-  <tr>
-    <td style="text-align:center; font-weight:bold;">X</td>
-    <td style="text-align:center;">:</td>
-    <td style="text-align:left; font-weight:bold; padding-left:8px;">TIDAK ADA</td>
-  </tr>
-</table>
+
 
 <table style="width:100%; border-collapse:collapse; font-size:11px; margin-top:0;">
 
   <thead>
-  <!-- HEADER ISI Row 1: NO | MESIN | WAKTU(5) | OUT OF PLAN | ULASAN -->
+  <!-- HEADER ISI Row 1: NO | MESIN | WAKTU(5) | Out of Plan | ULASAN -->
   <tr>
     <th rowspan="3" style="border:1.5pt solid #000; width:5%; text-align:center; vertical-align:middle; background-color:#f2f2f2; font-weight:700; padding:3px;">NO</th>
     <th rowspan="3" style="border:1.5pt solid #000; width:22%; text-align:center; vertical-align:middle; background-color:#f2f2f2; font-weight:700; padding:3px;">MESIN</th>
     <th colspan="5" style="border:1.5pt solid #000; text-align:center; background-color:#f2f2f2; font-weight:700; padding:3px;">WAKTU</th>
-    <th rowspan="3" style="border:1.5pt solid #000; width:14%; text-align:center; vertical-align:middle; background-color:#f2f2f2; font-weight:700; padding:3px;">OUT OF PLAN</th>
+    <th rowspan="3" style="border:1.5pt solid #000; width:14%; text-align:center; vertical-align:middle; background-color:#f2f2f2; font-weight:700; padding:3px;">Out of Plan</th>
     <th rowspan="3" style="border:1.5pt solid #000; width:20%; text-align:center; vertical-align:middle; background-color:#f2f2f2; font-weight:700; padding:3px;">ULASAN</th>
   </tr>
 
@@ -203,60 +183,90 @@
         <td style="border:1.5pt solid #000;"></td>
         <td style="border:1.5pt solid #000;"></td>
       </tr>
+      <?php if ($isLastRow): ?>
+      <tr style="page-break-inside: avoid; page-break-before: avoid;">
+        <td colspan="9" style="border:none; padding:0;">
+          
+          <!-- KETERANGAN CHECK LIST dipindah ke bawah -->
+          <table class="keterangan-table" style="margin-top:10px; margin-left:auto; width:200px;">
+            <tr>
+              <td colspan="3" style="text-align:center; font-weight:bold; padding:3px 20px; background-color:#f2f2f2;">KETERANGAN CHECK LIST</td>
+            </tr>
+            <tr>
+              <td style="text-align:center; font-weight:bold; width:22px;">V</td>
+              <td style="text-align:center; width:14px;">:</td>
+              <td style="text-align:left; font-weight:bold; padding-left:8px;">OK</td>
+            </tr>
+            <tr>
+              <td style="text-align:center; font-weight:bold;">&#916;</td>
+              <td style="text-align:center;">:</td>
+              <td style="text-align:left; font-weight:bold; padding-left:8px;">PERLU TINDAKAN</td>
+            </tr>
+            <tr>
+              <td style="text-align:center; font-weight:bold;">X</td>
+              <td style="text-align:center;">:</td>
+              <td style="text-align:left; font-weight:bold; padding-left:8px;">TIDAK ADA</td>
+            </tr>
+          </table>
+
+          <!-- SIGNATURE BOX dimasukkan ke tabel -->
+          <table style="width: 100%; border: 1.5pt solid #000; text-align: center; margin-top: 10px;">
+            <tr>
+              <td style="border: 1.5pt solid #000; width: 33.33%; vertical-align: top; padding: 10px;">
+                <div style="margin-bottom: 5px; font-size: 0.85rem;">Dibuat Oleh</div>
+                <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">PIC LINE</div>
+                <?php if (isset($approvalData['approved_l1_by'])): ?>
+                  <div style="color: green; font-weight: bold; margin-bottom: 20px;">[ Disetujui ]</div>
+                <?php else: ?>
+                  <div style="height: 20px; margin-bottom: 20px;"></div>
+                <?php endif; ?>
+                <div style="font-weight: bold; text-decoration: underline; font-size: 0.9rem;">
+                  <?= isset($approvalData['approved_l1_by']) ? esc($approvalData['l1_name'] ?? '') : '( ........................................ )' ?>
+                </div>
+                <div style="font-size: 0.8rem; color: #555;">
+                  Tanggal: <?= isset($approvalData['approved_l1_at']) ? format_tanggal_indo($approvalData['approved_l1_at'], false, true) : '( ......................... )' ?>
+                </div>
+              </td>
+              <td style="border: 1.5pt solid #000; width: 33.33%; vertical-align: top; padding: 10px;">
+                <div style="margin-bottom: 5px; font-size: 0.85rem;">Disetujui Oleh</div>
+                <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">SECTION HEAD PRODUKSI</div>
+                <?php if (isset($approvalData['approved_l2_by'])): ?>
+                  <div style="color: green; font-weight: bold; margin-bottom: 20px;">[ Disetujui ]</div>
+                <?php else: ?>
+                  <div style="height: 20px; margin-bottom: 20px;"></div>
+                <?php endif; ?>
+                <div style="font-size: 0.9rem;">
+                  <?= isset($approvalData['approved_l2_by']) ? '<span style="text-decoration: underline;">' . esc($approvalData['l2_name'] ?? 'Section Head') . '</span>' : '<span style="color: #999;">( ........................................ )</span>' ?>
+                </div>
+                <div style="font-size: 0.8rem; color: #555;">
+                  Tanggal: <?= isset($approvalData['approved_l2_at']) ? format_tanggal_indo($approvalData['approved_l2_at'], false, true) : '( ......................... )' ?>
+                </div>
+              </td>
+              <td style="border: 1.5pt solid #000; width: 33.33%; vertical-align: top; padding: 10px;">
+                <div style="margin-bottom: 5px; font-size: 0.85rem;">Disetujui Oleh</div>
+                <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">SECTION HEAD MTC</div>
+                <?php if (isset($approvalData['approved_final_by'])): ?>
+                  <div style="color: green; font-weight: bold; margin-bottom: 20px;">[ Disetujui ]</div>
+                <?php else: ?>
+                  <div style="height: 20px; margin-bottom: 20px;"></div>
+                <?php endif; ?>
+                <div style="font-size: 0.9rem;">
+                  <?= isset($approvalData['approved_final_by']) ? '<span style="text-decoration: underline;">' . esc($approvalData['final_name'] ?? 'Section Head MTC') . '</span>' : '<span style="color: #999;">( ........................................ )</span>' ?>
+                </div>
+                <div style="font-size: 0.8rem; color: #555;">
+                  Tanggal: <?= isset($approvalData['approved_final_at']) ? format_tanggal_indo($approvalData['approved_final_at'], false, true) : '( ......................... )' ?>
+                </div>
+              </td>
+            </tr>
+          </table>
+
+        </td>
+      </tr>
+      <?php endif; ?>
+
       </tbody>
     <?php endforeach; ?>
   <?php endif; ?>
-</table>
-
-
-<table style="width: 100%; border: 1.5pt solid #000; text-align: center; margin-top: 30px;">
-  <tr>
-    <td style="border: 1.5pt solid #000; width: 33.33%; vertical-align: top;">
-      <div style="margin-bottom: 5px; font-size: 0.85rem;">Dibuat Oleh</div>
-      <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">PIC LINE</div>
-      <?php if (isset($approvalData['approved_l1_by'])): ?>
-        <div style="color: green; font-weight: bold; margin-bottom: 20px;">[ Disetujui ]</div>
-      <?php else: ?>
-        <div style="height: 20px; margin-bottom: 20px;"></div>
-      <?php endif; ?>
-      <div style="font-weight: bold; text-decoration: underline; font-size: 0.9rem;">
-        <?= isset($approvalData['approved_l1_by']) ? esc($approvalData['l1_name'] ?? '') : '( ........................................ )' ?>
-      </div>
-      <div style="font-size: 0.8rem; color: #555;">
-        Tanggal: <?= isset($approvalData['approved_l1_at']) ? format_tanggal_indo($approvalData['approved_l1_at'], false, true) : '( ......................... )' ?>
-      </div>
-    </td>
-    <td style="border: 1.5pt solid #000; width: 33.33%; vertical-align: top;">
-      <div style="margin-bottom: 5px; font-size: 0.85rem;">Disetujui Oleh</div>
-      <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">SECTION HEAD PRODUKSI</div>
-      <?php if (isset($approvalData['approved_l2_by'])): ?>
-        <div style="color: green; font-weight: bold; margin-bottom: 20px;">[ Disetujui ]</div>
-      <?php else: ?>
-        <div style="height: 20px; margin-bottom: 20px;"></div>
-      <?php endif; ?>
-      <div style="font-weight: bold; text-decoration: underline; font-size: 0.9rem;">
-        <?= isset($approvalData['approved_l2_by']) ? 'Mr. Rohmad' : '( Mr. Rohmad )' ?>
-      </div>
-      <div style="font-size: 0.8rem; color: #555;">
-        Tanggal: <?= isset($approvalData['approved_l2_at']) ? format_tanggal_indo($approvalData['approved_l2_at'], false, true) : '( ......................... )' ?>
-      </div>
-    </td>
-    <td style="border: 1.5pt solid #000; width: 33.33%; vertical-align: top;">
-      <div style="margin-bottom: 5px; font-size: 0.85rem;">Disetujui Oleh</div>
-      <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">SECTION HEAD MTC</div>
-      <?php if (isset($approvalData['approved_final_by'])): ?>
-        <div style="color: green; font-weight: bold; margin-bottom: 20px;">[ Disetujui ]</div>
-      <?php else: ?>
-        <div style="height: 20px; margin-bottom: 20px;"></div>
-      <?php endif; ?>
-      <div style="font-weight: bold; text-decoration: underline; font-size: 0.9rem;">
-        <?= isset($approvalData['approved_final_by']) ? 'Mr. Royadi' : '( Mr. Royadi )' ?>
-      </div>
-      <div style="font-size: 0.8rem; color: #555;">
-        Tanggal: <?= isset($approvalData['approved_final_at']) ? format_tanggal_indo($approvalData['approved_final_at'], false, true) : '( ......................... )' ?>
-      </div>
-    </td>
-  </tr>
 </table>
 
 <?php if ($currentIndex < $totalGrids): ?>

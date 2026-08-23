@@ -61,27 +61,6 @@
       </tr>
   </table>
 
-  <!-- KETERANGAN CHECK LIST - standalone, tidak dipaksa full width -->
-  <table class="keterangan-table">
-    <tr>
-      <td colspan="3" style="text-align:center; font-weight:bold; padding:2px 10px; background-color:#f2f2f2; font-size:8px;">KETERANGAN CHECK LIST</td>
-    </tr>
-    <tr>
-      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">V</td>
-      <td style="text-align:center; font-weight:bold; padding:2px 5px; font-size:8px;">:</td>
-      <td style="text-align:left; font-weight:bold; padding:2px 10px; font-size:8px;">OK</td>
-    </tr>
-    <tr>
-      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">&#916;</td>
-      <td style="text-align:center; font-weight:bold; padding:2px 5px; font-size:8px;">:</td>
-      <td style="text-align:left; font-weight:bold; padding:2px 10px; font-size:8px;">PERLU TINDAKAN</td>
-    </tr>
-    <tr>
-      <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">X</td>
-      <td style="text-align:center; font-weight:bold; padding:2px 5px; font-size:8px;">:</td>
-      <td style="text-align:left; font-weight:bold; padding:2px 10px; font-size:8px;">TIDAK ADA</td>
-    </tr>
-  </table>
 
   <!-- TABEL ISI INSPECTION REPORT -->
   <table style="margin-top:0;">
@@ -106,7 +85,7 @@
       <?php endif; ?>
         <?php if (!empty($d['is_section_start'])): ?>
           <tr>
-            <?php $colSpan = strtolower($header['departemen_check']) === 'mfg 2' ? 6 : 7; ?>
+            <?php $colSpan = $isCNC ? 7 : 6; ?>
             <td colspan="<?= $colSpan ?>" style="text-align:center; font-weight:bold; background-color:#f2f2f2;"><?= esc($d['dynamic_section_header'] ?? '') ?></td>
           </tr>
         <?php endif; ?>
@@ -171,13 +150,42 @@
           </td>
         </tr>
       <?php endforeach; ?>
+      
+      <!-- APPEND BOTTOM ELEMENTS IN THE LAST TBODY -->
+      <tr style="page-break-inside: avoid; page-break-before: avoid;">
+        <?php $bottomColSpan = $isCNC ? 7 : 6; ?>
+        <td colspan="<?= $bottomColSpan ?>" style="border:none; padding:0;">
+          <?php if (!empty($header['note_recommendation'])): ?>
+          <div style="margin-top:8px; border:1.5pt solid #000; padding:6px; background:#f8f9fa; font-size:11px; text-align:left;">
+            <strong>NOTE AND RECOMMENDATION</strong><br>
+            <span style="white-space:pre-wrap;"><?= esc($header['note_recommendation']) ?></span>
+          </div>
+          <?php endif; ?>
+
+          <table class="keterangan-table" style="margin-top:8px; margin-left:auto; width:200px;">
+            <tr>
+              <td colspan="3" style="text-align:center; font-weight:bold; padding:2px 10px; background-color:#f2f2f2; font-size:8px;">KETERANGAN CHECK LIST</td>
+            </tr>
+            <tr>
+              <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px; width:20px;">V</td>
+              <td style="text-align:center; font-weight:bold; padding:2px 5px; font-size:8px; width:10px;">:</td>
+              <td style="text-align:left; font-weight:bold; padding:2px 10px; font-size:8px;">OK</td>
+            </tr>
+            <tr>
+              <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">&#916;</td>
+              <td style="text-align:center; font-weight:bold; padding:2px 5px; font-size:8px;">:</td>
+              <td style="text-align:left; font-weight:bold; padding:2px 10px; font-size:8px;">PERLU TINDAKAN</td>
+            </tr>
+            <tr>
+              <td style="text-align:center; font-weight:bold; padding:2px 10px; font-size:8px;">X</td>
+              <td style="text-align:center; font-weight:bold; padding:2px 5px; font-size:8px;">:</td>
+              <td style="text-align:left; font-weight:bold; padding:2px 10px; font-size:8px;">TIDAK ADA</td>
+            </tr>
+          </table>
+
+          <?= view('partials/pdf_signature', ['header' => $header]) ?>
+        </td>
+      </tr>
+
       <?php if ($ov_tbody_opened) echo "</tbody>"; ?>
     </table>
-
-  <?php if (!empty($header['note_recommendation'])): ?>
-  <div style="margin-top:8px; border:1.5pt solid #000; padding:6px; background:#f8f9fa; font-size:11px;">
-    <strong>NOTE AND RECOMMENDATION</strong><br>
-    <span style="white-space:pre-wrap;"><?= esc($header['note_recommendation']) ?></span>
-  </div>
-  <?php endif; ?>
-

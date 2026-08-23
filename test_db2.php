@@ -1,0 +1,1 @@
+<?php $db = new PDO('mysql:host=localhost;dbname=mtce_db', 'root', ''); $stmt = $db->query('SELECT COUNT(*) as cnt FROM transaksi_check WHERE status = \'Approved L2\''); print_r($stmt->fetchAll(PDO::FETCH_ASSOC)); $stmt2 = $db->query('SELECT COUNT(*) as cnt FROM approval_bulanan WHERE status = \'Approved L2\''); print_r($stmt2->fetchAll(PDO::FETCH_ASSOC));

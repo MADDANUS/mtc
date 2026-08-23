@@ -31,7 +31,7 @@
       <i class="bi bi-bar-chart-fill watermark-icon" style="font-size:3.5rem; bottom:-10px;"></i>
     </div>
   </div>
-  <?php if (session()->get('role') !== 'leader'): ?>
+  <?php if (!has_role('leader')): ?>
   <div class="col-md-4">
     <div class="card-stat-premium bg-white border-0 py-3 px-4 d-flex flex-column justify-content-center h-100" style="border: 2px dashed var(--accent) !important;">
       <div class="text-center">

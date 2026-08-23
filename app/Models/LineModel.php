@@ -9,7 +9,7 @@ class LineModel extends Model
     protected $table      = 'master_line';
     protected $primaryKey = 'id_line';
     protected $returnType = 'array';
-    protected $allowedFields = ['plan', 'nama_line', 'departemen'];
+    protected $allowedFields = ['plant', 'nama_line', 'departemen'];
 
     /**
      * Mengembalikan array lines dikelompokkan per departemen.
@@ -17,22 +17,22 @@ class LineModel extends Model
      */
     public function getLinesGroupedByDepartemen(): array
     {
-        $rows = $this->orderBy('plan')->orderBy('departemen')->orderBy('nama_line')->findAll();
+        $rows = $this->orderBy('plant')->orderBy('departemen')->orderBy('nama_line')->findAll();
         $grouped = [];
         foreach ($rows as $row) {
-            $plan = $row['plan'] ?? 'Plan 1';
+            $plant = $row['plant'] ?? 'Plant 1';
             $departemen = $row['departemen'];
             // Normalisasi
             if (strcasecmp($departemen, 'mfg 1') === 0) $departemen = 'MFG 1';
             if (strcasecmp($departemen, 'mfg 2') === 0) $departemen = 'MFG 2';
             
-            $grouped[$plan][$departemen][] = $row['nama_line'];
+            $grouped[$plant][$departemen][] = $row['nama_line'];
         }
         
         // Ensure uniqueness
-        foreach ($grouped as $plan => $departemens) {
+        foreach ($grouped as $plant => $departemens) {
             foreach ($departemens as $dept => $lines) {
-                $grouped[$plan][$dept] = array_values(array_unique($lines));
+                $grouped[$plant][$dept] = array_values(array_unique($lines));
             }
         }
         
@@ -45,6 +45,6 @@ class LineModel extends Model
     public function getAllLineNames(): array
     {
         $rows = $this->orderBy('departemen')->orderBy('nama_line')->findAll();
-        return array_column($rows, 'nama_line');
+        return array_values(array_unique(array_column($rows, 'nama_line')));
     }
 }

@@ -25,10 +25,10 @@
               if (strtolower($jenisSlug) === 'overhaul') {
                   $backUrl = site_url("scan/mesin/{$idMesin}");
               } else {
-                  $backUrl = site_url("checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}?id_mesin={$idMesin}");
+                  $backUrl = site_url("checklist/plant/{$plantSlug}/{$departemenSlug}/{$jenisSlug}?id_mesin={$idMesin}");
               }
           } else {
-              $backUrl = site_url("checklist/plan/{$planSlug}/{$departemenSlug}/{$jenisSlug}");
+              $backUrl = site_url("checklist/plant/{$plantSlug}/{$departemenSlug}/{$jenisSlug}");
               if (!empty($line)) {
                   if (!(strtolower($jenisSlug) === 'overhaul' && trim(strtoupper($departemenName)) === 'MFG 1')) {
                       $backUrl .= "?line=" . urlencode($line);
@@ -48,7 +48,7 @@
 
 <?php
 $isEdit = $isEdit ?? false;
-$editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("checklist/{$departemenSlug}/{$jenisSlug}/store");
+$editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("checklist/plant/{$plantSlug}/{$departemenSlug}/{$jenisSlug}/store");
 ?>
 
 <form id="checklistForm" action="<?= $editUrl ?>" method="post" enctype="multipart/form-data" novalidate>
@@ -377,11 +377,11 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                   <th style="width:5%;">NO</th>
                   <th colspan="2" style="width:30%;">ITEM CHECK</th>
                   <th style="width:20%;">POINT CHECK</th>
-                  <?php if (strtolower($departemenSlug) !== 'mfg2'): ?>
+                  <?php if (strtolower($departemenName) !== 'mfg 2'): ?>
                     <th style="width:15%;">STANDAR ITEM</th>
                   <?php endif; ?>
                   <th style="width:12%;">CHECK LIST</th>
-                  <th style="<?= strtolower($departemenSlug) === 'mfg2' ? 'width:33%;' : 'width:18%;' ?>">REMARK</th>
+                  <th style="<?= strtolower($departemenName) === 'mfg 2' ? 'width:33%;' : 'width:18%;' ?>">REMARK</th>
                 </tr>
               </thead>
               <tbody>
@@ -432,7 +432,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
                       <td rowspan="<?= (int) $r['point_rowspan'] ?>"><?= esc($r['point_check']) ?></td>
                     <?php endif; ?>
 
-                    <?php if (strtolower($departemenSlug) !== 'mfg2'): ?>
+                    <?php if (strtolower($departemenName) !== 'mfg 2'): ?>
                       <?php if ($r['show_standard']): ?>
                         <td rowspan="<?= (int) $r['standard_rowspan'] ?>"><?= nl2br(esc($r['standard_check'])) ?></td>
                       <?php endif; ?>
@@ -716,7 +716,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
         </table>
       </div>
       
-      <?php if (strtolower($jenisSlug) === 'overhaul' && strtolower($departemenSlug) === 'mfg2' && $itemIndex > $perPage): ?>
+      <?php if (strtolower($jenisSlug) === 'overhaul' && strtolower($departemenName) === 'mfg 2' && $itemIndex > $perPage): ?>
         <?php 
           if (strtolower($categorySlug) === 'double-milling') {
               $totalPages = 2;
@@ -745,6 +745,21 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
   <!-- Checklist Control is automatically populated in the background upon submission -->
 
   <?php if (!empty($rows)): ?>
+    <?php if (isset($isEdit) && $isEdit): ?>
+      <div class="card border-warning shadow-sm mt-4 mb-3">
+        <div class="card-header bg-warning text-dark fw-bold">
+          <i class="bi bi-pencil-square me-2"></i>Alasan Perubahan
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <label for="alasan_edit" class="form-label text-muted" style="font-size:0.9rem;">Tuliskan alasan mengapa data ini diubah <span class="text-danger">*</span></label>
+            <textarea name="alasan_edit" id="alasan_edit" class="form-control" rows="2" placeholder="Contoh: Salah input data parameter X, harusnya Y" required></textarea>
+            <small class="text-secondary">Sistem akan secara otomatis mendeteksi dan melacak data apa saja yang Anda ubah.</small>
+          </div>
+        </div>
+      </div>
+    <?php endif; ?>
+
     <div class="d-flex justify-content-end mt-4 mb-5 gap-3">
       <?php if (strtolower($jenisSlug) === 'overhaul' && strtolower($departemenSlug) === 'mfg1'): ?>
         <button type="button" id="btnNext" class="btn btn-primary px-5 py-2 fw-semibold shadow-sm">Lanjut ke Bar Feeder <i class="bi bi-arrow-right ms-2"></i></button>
@@ -924,7 +939,7 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
             }
         });
         </script>
-      <?php elseif (strtolower($jenisSlug) === 'overhaul' && strtolower($departemenSlug) === 'mfg2' && $itemIndex > $perPage): ?>
+      <?php elseif (strtolower($jenisSlug) === 'overhaul' && strtolower($departemenName) === 'mfg 2' && $itemIndex > $perPage): ?>
         <button type="button" id="btnPrevPage" class="btn btn-secondary px-4 py-2 fw-semibold shadow-sm" style="display:none;"><i class="bi bi-arrow-left me-2"></i> Halaman Sebelumnya</button>
         <button type="button" id="btnNextPage" class="btn btn-primary px-5 py-2 fw-semibold shadow-sm">Halaman Selanjutnya <i class="bi bi-arrow-right ms-2"></i></button>
         <button type="submit" id="btnSubmitPage" class="btn btn-success px-5 py-2 fw-semibold shadow-sm" style="display:none;">Submit Pengecekan</button>

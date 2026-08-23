@@ -33,7 +33,7 @@ function formatDurasiText($detik) {
           $pdfUrl .= '?' . http_build_query($selectedFilters);
       }
   ?>
-  <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
+  <?php if (!has_any_role(['leader', 'sheadprd', 'sheadmtc'])): ?>
   <a href="<?= $pdfUrl ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
       <i class="bi bi-eye-fill me-1"></i> Preview PDF
   </a>
