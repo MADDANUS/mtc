@@ -552,7 +552,7 @@
     <form action="<?= site_url('riwayat/approve/' . (int) $header['id_transaksi']) ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menyetujui laporan ini sebagai <?= esc(session()->get('nama')) ?>?');">
       <?= csrf_field() ?>
       <button type="submit" class="btn btn-success px-4 py-2 fw-semibold shadow-sm">
-        <i class="bi bi-check-circle-fill me-2"></i> Approve (<?= esc($role) ?>)
+        <i class="bi bi-check-circle-fill me-2"></i> Approve
       </button>
     </form>
   </div>

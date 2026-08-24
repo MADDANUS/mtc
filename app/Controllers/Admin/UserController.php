@@ -89,6 +89,19 @@ class UserController extends BaseController
             'line'       => $lineStr,
         ]);
 
+        $idUser = $this->model->getInsertID();
+
+        $logAktivitasModel = new \App\Models\LogAktivitasUserModel();
+        $logAktivitasModel->insert([
+            'id_user_target' => $idUser,
+            'nama_user'      => $this->request->getPost('nama'),
+            'aksi'           => 'CREATE',
+            'keterangan'     => 'Menambahkan user baru',
+            'detail'         => json_encode(['data_baru' => $this->model->find($idUser)]),
+            'dilakukan_oleh' => session()->get('user_id'),
+            'created_at'     => date('Y-m-d H:i:s')
+        ]);
+
         return $this->redirectSuccess('/admin/user', 'User berhasil ditambahkan.');
     }
 
@@ -170,6 +183,32 @@ class UserController extends BaseController
 
         $this->model->update($id, $data);
 
+        $logAktivitasModel = new \App\Models\LogAktivitasUserModel();
+        $changedFields = [];
+        foreach ($data as $key => $val) {
+            $oldVal = trim((string)($existing[$key] ?? ''));
+            $newVal = trim((string)$val);
+            if ($key !== 'password' && $oldVal !== $newVal) {
+                $changedFields[$key] = ['lama' => $oldVal, 'baru' => $newVal];
+            }
+        }
+
+        if (isset($data['password'])) {
+            $changedFields['password'] = ['lama' => '***', 'baru' => '*** (Diubah)'];
+        }
+        
+        if (!empty($changedFields)) {
+            $logAktivitasModel->insert([
+                'id_user_target' => $id,
+                'nama_user'      => $data['nama'],
+                'aksi'           => 'UPDATE',
+                'keterangan'     => 'Mengubah data user',
+                'detail'         => json_encode(['perubahan' => $changedFields]),
+                'dilakukan_oleh' => session()->get('user_id'),
+                'created_at'     => date('Y-m-d H:i:s')
+            ]);
+        }
+
         return $this->redirectSuccess('/admin/user', 'User berhasil diperbarui.');
     }
 
@@ -211,16 +250,21 @@ class UserController extends BaseController
             return $this->redirectError('/admin/user', 'Alasan penghapusan harus diisi.');
         }
 
-        $logModel = new \App\Models\LogHapusUserModel();
-        $logData = $user;
-        $logData['waktu_dihapus'] = date('Y-m-d H:i:s');
-        $logData['dihapus_oleh'] = session()->get('nama') ?? 'System';
-        $logData['alasan_dihapus'] = $alasan;
+        $logAktivitasModel = new \App\Models\LogAktivitasUserModel();
+        $logAktivitasData = [
+            'id_user_target' => $id,
+            'nama_user'      => $user['nama'],
+            'aksi'           => 'DELETE',
+            'keterangan'     => $alasan,
+            'detail'         => json_encode(['data_sebelum' => $user]),
+            'dilakukan_oleh' => session()->get('user_id'),
+            'created_at'     => date('Y-m-d H:i:s')
+        ];
 
         $db = \Config\Database::connect();
         $db->transStart();
 
-        $logModel->insert($logData);
+        $logAktivitasModel->insert($logAktivitasData);
         $this->model->delete($id, true); // Hard delete
 
         $db->transComplete();
@@ -230,6 +274,59 @@ class UserController extends BaseController
         }
 
         return $this->redirectSuccess('/admin/user', 'User berhasil dihapus permanen beserta histori alasannya.');
+    }
+
+    public function deleteBatch()
+    {
+        if (!has_role(\App\Enums\Role::Admin->value)) {
+            return $this->response->setJSON(['status' => false, 'message' => 'Hanya admin yang dapat menghapus user secara massal.']);
+        }
+
+        $json = $this->request->getJSON(true) ?? [];
+        $ids = $json['ids'] ?? [];
+        $alasan = $json['alasan'] ?? '';
+
+        if (empty($ids) || !is_array($ids)) {
+            return $this->response->setJSON(['status' => false, 'message' => 'Tidak ada user yang dipilih.']);
+        }
+        if (empty($alasan)) {
+            return $this->response->setJSON(['status' => false, 'message' => 'Alasan penghapusan massal harus diisi.']);
+        }
+
+        $logAktivitasModel = new \App\Models\LogAktivitasUserModel();
+        
+        $db = \Config\Database::connect();
+        $db->transStart();
+        
+        $count = 0;
+        foreach ($ids as $id) {
+            if ((int) $id === (int) session()->get('user_id')) {
+                continue; // Skip the currently logged in user
+            }
+
+            $user = $this->model->find($id);
+            if ($user) {
+                $logAktivitasModel->insert([
+                    'id_user_target' => $id,
+                    'nama_user'      => $user['nama'],
+                    'aksi'           => 'DELETE',
+                    'keterangan'     => $alasan,
+                    'detail'         => json_encode(['data_sebelum' => $user]),
+                    'dilakukan_oleh' => session()->get('user_id'),
+                    'created_at'     => date('Y-m-d H:i:s')
+                ]);
+                $this->model->delete($id, true);
+                $count++;
+            }
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->response->setJSON(['status' => false, 'message' => 'Gagal menghapus user secara massal.']);
+        }
+
+        return $this->response->setJSON(['status' => true, 'message' => "$count user berhasil dihapus permanen."]);
     }
 
     public function export()

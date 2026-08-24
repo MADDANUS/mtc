@@ -52,24 +52,45 @@
       <div class="form-text small">Diperlukan untuk otomatisasi form Overhaul. Biarkan kosong jika tidak memiliki Bar Feeder.</div>
     </div>
     <div class="mb-4">
+      <label class="form-label text-primary fw-semibold">SN Bar Feeder (Opsional)</label>
+      <input type="text" name="sn_barfeeder" class="form-control border-primary bg-primary bg-opacity-10" placeholder="Contoh: SN-12345" 
+             value="<?= esc(old('sn_barfeeder', $mesin['sn_barfeeder'] ?? '')) ?>">
+      <div class="form-text small">Nomor Seri Bar Feeder. Biarkan kosong jika tidak memiliki Bar Feeder.</div>
+    </div>
+    <div class="mb-4">
       <label class="form-label text-primary fw-semibold">Jenis (Opsional)</label>
-      <select name="jenis" class="form-select border-primary bg-primary bg-opacity-10">
+      <?php $jenisVal = old('jenis', $mesin['jenis'] ?? ''); ?>
+      <?php 
+        $categories = $allJenis ?? [];
+        $isCustom = true;
+        if ($jenisVal === '' || in_array($jenisVal, $categories)) {
+            $isCustom = false;
+        }
+      ?>
+      <select id="jenisSelect" class="form-select border-primary bg-primary bg-opacity-10 <?= $isCustom ? 'mb-2' : '' ?>" onchange="
+          const inputEl = document.getElementById('jenisInput');
+          if (this.value === 'Lainnya') {
+              inputEl.value = '';
+              inputEl.classList.remove('d-none');
+              this.classList.add('mb-2');
+              inputEl.focus();
+          } else {
+              inputEl.value = this.value;
+              inputEl.classList.add('d-none');
+              this.classList.remove('mb-2');
+          }
+      ">
         <option value="">-- Pilih Jenis --</option>
         <?php 
-          $jenisVal = old('jenis', $mesin['jenis'] ?? '');
-          $categories = [
-              'CNC', 'MANUAL LATHE', 'TAPPING', 'BENDING', 'DRILLING', 'WASHING', 
-              'THREAD', 
-              'DOUBLE MILLING', 'MILLING', 'DOUBLE CENTER DRILL', 'OSL', 
-              'KNURLING', 'BROTHER', 'BURNISHING', 'BUFFING', 'CENTERING GRINDING'
-          ];
           foreach ($categories as $cat) {
               $selected = $jenisVal === $cat ? 'selected' : '';
-              echo "<option value=\"{$cat}\" {$selected}>{$cat}</option>";
+              echo "<option value=\"" . esc($cat) . "\" {$selected}>" . esc($cat) . "</option>";
           }
         ?>
+        <option value="Lainnya" <?= $isCustom ? 'selected' : '' ?>>Lainnya (Ketik Baru...)</option>
       </select>
-      <div class="form-text small">Pilih jenis form agar saat scan QR otomatis diarahkan ke form yang tepat. (CNC untuk MFG 1, lainnya untuk MFG 2)</div>
+      <input type="text" name="jenis" id="jenisInput" class="form-control border-primary bg-primary bg-opacity-10 <?= $isCustom ? '' : 'd-none' ?>" value="<?= esc($jenisVal) ?>" placeholder="Ketik jenis baru...">
+      <div class="form-text small mt-1">Pilih jenis form agar saat scan QR otomatis diarahkan ke form yang tepat. (CNC untuk MFG 1, lainnya untuk MFG 2)</div>
     </div>
 
     <button type="submit" class="btn btn-primary">Simpan</button>

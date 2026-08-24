@@ -47,6 +47,7 @@ class ScanController extends BaseController
             'mesin'          => $mesin,
             'plantSlug'       => $plantSlug,
             'departemenSlug' => $departemenSlug,
+            'role'           => session()->get('role'),
         ]);
     }
 }

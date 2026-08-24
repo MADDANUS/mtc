@@ -342,12 +342,17 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
         <div class="modal-body">
           <p class="mb-1">Anda akan menghapus laporan:</p>
           <p class="fw-bold text-danger" id="namaHapus"></p>
-          <p class="text-muted small">Tindakan ini tidak dapat dibatalkan. Semua data checklist dan Abnormal Report terkait akan ikut terhapus.</p>
+          <p class="text-muted small mb-3">Tindakan ini tidak dapat dibatalkan. Semua data checklist dan Abnormal Report terkait akan ikut terhapus.</p>
+          <div class="mb-2">
+            <label for="alasanHapus" class="form-label small fw-bold">Alasan Penghapusan <span class="text-danger">*</span></label>
+            <textarea name="alasan" id="alasanHapus" form="formHapus" class="form-control" rows="2" placeholder="Wajib diisi..." required></textarea>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
           <form id="formHapus" method="POST" class="d-inline">
             <?= csrf_field() ?>
+            <!-- textarea dipindah ke dalam form melalui form="formHapus" atau di letakkan di dalam tag form -->
             <button type="submit" class="btn btn-danger btn-sm">
               <i class="bi bi-trash me-1"></i>Ya, Hapus
             </button>

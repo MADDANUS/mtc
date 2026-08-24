@@ -6,6 +6,11 @@ use App\Enums\Role;
 use App\Enums\Departemen;
 
 use App\Models\TransaksiCheckModel;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
 class LaporanController extends BaseController
 {
@@ -151,5 +156,99 @@ class LaporanController extends BaseController
         $filename = 'Laporan_Durasi_Pengecekan.pdf';
         $dompdf->stream($filename, ['Attachment' => 0]);
         return;
+    }
+
+    public function durasiExcel()
+    {
+        $departemenName = has_role(Role::Leader->value) ? session()->get('departemen') : ($this->request->getGet('departemen') === 'all' ? null : ($this->request->getGet('departemen') ?: null));
+        $userLine = has_role(Role::Leader->value) ? session()->get('line') : null;
+
+        $filters = [
+            'departemen'  => $departemenName,
+            'id_mesin'    => $this->request->getGet('id_mesin') === 'all' ? null : ($this->request->getGet('id_mesin') ?: null),
+            'line'        => $userLine ?: ($this->request->getGet('line') === 'all' ? null : ($this->request->getGet('line') ?: null)),
+            'jenis_check' => $this->request->getGet('jenis_check') === 'all' ? null : ($this->request->getGet('jenis_check') ?: null),
+            'bulan'       => $this->request->getGet('bulan') === 'all' ? null : ($this->request->getGet('bulan') ?: null),
+            'pic'         => $this->request->getGet('pic') === 'all' ? null : ($this->request->getGet('pic') ?: null),
+            'sort_by'     => $this->request->getGet('sort_by') ?: 'id_transaksi',
+            'order'       => $this->request->getGet('order') ?: 'desc',
+        ];
+
+        helper('tanggal');
+        $laporan = (new TransaksiCheckModel())->getLaporanDurasi($filters);
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Laporan Durasi');
+
+        $headerStyle = [
+            'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1E3A5F']],
+            'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ];
+        $dataStyle = [
+            'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+        ];
+
+        // Title row
+        $sheet->mergeCells('A1:K1');
+        $sheet->setCellValue('A1', 'LAPORAN DURASI PENGECEKAN');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // Column headers row 3
+        $headers = ['No', 'PIC', 'Mesin', 'Departemen', 'Line', 'Jenis', 'Kategori', 'Waktu Mulai', 'Waktu Selesai', 'Durasi', 'Status'];
+        $col = 'A';
+        foreach ($headers as $h) {
+            $sheet->setCellValue($col . '3', $h);
+            $col++;
+        }
+        $sheet->getStyle('A3:K3')->applyFromArray($headerStyle);
+
+        $row = 4;
+        $no  = 1;
+        foreach ($laporan as $l) {
+            $durasiDetik = $l['durasi_detik'] ?? null;
+            if ($durasiDetik !== null) {
+                $jam   = floor($durasiDetik / 3600);
+                $menit = floor(($durasiDetik % 3600) / 60);
+                $det   = $durasiDetik % 60;
+                $durasiStr = $jam > 0
+                    ? sprintf('%02d:%02d:%02d', $jam, $menit, $det)
+                    : sprintf('%02d:%02d', $menit, $det);
+            } else {
+                $durasiStr = '-';
+            }
+            $sheet->setCellValue('A' . $row, $no++);
+            $sheet->setCellValue('B' . $row, $l['nama_pic'] ?? ($l['nama_staff'] ?? '-'));
+            $sheet->setCellValue('C' . $row, $l['no_mesin'] ?? '-');
+            $sheet->setCellValue('D' . $row, $l['departemen_check'] ?? '-');
+            $sheet->setCellValue('E' . $row, $l['line'] ?? '-');
+            $sheet->setCellValue('F' . $row, $l['jenis_check'] === 'Preventive' ? 'Checklist Report' : ($l['jenis_check'] ?? '-'));
+            $sheet->setCellValue('G' . $row, $l['kategori'] ?? '-');
+            $sheet->setCellValue('H' . $row, !empty($l['waktu_mulai']) ? date('d/m/Y H:i', strtotime($l['waktu_mulai'])) : '-');
+            $sheet->setCellValue('I' . $row, !empty($l['waktu_selesai']) ? date('d/m/Y H:i', strtotime($l['waktu_selesai'])) : '-');
+            $sheet->setCellValue('J' . $row, $durasiStr);
+            $sheet->setCellValue('K' . $row, $l['status'] ?? '-');
+            $row++;
+        }
+
+        if ($row > 4) {
+            $sheet->getStyle('A4:K' . ($row - 1))->applyFromArray($dataStyle);
+            $sheet->getStyle('A4:A' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        }
+
+        foreach (range('A', 'K') as $c) {
+            $sheet->getColumnDimension($c)->setAutoSize(true);
+        }
+
+        $filename = 'Laporan_Durasi_Pengecekan_' . date('Ymd') . '.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        (new Xlsx($spreadsheet))->save('php://output');
+        exit;
     }
 }

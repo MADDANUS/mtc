@@ -64,7 +64,16 @@
                     ?>
                     <img src="<?= $base64Src ?>" class="qr-image" alt="QR Code">
                     <div class="qr-text" style="font-size: 20px; font-weight: bold; margin-bottom: 2px;"><?= esc($m['no_mesin']) ?></div>
-                    <div class="qr-text" style="font-size: 14px; font-weight: bold; color: #4b5563; margin-top: 0;">S/N: <?= esc(!empty($m['serial_nomor']) ? $m['serial_nomor'] : $m['no_mesin']) ?></div>
+                    <div class="qr-text" style="font-size: 14px; font-weight: bold; color: #4b5563; margin-top: 0; margin-bottom: 2px;">S/N: <?= esc(!empty($m['serial_nomor']) ? $m['serial_nomor'] : $m['no_mesin']) ?></div>
+                    <div class="qr-text" style="font-size: 12px; font-weight: normal; color: #374151; margin-top: 0; margin-bottom: 2px;">Type: <?= esc($m['type_mesin']) ?></div>
+                    <?php if (strtoupper(trim($m['jenis'] ?? '')) === 'CNC'): ?>
+                        <?php if (!empty($m['bar_feeder_type'])): ?>
+                            <div class="qr-text" style="font-size: 11px; font-weight: normal; color: #6b7280; margin-top: 0; margin-bottom: 2px;">BF: <?= esc($m['bar_feeder_type']) ?></div>
+                        <?php endif; ?>
+                        <?php if (!empty($m['sn_barfeeder'])): ?>
+                            <div class="qr-text" style="font-size: 11px; font-weight: normal; color: #6b7280; margin-top: 0;">S/N BF: <?= esc($m['sn_barfeeder']) ?></div>
+                        <?php endif; ?>
+                    <?php endif; ?>
                 </div>
             </td>
             <?php endforeach; ?>

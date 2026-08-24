@@ -17,6 +17,11 @@
       </svg>
       Ekspor
     </a>
+    <?php if (has_role('admin')): ?>
+      <button type="button" id="btnBatchDeleteUser" class="btn btn-danger btn-sm py-2 d-none">
+        <i class="bi bi-trash"></i> Hapus Terpilih (<span id="batchCountUser">0</span>)
+      </button>
+    <?php endif; ?>
     <a href="<?= site_url('admin/user/create') ?>" class="btn btn-primary btn-sm py-2">+ Tambah User</a>
   </div>
 </div>
@@ -36,6 +41,11 @@
       <table class="table table-sm align-middle">
         <thead>
           <tr>
+            <?php if (has_role('admin')): ?>
+            <th style="width: 40px;" class="text-center">
+              <input type="checkbox" id="checkAllUser" class="form-check-input">
+            </th>
+            <?php endif; ?>
             <th>Nama</th>
             <th>Username</th>
             <th>Role</th>
@@ -49,6 +59,15 @@
         <tbody>
           <?php foreach ($daftar as $u): ?>
             <tr>
+              <?php if (has_role('admin')): ?>
+              <td class="text-center">
+                <?php if ((int) $u['id'] !== (int) session()->get('user_id')): ?>
+                  <input type="checkbox" class="form-check-input check-item-user" value="<?= $u['id'] ?>">
+                <?php else: ?>
+                  <input type="checkbox" class="form-check-input" disabled title="Tidak bisa menghapus akun yang sedang digunakan">
+                <?php endif; ?>
+              </td>
+              <?php endif; ?>
               <td><?= esc($u['nama']) ?></td>
               <td><?= esc($u['username']) ?></td>
               <td><span class="badge bg-secondary text-uppercase"><?= esc($u['role']) ?></span></td>
@@ -126,6 +145,107 @@
       document.getElementById('deleteReason').value = '';
       new bootstrap.Modal(document.getElementById('deleteModal')).show();
   }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const checkAll = document.getElementById('checkAllUser');
+    const checkItems = document.querySelectorAll('.check-item-user');
+    const btnBatchDelete = document.getElementById('btnBatchDeleteUser');
+    const batchCount = document.getElementById('batchCountUser');
+
+    function updateBatchDeleteUI() {
+      const checkedCount = document.querySelectorAll('.check-item-user:checked').length;
+      if (checkedCount > 0) {
+        btnBatchDelete.classList.remove('d-none');
+        batchCount.innerText = checkedCount;
+      } else {
+        btnBatchDelete.classList.add('d-none');
+      }
+      
+      if (checkAll) {
+         // Hanya hitung checkable item (bukan yang disabled)
+         const checkableItems = document.querySelectorAll('.check-item-user:not(:disabled)');
+         checkAll.checked = (checkedCount === checkableItems.length && checkableItems.length > 0);
+      }
+    }
+
+    if (checkAll) {
+      checkAll.addEventListener('change', function() {
+        checkItems.forEach(item => {
+          if (!item.disabled) {
+            item.checked = this.checked;
+          }
+        });
+        updateBatchDeleteUI();
+      });
+    }
+
+    checkItems.forEach(item => {
+      item.addEventListener('change', updateBatchDeleteUI);
+    });
+
+    if (btnBatchDelete) {
+      btnBatchDelete.addEventListener('click', function() {
+        const checkedItems = document.querySelectorAll('.check-item-user:checked');
+        const ids = Array.from(checkedItems).map(item => item.value);
+
+        if (ids.length === 0) return;
+
+        Swal.fire({
+          title: 'Hapus ' + ids.length + ' User?',
+          text: 'Masukkan keterangan/alasan penghapusan massal ini:',
+          input: 'textarea',
+          inputPlaceholder: 'Tuliskan alasan...',
+          inputAttributes: {
+            'aria-label': 'Tuliskan alasan'
+          },
+          showCancelButton: true,
+          confirmButtonColor: '#dc3545',
+          confirmButtonText: 'Ya, Hapus Permanen',
+          cancelButtonText: 'Batal',
+          preConfirm: (alasan) => {
+            if (!alasan) {
+              Swal.showValidationMessage('Alasan penghapusan harus diisi!');
+            }
+            return alasan;
+          }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Swal.fire({
+              title: 'Menghapus...',
+              text: 'Mohon tunggu',
+              allowOutsideClick: false,
+              didOpen: () => {
+                Swal.showLoading();
+              }
+            });
+
+            fetch('<?= site_url('admin/user/delete-batch') ?>', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+              },
+              body: JSON.stringify({ ids: ids, alasan: result.value })
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.status) {
+                Swal.fire('Berhasil!', data.message, 'success').then(() => {
+                  window.location.reload();
+                });
+              } else {
+                Swal.fire('Gagal!', data.message || 'Terjadi kesalahan', 'error');
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              Swal.fire('Gagal!', 'Terjadi kesalahan sistem', 'error');
+            });
+          }
+        });
+      });
+    }
+  });
 </script>
 
 <?= view('layout/footer') ?>

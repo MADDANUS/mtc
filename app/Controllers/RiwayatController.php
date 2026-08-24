@@ -84,8 +84,9 @@ class RiwayatController extends BaseController
         $perPage = (int) ($this->request->getGet('per_page') ?: 15);
         $currentPage = (int) ($this->request->getGet('page_riwayat') ?: 1);
 
+        $userIdFilter = has_role('magang') ? session()->get('user_id') : null;
         // Semua role bisa lihat riwayat yang sudah Approved
-        $riwayat = $transaksiModel->getRiwayatFiltered($filters, null, null, $perPage);
+        $riwayat = $transaksiModel->getRiwayatFiltered($filters, $userIdFilter, null, $perPage);
         $pager = $transaksiModel->pager;
         $totalItems = $pager ? $pager->getTotal('riwayat') : 0;
         $totalPages = $pager ? $pager->getPageCount('riwayat') : 1;
@@ -178,9 +179,10 @@ class RiwayatController extends BaseController
         $userLine = has_role(Role::Leader->value) ? session()->get('line') : null;
         $filters = $this->buildSearchFilters($departemenName, $userLine);
         
+        $userIdFilter = has_role('magang') ? session()->get('user_id') : null;
         $transaksiModel = new TransaksiCheckModel();
         // Fetch all matching records (no pagination)
-        $riwayat = $transaksiModel->getRiwayatFiltered($filters, null, null, null);
+        $riwayat = $transaksiModel->getRiwayatFiltered($filters, $userIdFilter, null, null);
 
         $jenisLabel = $filters['jenis_check'] === JenisCheck::Preventive->value
             ? 'Preventive'

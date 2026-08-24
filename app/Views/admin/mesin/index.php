@@ -74,6 +74,9 @@
       <a href="<?= site_url('admin/mesin/download-all-qr') ?>" target="_blank" class="btn btn-outline-info btn-sm d-flex align-items-center gap-1 py-2" title="Download Semua QR Code Mesin (PDF)">
         <i class="bi bi-qr-code"></i> Download Semua QR
       </a>
+      <button type="button" id="btnBatchDeleteMesin" class="btn btn-danger btn-sm py-2 d-none">
+        <i class="bi bi-trash"></i> Hapus Terpilih (<span id="batchCountMesin">0</span>)
+      </button>
       <a href="<?= site_url('admin/mesin/create') ?>" class="btn btn-primary btn-sm py-2">+ Tambah Mesin</a>
     <?php endif; ?>
   </div>
@@ -85,6 +88,11 @@
       <table class="table table-sm align-middle paginated-table" data-rows-per-item="1">
         <thead>
           <tr>
+            <?php if (has_any_role(['admin', 'member', 'leader mtc'])): ?>
+            <th style="width: 40px;" class="text-center">
+              <input type="checkbox" id="checkAllMesin" class="form-check-input">
+            </th>
+            <?php endif; ?>
             <th>No Mesin</th>
             <th>Type</th>
             <th>Serial Nomor</th>
@@ -92,10 +100,14 @@
             <th>Departemen</th>
             <th>Line</th>
             <th>Bar Feeder</th>
+            <th>SN Bar Feeder</th>
             <th>Jenis</th>
             <th class="text-end">Aksi</th>
           </tr>
           <tr style="background: rgba(0,0,0,0.02);">
+            <?php if (has_any_role(['admin', 'member', 'leader mtc'])): ?>
+            <td></td>
+            <?php endif; ?>
             <td colspan="3">
               <div class="custom-suggestion-wrapper">
                 <input type="text" id="mesinSearchInput" name="q" autocomplete="off" class="form-control form-control-sm" placeholder="Cari No / Type / Serial..." value="<?= esc($filters['q'] ?? '') ?>">
@@ -141,18 +153,15 @@
               </select>
             </td>
             <td></td>
+            <td></td>
             <td>
               <select name="jenis" class="form-select form-select-sm" onchange="this.form.submit()">
                 <option value="all">Semua Jenis</option>
                 <?php 
-                  $machineCategories = [
-                      'THREAD', 'DOUBLE MILLING', 'MILLING', 'DOUBLE CENTER DRILL', 'OSL', 
-                      'KNURLING', 'BROTHER', 'BURNISHING', 'BUFFING', 'CENTERING GRINDING',
-                      'CNC', 'CAM', '-'
-                  ];
+                  $machineCategories = $allJenis ?? [];
                   foreach ($machineCategories as $cat): 
                 ?>
-                  <option value="<?= $cat ?>" <?= ($filters['jenis'] ?? '') === $cat ? 'selected' : '' ?>><?= $cat ?></option>
+                  <option value="<?= esc($cat) ?>" <?= ($filters['jenis'] ?? '') === $cat ? 'selected' : '' ?>><?= esc($cat) ?></option>
                 <?php endforeach; ?>
               </select>
             </td>
@@ -176,6 +185,11 @@
         <?php else: ?>
           <?php foreach ($daftar as $m): ?>
             <tr>
+              <?php if (has_any_role(['admin', 'member', 'leader mtc'])): ?>
+              <td class="text-center">
+                <input type="checkbox" class="form-check-input check-item-mesin" value="<?= $m['id_mesin'] ?>">
+              </td>
+              <?php endif; ?>
               <td><?= esc($m['no_mesin']) ?></td>
               <td><?= esc($m['type_mesin']) ?></td>
               <td><?= esc($m['serial_nomor']) ?></td>
@@ -183,6 +197,7 @@
               <td><span class="badge bg-secondary"><?= esc($m['departemen']) ?></span></td>
               <td><span class="badge bg-info text-dark"><?= esc($m['line'] ?? '-') ?></span></td>
               <td><span class="text-muted small"><?= esc($m['bar_feeder_type'] ?? '-') ?></span></td>
+              <td><span class="text-muted small"><?= esc($m['sn_barfeeder'] ?? '-') ?></span></td>
               <td><span class="badge bg-secondary"><?= esc($m['jenis'] ?? '-') ?></span></td>
               <td>
                 <div class="d-flex gap-1 flex-wrap">
@@ -191,16 +206,13 @@
                           data-no="<?= esc($m['no_mesin']) ?>"
                           data-type="<?= esc($m['type_mesin']) ?>"
                           data-departemen="<?= esc($m['departemen']) ?>"
-                          data-serial="<?= esc($m['serial_nomor']) ?>">
+                          data-serial="<?= esc($m['serial_nomor']) ?>"
+                          data-jenis="<?= esc($m['jenis']) ?>"
+                          data-barfeeder="<?= esc($m['bar_feeder_type']) ?>"
+                          data-snbarfeeder="<?= esc($m['sn_barfeeder']) ?>">
                     <i class="bi bi-qr-code"></i> QR
                   </button>
                   <?php if (has_any_role(['admin', 'member', 'leader mtc'])): ?>
-                    <button type="button" class="btn btn-outline-info btn-sm py-1 px-2 btn-riwayat-mesin" 
-                            data-id="<?= $m['id_mesin'] ?>" 
-                            data-no="<?= esc($m['no_mesin']) ?>"
-                            title="Riwayat Mesin">
-                      <i class="bi bi-clock-history"></i>
-                    </button>
                     <a href="<?= site_url('admin/mesin/edit/' . $m['id_mesin']) ?>" class="btn btn-outline-primary btn-sm py-1 px-2" title="Edit Mesin">
                       <i class="bi bi-pencil"></i>
                     </a>
@@ -235,9 +247,21 @@
         <div class="mb-1">
           <h4 class="fw-bold mb-0 text-dark" id="qrNoMesin"></h4>
         </div>
-        <div class="mb-2">
+        <div class="mb-1">
           <span class="text-muted" style="font-size:0.75rem;">S/N: </span>
           <span class="fw-bold mb-0 text-secondary" id="qrSerialNomor" style="font-size:0.9rem;"></span>
+        </div>
+        <div class="mb-1">
+          <span class="text-muted" style="font-size:0.75rem;">Type: </span>
+          <span class="mb-0 text-secondary" id="qrTypeMesin" style="font-size:0.8rem;"></span>
+        </div>
+        <div class="mb-1 d-none" id="qrBfContainer">
+          <span class="text-muted" style="font-size:0.75rem;">BF: </span>
+          <span class="mb-0 text-secondary" id="qrBarFeeder" style="font-size:0.75rem;"></span>
+        </div>
+        <div class="mb-2 d-none" id="qrSnBfContainer">
+          <span class="text-muted" style="font-size:0.75rem;">S/N BF: </span>
+          <span class="mb-0 text-secondary" id="qrSnBarFeeder" style="font-size:0.75rem;"></span>
         </div>
       </div>
       <div class="modal-footer border-0 pt-0 justify-content-center">
@@ -249,49 +273,6 @@
   </div>
 </div>
 
-<div class="modal fade" id="riwayatModal" tabindex="-1" aria-labelledby="riwayatModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content border-0 shadow-lg rounded-4">
-      <div class="modal-header border-0 pb-0">
-        <h6 class="modal-title fw-bold" id="riwayatModalLabel">Riwayat Mesin</h6>
-        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body p-4" id="riwayatModalBody">
-        <div class="text-center text-muted" id="riwayatLoading">
-          <div class="spinner-border spinner-border-sm me-1" role="status"></div> Memuat riwayat...
-        </div>
-        <div id="riwayatContent" class="timeline-container d-none">
-          <!-- Timeline items will be injected here -->
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<style>
-.timeline-container { position: relative; padding-left: 1.5rem; }
-.timeline-container::before {
-    content: ''; position: absolute; left: 0.35rem; top: 0; bottom: 0;
-    width: 2px; background: #e9ecef;
-}
-.timeline-item { position: relative; margin-bottom: 1.5rem; }
-.timeline-item:last-child { margin-bottom: 0; }
-.timeline-item::before {
-    content: ''; position: absolute; left: -1.45rem; top: 0.25rem;
-    width: 10px; height: 10px; border-radius: 50%;
-    background: var(--bs-primary, #0d6efd);
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
-}
-.timeline-date { font-size: 0.85rem; font-weight: 600; color: #343a40; margin-bottom: 0.1rem; }
-.timeline-admin { font-size: 0.75rem; color: #6c757d; margin-bottom: 0.4rem; display: block; }
-.timeline-changes { margin: 0; padding-left: 0; list-style-type: none; }
-.timeline-changes li { font-size: 0.85rem; position: relative; margin-bottom: 0.3rem; padding-left: 1.3rem; color: #495057; }
-.timeline-changes li::before {
-    content: '🔄'; position: absolute; left: 0; top: 0; font-size: 0.75rem;
-}
-.val-lama { text-decoration: line-through; color: #dc3545; }
-.val-baru { color: #198754; font-weight: 500; }
-</style>
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
@@ -389,12 +370,32 @@
     const qrImage = document.getElementById('qrImage');
     const qrNoMesin = document.getElementById('qrNoMesin');
     const qrSerialNomor = document.getElementById('qrSerialNomor');
+    const qrTypeMesin = document.getElementById('qrTypeMesin');
+    const qrBarFeeder = document.getElementById('qrBarFeeder');
+    const qrSnBarFeeder = document.getElementById('qrSnBarFeeder');
+    const qrBfContainer = document.getElementById('qrBfContainer');
+    const qrSnBfContainer = document.getElementById('qrSnBfContainer');
+
+    let currentPrintData = {};
 
     document.querySelectorAll('.show-qr-btn').forEach(btn => {
       btn.addEventListener('click', function() {
         const id = this.getAttribute('data-id');
         const no = this.getAttribute('data-no');
         const serial = this.getAttribute('data-serial');
+        const type = this.getAttribute('data-type');
+        const jenis = this.getAttribute('data-jenis');
+        const barfeeder = this.getAttribute('data-barfeeder');
+        const snbarfeeder = this.getAttribute('data-snbarfeeder');
+
+        currentPrintData = {
+          no: no,
+          serial: serial || no,
+          type: type,
+          jenis: jenis,
+          barfeeder: barfeeder,
+          snbarfeeder: snbarfeeder
+        };
 
         // URL scan mesin MTCE
         const scanUrl = "<?= site_url('scan/mesin/') ?>" + id;
@@ -402,17 +403,51 @@
         // Load QR Code menggunakan API lokal offline
         qrImage.src = "<?= site_url('admin/mesin/generate-qr?data=') ?>" + encodeURIComponent(scanUrl);
 
-        qrSerialNomor.innerText = serial || no;
-        qrNoMesin.innerText = no;
+        qrSerialNomor.innerText = currentPrintData.serial;
+        qrNoMesin.innerText = currentPrintData.no;
+        qrTypeMesin.innerText = currentPrintData.type;
+
+        if (jenis && jenis.trim().toUpperCase() === 'CNC') {
+            if (barfeeder) {
+                qrBarFeeder.innerText = barfeeder;
+                qrBfContainer.classList.remove('d-none');
+            } else {
+                qrBfContainer.classList.add('d-none');
+            }
+            if (snbarfeeder) {
+                qrSnBarFeeder.innerText = snbarfeeder;
+                qrSnBfContainer.classList.remove('d-none');
+            } else {
+                qrSnBfContainer.classList.add('d-none');
+            }
+        } else {
+            qrBfContainer.classList.add('d-none');
+            qrSnBfContainer.classList.add('d-none');
+        }
 
         qrModal.show();
       });
     });
 
     document.getElementById('printQrBtn').addEventListener('click', function() {
-      const serial = qrSerialNomor.innerText;
-      const no = qrNoMesin.innerText;
       const qrSrc = qrImage.src;
+      const serial = currentPrintData.serial;
+      const no = currentPrintData.no;
+      const type = currentPrintData.type;
+      const jenis = currentPrintData.jenis;
+      const barfeeder = currentPrintData.barfeeder;
+      const snbarfeeder = currentPrintData.snbarfeeder;
+
+      let extraHtml = '<p style="font-size:0.8rem; margin-top:2px; color:#374151;">Type: ' + type + '</p>';
+      
+      if (jenis && jenis.trim().toUpperCase() === 'CNC') {
+         if (barfeeder) {
+            extraHtml += '<p style="font-size:0.75rem; margin-top:2px; color:#6b7280;">BF: ' + barfeeder + '</p>';
+         }
+         if (snbarfeeder) {
+            extraHtml += '<p style="font-size:0.75rem; margin-top:2px; color:#6b7280;">S/N BF: ' + snbarfeeder + '</p>';
+         }
+      }
 
       // Gunakan iframe tersembunyi agar lebih cepat
       let iframe = document.getElementById('printIframe');
@@ -433,11 +468,13 @@
         '.card { border: 2px solid #e5e7eb; border-radius: 16px; padding: 20px; display: inline-block; }' +
         'img { width: 180px; height: 180px; display: block; margin: 0 auto 10px; }' +
         'h2 { margin: 0 0 4px 0; font-size: 1.1rem; font-weight: 700; color: #111827; }' +
+        'p { margin: 0; }' +
         '</style></head><body>' +
         '<div class="card">' +
         '<img src="' + qrSrc + '">' +
         '<h2>' + no + '</h2>' +
         '<p style="font-size:0.9rem; margin-top:2px; font-weight:bold; color:#4b5563;">S/N: ' + serial + '</p>' +
+        extraHtml +
         '</div>' +
         '</body></html>'
       );
@@ -449,139 +486,6 @@
       };
     });
 
-
-
-    // --- RIWAYAT MODAL LOGIC ---
-    const riwayatModal = new bootstrap.Modal(document.getElementById('riwayatModal'));
-    const btnRiwayat = document.querySelectorAll('.btn-riwayat-mesin');
-    let currentIdMesin = null;
-    
-    btnRiwayat.forEach(btn => {
-      btn.addEventListener('click', function() {
-        const idMesin = this.getAttribute('data-id');
-        const noMesin = this.getAttribute('data-no');
-        currentIdMesin = idMesin;
-        
-        document.getElementById('riwayatModalLabel').innerText = `Riwayat Mesin: ${noMesin}`;
-        document.getElementById('riwayatLoading').classList.remove('d-none');
-        const contentDiv = document.getElementById('riwayatContent');
-        contentDiv.classList.add('d-none');
-        contentDiv.innerHTML = '';
-        
-        riwayatModal.show();
-        loadRiwayat(idMesin);
-      });
-    });
-
-    function loadRiwayat(idMesin) {
-        const contentDiv = document.getElementById('riwayatContent');
-        document.getElementById('riwayatLoading').classList.remove('d-none');
-        contentDiv.classList.add('d-none');
-
-        fetch(`<?= site_url('admin/mesin/riwayat/') ?>${idMesin}`)
-          .then(res => res.json())
-          .then(data => {
-            document.getElementById('riwayatLoading').classList.add('d-none');
-            contentDiv.classList.remove('d-none');
-            
-            if (!data || data.length === 0) {
-              contentDiv.innerHTML = '<div class="text-center text-muted"><i class="bi bi-info-circle"></i> Tidak ada riwayat.</div>';
-              return;
-            }
-            
-            // Group by waktu + diubah_oleh
-            const grouped = {};
-            data.forEach(item => {
-                const timeKey = item.created_at.substring(0, 16) + '_' + item.diubah_oleh;
-                if (!grouped[timeKey]) {
-                    grouped[timeKey] = {
-                        date: new Date(item.created_at).toLocaleString('id-ID', {day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute:'2-digit'}),
-                        admin: item.nama_admin || 'Sistem',
-                        changes: []
-                    };
-                }
-                grouped[timeKey].changes.push(item);
-            });
-            
-            let html = '';
-            for (const key in grouped) {
-                const group = grouped[key];
-                // Kumpulkan semua id_log dalam group ini
-                const logIds = group.changes.map(c => c.id_log).join(',');
-                html += `
-                <div class="timeline-item" id="group-${key.replace(/[^a-z0-9]/gi,'_')}">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="timeline-date">${group.date}</div>
-                            <span class="timeline-admin"><i class="bi bi-person-fill"></i> Oleh: ${group.admin}</span>
-                        </div>
-                        <button class="btn btn-sm btn-outline-danger py-0 px-2 ms-2 btn-hapus-log" 
-                            data-ids="${logIds}" 
-                            data-key="${key.replace(/[^a-z0-9]/gi,'_')}"
-                            title="Hapus riwayat ini" style="font-size:0.75rem;">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                    <ul class="timeline-changes">
-                `;
-                
-                group.changes.forEach(change => {
-                    const fieldLabel = change.kolom_diubah.replace(/_/g, ' ').toUpperCase();
-                    const oldVal = change.nilai_lama || '-';
-                    const newVal = change.nilai_baru || '-';
-                    html += `<li><strong>${fieldLabel}</strong> diubah dari <span class="val-lama">${oldVal}</span> menjadi <span class="val-baru">${newVal}</span></li>`;
-                });
-                
-                html += `</ul></div>`;
-            }
-            
-            contentDiv.innerHTML = html;
-
-            // Bind delete buttons
-            contentDiv.querySelectorAll('.btn-hapus-log').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const ids = this.getAttribute('data-ids');
-                    const groupKey = this.getAttribute('data-key');
-                    Swal.fire({
-                        title: 'Hapus Riwayat?',
-                        text: 'Data log perubahan ini akan dihapus permanen.',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#dc3545',
-                        cancelButtonColor: '#6c757d',
-                        confirmButtonText: 'Ya, Hapus',
-                        cancelButtonText: 'Batal'
-                    }).then(result => {
-                        if (result.isConfirmed) {
-                            fetch(`<?= site_url('admin/mesin/riwayat/delete') ?>`, {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
-                                body: JSON.stringify({ids: ids})
-                            })
-                            .then(r => r.json())
-                            .then(resp => {
-                                if (resp.status) {
-                                    document.getElementById(`group-${groupKey}`)?.remove();
-                                    const remaining = contentDiv.querySelectorAll('.timeline-item');
-                                    if (remaining.length === 0) {
-                                        contentDiv.innerHTML = '<div class="text-center text-muted"><i class="bi bi-info-circle"></i> Tidak ada riwayat.</div>';
-                                    }
-                                    Swal.fire({toast:true, position:'top-end', icon:'success', title:'Riwayat berhasil dihapus.', showConfirmButton:false, timer:2000});
-                                } else {
-                                    Swal.fire('Gagal', resp.message || 'Gagal menghapus.', 'error');
-                                }
-                            });
-                        }
-                    });
-                });
-            });
-          })
-          .catch(err => {
-            document.getElementById('riwayatLoading').classList.add('d-none');
-            contentDiv.classList.remove('d-none');
-            contentDiv.innerHTML = '<div class="text-center text-muted"><i class="bi bi-info-circle"></i> Tidak ada riwayat.</div>';
-          });
-    }
 
   });
 </script>
@@ -620,6 +524,100 @@
       document.getElementById('deleteReason').value = '';
       new bootstrap.Modal(document.getElementById('deleteModal')).show();
   }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const checkAll = document.getElementById('checkAllMesin');
+    const checkItems = document.querySelectorAll('.check-item-mesin');
+    const btnBatchDelete = document.getElementById('btnBatchDeleteMesin');
+    const batchCount = document.getElementById('batchCountMesin');
+
+    function updateBatchDeleteUI() {
+      const checkedCount = document.querySelectorAll('.check-item-mesin:checked').length;
+      if (checkedCount > 0) {
+        btnBatchDelete.classList.remove('d-none');
+        batchCount.innerText = checkedCount;
+      } else {
+        btnBatchDelete.classList.add('d-none');
+      }
+      if (checkAll) {
+         checkAll.checked = (checkedCount === checkItems.length && checkItems.length > 0);
+      }
+    }
+
+    if (checkAll) {
+      checkAll.addEventListener('change', function() {
+        checkItems.forEach(item => item.checked = this.checked);
+        updateBatchDeleteUI();
+      });
+    }
+
+    checkItems.forEach(item => {
+      item.addEventListener('change', updateBatchDeleteUI);
+    });
+
+    if (btnBatchDelete) {
+      btnBatchDelete.addEventListener('click', function() {
+        const checkedItems = document.querySelectorAll('.check-item-mesin:checked');
+        const ids = Array.from(checkedItems).map(item => item.value);
+
+        if (ids.length === 0) return;
+
+        Swal.fire({
+          title: 'Hapus ' + ids.length + ' Mesin?',
+          text: 'Masukkan keterangan/alasan penghapusan massal ini:',
+          input: 'textarea',
+          inputPlaceholder: 'Tuliskan alasan...',
+          inputAttributes: {
+            'aria-label': 'Tuliskan alasan'
+          },
+          showCancelButton: true,
+          confirmButtonColor: '#dc3545',
+          confirmButtonText: 'Ya, Hapus Permanen',
+          cancelButtonText: 'Batal',
+          preConfirm: (alasan) => {
+            if (!alasan) {
+              Swal.showValidationMessage('Alasan penghapusan harus diisi!');
+            }
+            return alasan;
+          }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Swal.fire({
+              title: 'Menghapus...',
+              text: 'Mohon tunggu',
+              allowOutsideClick: false,
+              didOpen: () => {
+                Swal.showLoading();
+              }
+            });
+
+            fetch('<?= site_url('admin/mesin/delete-batch') ?>', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+              },
+              body: JSON.stringify({ ids: ids, alasan: result.value })
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.status) {
+                Swal.fire('Berhasil!', data.message, 'success').then(() => {
+                  window.location.reload();
+                });
+              } else {
+                Swal.fire('Gagal!', data.message || 'Terjadi kesalahan', 'error');
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              Swal.fire('Gagal!', 'Terjadi kesalahan sistem', 'error');
+            });
+          }
+        });
+      });
+    }
+  });
 </script>
 
 <?= view('layout/footer') ?>

@@ -146,79 +146,100 @@ class DashboardController extends BaseController
      */
     public function detailPencapaian()
     {
-        $jenis = $this->request->getGet('jenis'); // 'preventive' or 'overhaul'
+        $jenis         = $this->request->getGet('jenis'); // 'preventive', 'overhaul_plant1', 'overhaul_plant2'
         $bulanSekarang = $this->request->getGet('bulan') ?: date('Y-m');
-        $departemen = $this->request->getGet('departemen');
+        $departemen    = $this->request->getGet('departemen');
 
         $db = \Config\Database::connect();
-        
-        $tahun = (int) substr($bulanSekarang, 0, 4);
-        $bulanNum = (int) substr($bulanSekarang, 5, 2);
-        
-        $semester = $bulanNum <= 6 ? 1 : 2;
-        $semesterStart = $semester === 1 ? "$tahun-01" : "$tahun-07";
-        $semesterEnd   = $semester === 1 ? "$tahun-06" : "$tahun-12";
 
-        $isOverhaul = (strtolower($jenis) === 'overhaul');
-        $periodeStart = $isOverhaul ? $semesterStart : $bulanSekarang;
-        $periodeEnd   = $isOverhaul ? $semesterEnd : $bulanSekarang;
+        $isOverhaul = str_starts_with($jenis, 'overhaul');
+        $plantFilter = null;
+
+        if ($jenis === 'overhaul_plant1') {
+            $plantFilter = 'Plant 1';
+        } elseif ($jenis === 'overhaul_plant2') {
+            $plantFilter = 'Plant 2';
+        }
+
+        $hasActiveCycle = false;
+        if ($isOverhaul && $plantFilter) {
+            $periodeModel = new \App\Models\PeriodeOverhaulModel();
+            $siklus = $periodeModel->getAktif($plantFilter);
+            if ($siklus) {
+                $hasActiveCycle = true;
+                $periodeStart = $siklus['tanggal_mulai'];
+                $periodeEnd   = date('Y-m-d');
+                $labelPeriode = 'Mulai ' . date('d M Y', strtotime($periodeStart)) . ' s/d Sekarang';
+            } else {
+                $periodeStart = date('Y-m-d');
+                $periodeEnd   = date('Y-m-d');
+                $labelPeriode = 'Belum ada siklus berjalan';
+            }
+        } else {
+            // Preventive — bulan tertentu
+            $periodeStart = $bulanSekarang;
+            $periodeEnd   = $bulanSekarang;
+            $labelPeriode = date('m/Y', strtotime($bulanSekarang . '-01'));
+        }
+
         $jenisStr = $isOverhaul ? 'Overhaul' : 'Preventive';
 
         // 1. Get All Target Machines
         $mesinBuilder = $db->table('master_mesin m')
-                           ->select('m.id_mesin, m.no_mesin, m.type_mesin, m.departemen, m.line');
-        
+                           ->select('m.id_mesin, m.no_mesin, m.type_mesin, m.departemen, m.line, m.plant');
+
         if (!empty($departemen)) {
             $mesinBuilder->where('m.departemen', $departemen);
         }
         if ($isOverhaul) {
             $mesinBuilder->where('m.jenis !=', '-');
+            if ($plantFilter) {
+                $mesinBuilder->where('m.plant', $plantFilter);
+            }
         }
         $targetMesin = $mesinBuilder->orderBy('m.departemen', 'ASC')->orderBy('m.line', 'ASC')->orderBy('m.no_mesin', 'ASC')->get()->getResultArray();
 
-        // 2. Get Checked Machines
-        $builder = $db->table('transaksi_check t')
-                      ->select('t.id_mesin, 
-                                (SELECT CASE 
-                                    WHEN SUM(CASE WHEN d.hasil_check = \'Δ\' THEN 1 ELSE 0 END) > 0 THEN \'Δ\' 
-                                    WHEN COUNT(d.id_detail) > 0 AND SUM(CASE WHEN d.hasil_check = \'X\' THEN 1 ELSE 0 END) = COUNT(d.id_detail) THEN \'X\' 
-                                    ELSE \'V\' 
-                                 END 
-                                 FROM transaksi_check_detail d 
-                                 WHERE d.id_transaksi = t.id_transaksi) as kondisi')
-                      ->join('master_mesin m', 'm.id_mesin = t.id_mesin', 'left')
-                      ->where('t.jenis_check', $jenisStr)
-                      ->where('t.status', 'Approved');
-        
-        if (!empty($departemen)) {
-            $builder->where('m.departemen', $departemen);
-        }
-
-        if ($periodeStart === $periodeEnd) {
-            $builder->groupStart()
-                        ->where('t.target_periode', $periodeStart)
-                        ->orGroupStart()
-                            ->where('(t.target_periode IS NULL OR t.target_periode = "")', null, false)
-                            ->like('t.waktu_mulai', $periodeStart, 'after')
-                        ->groupEnd()
-                    ->groupEnd();
-        } else {
-            $builder->groupStart()
-                        ->where("t.target_periode >= '$periodeStart'")
-                        ->where("t.target_periode <= '$periodeEnd'")
-                        ->orGroupStart()
-                            ->where('(t.target_periode IS NULL OR t.target_periode = "")', null, false)
-                            ->where("DATE_FORMAT(t.waktu_mulai, '%Y-%m') >= '$periodeStart'")
-                            ->where("DATE_FORMAT(t.waktu_mulai, '%Y-%m') <= '$periodeEnd'")
-                        ->groupEnd()
-                    ->groupEnd();
-        }
-
-        $checkedRecords = $builder->orderBy('t.id_transaksi', 'ASC')->get()->getResultArray();
-        
+        // 2. Get Checked Machines (hanya jika ada siklus aktif, jika tidak, kosongkan data pengecekan)
         $checkedMap = [];
-        foreach ($checkedRecords as $row) {
-            $checkedMap[$row['id_mesin']] = $row['kondisi'];
+        if (!$isOverhaul || ($isOverhaul && $hasActiveCycle)) {
+            $builder = $db->table('transaksi_check t')
+                          ->select('t.id_mesin, 
+                                    (SELECT CASE 
+                                        WHEN SUM(CASE WHEN d.hasil_check = \'Δ\' THEN 1 ELSE 0 END) > 0 THEN \'Δ\' 
+                                        WHEN COUNT(d.id_detail) > 0 AND SUM(CASE WHEN d.hasil_check = \'X\' THEN 1 ELSE 0 END) = COUNT(d.id_detail) THEN \'X\' 
+                                        ELSE \'V\' 
+                                     END 
+                                     FROM transaksi_check_detail d 
+                                     WHERE d.id_transaksi = t.id_transaksi) as kondisi')
+                          ->join('master_mesin m', 'm.id_mesin = t.id_mesin', 'left')
+                          ->where('t.jenis_check', $jenisStr)
+                          ->where('t.status', 'Approved');
+
+            if (!empty($departemen)) {
+                $builder->where('m.departemen', $departemen);
+            }
+            if ($isOverhaul && $plantFilter) {
+                $builder->where('m.plant', $plantFilter);
+            }
+
+            if ($isOverhaul) {
+                $builder->where("DATE(t.waktu_mulai) >= '$periodeStart'")
+                        ->where("DATE(t.waktu_mulai) <= '$periodeEnd'");
+            } else {
+                $builder->groupStart()
+                            ->where('t.target_periode', $periodeStart)
+                            ->orGroupStart()
+                                ->where('(t.target_periode IS NULL OR t.target_periode = "")', null, false)
+                                ->like('t.waktu_mulai', $periodeStart, 'after')
+                            ->groupEnd()
+                        ->groupEnd();
+            }
+
+            $checkedRecords = $builder->orderBy('t.id_transaksi', 'ASC')->get()->getResultArray();
+            
+            foreach ($checkedRecords as $row) {
+                $checkedMap[$row['id_mesin']] = $row['kondisi'];
+            }
         }
 
         $sudahDicek = [];
@@ -233,11 +254,68 @@ class DashboardController extends BaseController
             }
         }
 
+        $canManage = has_any_role(['admin', 'leader', 'sheadmtc', 'sheadprd']);
+
         return $this->response->setJSON([
-            'sudah_dicek' => $sudahDicek,
-            'belum_dicek' => $belumDicek,
-            'jenis'       => $jenisStr,
-            'periode'     => $isOverhaul ? "Semester $semester $tahun" : date('m/Y', strtotime($bulanSekarang . '-01'))
+            'sudah_dicek'      => $sudahDicek,
+            'belum_dicek'      => $belumDicek,
+            'jenis'            => $jenisStr . ($plantFilter ? " ($plantFilter)" : ''),
+            'periode'          => $labelPeriode,
+            'is_overhaul'      => $isOverhaul,
+            'plant'            => $plantFilter,
+            'has_active_cycle' => $hasActiveCycle,
+            'can_manage'       => $canManage,
         ]);
+    }
+
+    /**
+     * POST: Akhiri periode overhaul aktif untuk plant tertentu
+     */
+    public function akhiriPeriodeOverhaul()
+    {
+        if (!has_any_role(['admin', 'leader', 'sheadmtc', 'sheadprd'])) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Tidak punya akses.']);
+        }
+
+        $plant  = $this->request->getPost('plant');
+        $userId = session()->get('user_id');
+
+        if (!in_array($plant, ['Plant 1', 'Plant 2'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Plant tidak valid.']);
+        }
+
+        $periodeModel = new \App\Models\PeriodeOverhaulModel();
+        $result = $periodeModel->akhiriPeriode($plant, (int) $userId);
+
+        if ($result) {
+            return $this->response->setJSON(['success' => true, 'message' => "Siklus Overhaul $plant telah diakhiri dan ditutup. Status saat ini menjadi Kosong/Selesai."]);
+        }
+
+        return $this->response->setJSON(['success' => false, 'message' => 'Tidak ada siklus aktif yang ditemukan.']);
+    }
+
+    /**
+     * POST: Awali periode overhaul baru untuk plant tertentu
+     */
+    public function awaliPeriodeOverhaul()
+    {
+        if (!has_any_role(['admin', 'leader', 'sheadmtc', 'sheadprd'])) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Tidak punya akses.']);
+        }
+
+        $plant  = $this->request->getPost('plant');
+
+        if (!in_array($plant, ['Plant 1', 'Plant 2'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Plant tidak valid.']);
+        }
+
+        $periodeModel = new \App\Models\PeriodeOverhaulModel();
+        $result = $periodeModel->awaliPeriode($plant);
+
+        if ($result) {
+            return $this->response->setJSON(['success' => true, 'message' => "Siklus Overhaul $plant yang BARU telah dimulai hari ini."]);
+        }
+
+        return $this->response->setJSON(['success' => false, 'message' => 'Gagal memulai. Mungkin masih ada siklus yang aktif.']);
     }
 }

@@ -85,7 +85,7 @@
       <?php endif; ?>
         <?php if (!empty($d['is_section_start'])): ?>
           <tr>
-            <?php $colSpan = $isCNC ? 7 : 6; ?>
+            <?php $colSpan = (strtolower($header['departemen_check']) !== 'mfg 2') ? 7 : 6; ?>
             <td colspan="<?= $colSpan ?>" style="text-align:center; font-weight:bold; background-color:#f2f2f2;"><?= esc($d['dynamic_section_header'] ?? '') ?></td>
           </tr>
         <?php endif; ?>
@@ -153,7 +153,7 @@
       
       <!-- APPEND BOTTOM ELEMENTS IN THE LAST TBODY -->
       <tr style="page-break-inside: avoid; page-break-before: avoid;">
-        <?php $bottomColSpan = $isCNC ? 7 : 6; ?>
+        <?php $bottomColSpan = (strtolower($header['departemen_check']) !== 'mfg 2') ? 7 : 6; ?>
         <td colspan="<?= $bottomColSpan ?>" style="border:none; padding:0;">
           <?php if (!empty($header['note_recommendation'])): ?>
           <div style="margin-top:8px; border:1.5pt solid #000; padding:6px; background:#f8f9fa; font-size:11px; text-align:left;">

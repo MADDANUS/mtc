@@ -34,6 +34,15 @@ function formatDurasiText($detik) {
       }
   ?>
   <?php if (!has_any_role(['leader', 'sheadprd', 'sheadmtc'])): ?>
+  <?php
+      $excelUrl = site_url('laporan/durasi-excel');
+      if (!empty($selectedFilters)) {
+          $excelUrl .= '?' . http_build_query($selectedFilters);
+      }
+  ?>
+  <a href="<?= $excelUrl ?>" class="btn btn-sm btn-outline-success fw-semibold shadow-sm" title="Export Excel">
+      <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel
+  </a>
   <a href="<?= $pdfUrl ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
       <i class="bi bi-eye-fill me-1"></i> Preview PDF
   </a>

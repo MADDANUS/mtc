@@ -514,22 +514,8 @@ class TransaksiCheckModel extends Model
             $conditionsAdded = true;
         } 
         
-        if (has_any_role([\App\Enums\Role::Member->value, \App\Enums\Role::LeaderMember->value])) {
-            $builder->orGroupStart()
-                        ->groupStart()
-                            ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Preventive->value)
-                            ->where('transaksi_check.status', 'Pending')
-                        ->groupEnd()
-                        ->orGroupStart()
-                            ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value)
-                            ->whereIn('transaksi_check.status', ['Pending', 'Approved L1', 'Approved L2'])
-                        ->groupEnd()
-                    ->groupEnd();
-            $conditionsAdded = true;
-        } 
-        
-        if (has_role(\App\Enums\Role::Admin->value)) {
-            $builder->orWhereNotIn('transaksi_check.status', ['Final', 'Approved Final']);
+        if (has_any_role([\App\Enums\Role::Admin->value, \App\Enums\Role::Member->value, \App\Enums\Role::LeaderMember->value])) {
+            $builder->orWhereNotIn('transaksi_check.status', ['Approved', 'Final', 'Approved Final']);
             $conditionsAdded = true;
         }
 
@@ -562,30 +548,43 @@ class TransaksiCheckModel extends Model
         }
         
         $totalMesinPreventive = (int) $mesinBuilder->countAllResults(false);
-        $totalMesinOverhaul   = (int) $mesinBuilder->where('m.jenis !=', '-')->countAllResults();
+
+        // Hitung total mesin overhaul per plant
+        $mesinOvP1 = clone $mesinBuilder;
+        $mesinOvP2 = clone $mesinBuilder;
+        $totalMesinOvP1 = (int) $mesinOvP1->where('m.jenis !=', '-')->where('m.plant', 'Plant 1')->countAllResults(false);
+        $totalMesinOvP2 = (int) $mesinOvP2->where('m.jenis !=', '-')->where('m.plant', 'Plant 2')->countAllResults(false);
+        $totalMesinOverhaul = $totalMesinOvP1 + $totalMesinOvP2;
+        
+        // Tentukan Periode Waktu Preventive
+        $bulanSekarang = !empty($filters['bulan']) && $filters['bulan'] !== 'all' ? $filters['bulan'] : date('Y-m');
+        
+        // Ambil siklus aktif per plant dari tabel periode_overhaul
+        $periodeModel = new \App\Models\PeriodeOverhaulModel();
+        $siklusP1 = $periodeModel->getAktif('Plant 1');
+        $siklusP2 = $periodeModel->getAktif('Plant 2');
+
+        $mulaiP1 = $siklusP1 ? $siklusP1['tanggal_mulai'] : date('Y-m-d', strtotime('first day of this year'));
+        $mulaiP2 = $siklusP2 ? $siklusP2['tanggal_mulai'] : date('Y-m-d', strtotime('first day of this year'));
+        $today = date('Y-m-d');
         
         if ($totalMesinPreventive === 0 && $totalMesinOverhaul === 0) {
             return [
-                'total_mesin' => 0,
+                'total_mesin'          => 0,
                 'total_mesin_overhaul' => 0,
-                'preventive' => ['checked' => 0, 'coverage' => 0, 'normal' => 0, 'abnormal' => 0, 'normal_count' => 0, 'abnormal_count' => 0],
-                'overhaul'   => ['checked' => 0, 'coverage' => 0, 'normal' => 0, 'abnormal' => 0, 'normal_count' => 0, 'abnormal_count' => 0]
+                'bulan'                => $bulanSekarang,
+                'periode_plant1'       => 'Belum ada siklus',
+                'periode_plant2'       => 'Belum ada siklus',
+                'tanggal_mulai_plant1' => null,
+                'tanggal_mulai_plant2' => null,
+                'preventive'           => ['checked' => 0, 'coverage' => 0, 'normal' => 0, 'abnormal' => 0, 'normal_count' => 0, 'abnormal_count' => 0],
+                'overhaul_plant1'      => ['checked' => 0, 'coverage' => 0, 'normal' => 0, 'abnormal' => 0, 'normal_count' => 0, 'abnormal_count' => 0],
+                'overhaul_plant2'      => ['checked' => 0, 'coverage' => 0, 'normal' => 0, 'abnormal' => 0, 'normal_count' => 0, 'abnormal_count' => 0],
             ];
         }
 
-        // Tentukan Periode Waktu
-        // Jika ada filter bulan, gunakan itu sebagai bulan sekarang
-        $bulanSekarang = !empty($filters['bulan']) && $filters['bulan'] !== 'all' ? $filters['bulan'] : date('Y-m');
-        
-        $tahun = (int) substr($bulanSekarang, 0, 4);
-        $bulan = (int) substr($bulanSekarang, 5, 2);
-        
-        $semester = $bulan <= 6 ? 1 : 2;
-        $semesterStart = $semester === 1 ? "$tahun-01" : "$tahun-07";
-        $semesterEnd   = $semester === 1 ? "$tahun-06" : "$tahun-12";
-
         // Fungsi Helper untuk mengambil status
-        $getStats = function(string $jenis, string $periodeStart, string $periodeEnd, int $totalTarget) use ($db, $filters) {
+        $getStats = function(string $jenis, string $periodeStart, string $periodeEnd, int $totalTarget, ?string $plant = null) use ($db, $filters) {
             $builder = $db->table('transaksi_check t')
                           ->select('t.id_mesin, 
                                     (SELECT CASE 
@@ -599,6 +598,12 @@ class TransaksiCheckModel extends Model
                           ->where('t.jenis_check', $jenis)
                           ->where('t.status', 'Approved');
             
+            if ($plant !== null) {
+                $builder->where('m.plant', $plant);
+                // Overhaul hanya untuk mesin yang punya jenis (bukan -)
+                $builder->where('m.jenis !=', '-');
+            }
+
             // Terapkan Filter Tambahan (Line, Departemen, Mesin)
             if (!empty($filters['line'])) {
                 $linesArray = array_map('trim', explode(',', $filters['line']));
@@ -612,27 +617,32 @@ class TransaksiCheckModel extends Model
                 $builder->where('t.id_mesin', $filters['id_mesin']);
             }
             
-            // Logika Periode (Y-m)
-            if ($periodeStart === $periodeEnd) {
-                // Bulan tertentu
-                $builder->groupStart()
-                            ->where('t.target_periode', $periodeStart)
-                            ->orGroupStart()
-                                ->where('(t.target_periode IS NULL OR t.target_periode = "")', null, false)
-                                ->like('t.waktu_mulai', $periodeStart, 'after')
-                            ->groupEnd()
-                        ->groupEnd();
+            // Logika Periode — untuk overhaul gunakan DATE range aktual (waktu_mulai)
+            if ($jenis === 'Overhaul') {
+                // Range dari tanggal_mulai siklus aktif hingga hari ini
+                $builder->where("DATE(t.waktu_mulai) >= '$periodeStart'")
+                        ->where("DATE(t.waktu_mulai) <= '$periodeEnd'");
             } else {
-                // Range Semester
-                $builder->groupStart()
-                            ->where("t.target_periode >= '$periodeStart'")
-                            ->where("t.target_periode <= '$periodeEnd'")
-                            ->orGroupStart()
-                                ->where('(t.target_periode IS NULL OR t.target_periode = "")', null, false)
-                                ->where("DATE_FORMAT(t.waktu_mulai, '%Y-%m') >= '$periodeStart'")
-                                ->where("DATE_FORMAT(t.waktu_mulai, '%Y-%m') <= '$periodeEnd'")
-                            ->groupEnd()
-                        ->groupEnd();
+                // Preventive: periode Y-m
+                if ($periodeStart === $periodeEnd) {
+                    $builder->groupStart()
+                                ->where('t.target_periode', $periodeStart)
+                                ->orGroupStart()
+                                    ->where('(t.target_periode IS NULL OR t.target_periode = "")', null, false)
+                                    ->like('t.waktu_mulai', $periodeStart, 'after')
+                                ->groupEnd()
+                            ->groupEnd();
+                } else {
+                    $builder->groupStart()
+                                ->where("t.target_periode >= '$periodeStart'")
+                                ->where("t.target_periode <= '$periodeEnd'")
+                                ->orGroupStart()
+                                    ->where('(t.target_periode IS NULL OR t.target_periode = "")', null, false)
+                                    ->where("DATE_FORMAT(t.waktu_mulai, '%Y-%m') >= '$periodeStart'")
+                                    ->where("DATE_FORMAT(t.waktu_mulai, '%Y-%m') <= '$periodeEnd'")
+                                ->groupEnd()
+                            ->groupEnd();
+                }
             }
 
             $builder->orderBy('t.id_transaksi', 'ASC');
@@ -643,8 +653,8 @@ class TransaksiCheckModel extends Model
                 $mesinUnik[$row['id_mesin']] = $row['kondisi'];
             }
 
-            $checked = count($mesinUnik);
-            $normal = 0;
+            $checked  = count($mesinUnik);
+            $normal   = 0;
             $abnormal = 0;
             $tidakAda = 0;
             
@@ -659,23 +669,33 @@ class TransaksiCheckModel extends Model
             }
 
             return [
-                'checked'  => $checked,
-                'coverage' => $totalTarget > 0 ? round(($checked / $totalTarget) * 100, 1) : 0,
-                'normal'   => $checked > 0 ? round(($normal / $checked) * 100, 1) : 0,
-                'abnormal' => $checked > 0 ? round(($abnormal / $checked) * 100, 1) : 0,
-                'normal_count' => $normal,
-                'abnormal_count' => $abnormal,
+                'checked'         => $checked,
+                'coverage'        => $totalTarget > 0 ? round(($checked / $totalTarget) * 100, 1) : 0,
+                'normal'          => $checked > 0 ? round(($normal / $checked) * 100, 1) : 0,
+                'abnormal'        => $checked > 0 ? round(($abnormal / $checked) * 100, 1) : 0,
+                'normal_count'    => $normal,
+                'abnormal_count'  => $abnormal,
                 'tidak_ada_count' => $tidakAda
             ];
         };
 
+        // Label periode untuk ditampilkan di UI
+        $labelP1 = 'Mulai ' . (new \CodeIgniter\I18n\Time($mulaiP1))->toLocalizedString('d MMM yyyy');
+        $labelP2 = 'Mulai ' . (new \CodeIgniter\I18n\Time($mulaiP2))->toLocalizedString('d MMM yyyy');
+
         return [
-            'total_mesin' => $totalMesinPreventive,
+            'total_mesin'          => $totalMesinPreventive,
             'total_mesin_overhaul' => $totalMesinOverhaul,
-            'preventive'  => $getStats('Preventive', $bulanSekarang, $bulanSekarang, $totalMesinPreventive),
-            'overhaul'    => $getStats('Overhaul', $semesterStart, $semesterEnd, $totalMesinOverhaul),
-            'bulan'       => $bulanSekarang,
-            'semester'    => "Semester $semester $tahun"
+            'total_mesin_ov_p1'    => $totalMesinOvP1,
+            'total_mesin_ov_p2'    => $totalMesinOvP2,
+            'preventive'           => $getStats('Preventive', $bulanSekarang, $bulanSekarang, $totalMesinPreventive),
+            'overhaul_plant1'      => $getStats('Overhaul', $mulaiP1, $today, $totalMesinOvP1, 'Plant 1'),
+            'overhaul_plant2'      => $getStats('Overhaul', $mulaiP2, $today, $totalMesinOvP2, 'Plant 2'),
+            'bulan'                => $bulanSekarang,
+            'periode_plant1'       => $labelP1,
+            'tanggal_mulai_plant1' => $mulaiP1,
+            'periode_plant2'       => $labelP2,
+            'tanggal_mulai_plant2' => $mulaiP2,
         ];
     }
 }

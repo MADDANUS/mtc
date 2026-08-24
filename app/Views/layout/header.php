@@ -731,7 +731,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
             <i class="bi bi-file-earmark-text"></i>Checklist Report
           </a>
           <?php endif; ?>
-          <?php if (has_any_role(['sheadprd', 'sheadmtc', 'admin', 'member', 'leader mtc', 'magang'])): ?>
+          <?php if (has_any_role(['sheadprd', 'sheadmtc', 'admin', 'member', 'leader mtc'])): ?>
           <a href="<?= site_url('kontrol') ?>" class="menu-item <?= $seg1 === 'kontrol' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
             <i class="bi bi-calendar2-check"></i>Checklist Control
           </a>
@@ -818,11 +818,11 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
             </a>
 
             <a href="<?= site_url('admin/log-mesin') ?>" class="menu-item <?= $seg2 === 'log-mesin' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
-              <i class="bi bi-gear-wide-connected"></i>Log Hapus Mesin
+              <i class="bi bi-gear-wide-connected"></i>Log Riwayat Mesin
             </a>
 
             <a href="<?= site_url('admin/log-user') ?>" class="menu-item <?= $seg2 === 'log-user' ? 'active' : '' ?>" style="padding: 0.4rem 0.75rem; margin-bottom: 2px;">
-              <i class="bi bi-people"></i>Log Hapus User
+              <i class="bi bi-people"></i>Log Riwayat User
             </a>
 
           </div>

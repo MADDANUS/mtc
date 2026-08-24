@@ -378,7 +378,7 @@ class RiwayatService
         ];
 
         $idMesin      = (int) $request->getPost('id_mesin');
-        $namaPic      = $request->getPost('nama_pic');
+        $namaPic      = $request->getPost('nama_pic') ?: $header['nama_pic'];
         $waktuMulai   = $request->getPost('waktu_mulai');
         $kategoriName = $request->getPost('kategori');
         $waktuSelesai = $header['waktu_selesai'];

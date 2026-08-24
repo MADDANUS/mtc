@@ -23,6 +23,9 @@
   </a>
   <div class="ms-auto d-flex gap-2">
     <?php if (!has_any_role(['leader', 'sheadprd', 'sheadmtc'])): ?>
+<a href="<?= site_url('kontrol/excel?departemen=' . urlencode($departemen) . '&kategori=' . urlencode($kategori) . '&bulan=' . urlencode($bulan) . '&line=' . urlencode($line)) ?>" class="btn btn-sm btn-outline-success fw-semibold shadow-sm" title="Export Excel">
+      <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel
+    </a>
 <a href="<?= site_url('kontrol/pdf?departemen=' . urlencode($departemen) . '&kategori=' . urlencode($kategori) . '&bulan=' . urlencode($bulan) . '&line=' . urlencode($line)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
       <i class="bi bi-eye-fill me-1"></i> Preview PDF
     </a>
@@ -393,7 +396,7 @@
       <input type="hidden" name="kategori" value="<?= esc($kategori) ?>">
       <input type="hidden" name="bulan_tahun" value="<?= esc($bulan) ?>">
       <button type="submit" class="btn btn-success px-4 py-2 fw-semibold shadow-sm">
-        <i class="bi bi-check-circle-fill me-2"></i> Approve (<?= esc($role) ?>)
+        <i class="bi bi-check-circle-fill me-2"></i> Approve
       </button>
     </form>
   </div>

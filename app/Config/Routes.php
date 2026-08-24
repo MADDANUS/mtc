@@ -20,6 +20,8 @@ $routes->get('logout', 'Auth::logout');
 // Dashboard (semua role login, konten beda per role di dalam controller)
 $routes->get('dashboard', 'DashboardController::index', ['filter' => 'auth']);
 $routes->get('dashboard/detail-pencapaian', 'DashboardController::detailPencapaian', ['filter' => 'auth']);
+$routes->post('dashboard/akhiri-periode-overhaul', 'DashboardController::akhiriPeriodeOverhaul', ['filter' => 'auth']);
+$routes->post('dashboard/awali-periode-overhaul', 'DashboardController::awaliPeriodeOverhaul', ['filter' => 'auth']);
 
 // Settings
 $routes->get('ganti-password', 'Auth::gantiPasswordForm', ['filter' => 'auth']);
@@ -79,6 +81,9 @@ $routes->group('kontrol', ['filter' => 'auth'], static function ($routes) {
     $routes->get('pdf', 'KontrolController::pdf', ['filter' => 'role:member,leader mtc,admin']);
     $routes->get('pdf-all-categories', 'KontrolController::pdfAllCategories', ['filter' => 'role:member,leader mtc,admin']);
     $routes->get('pdf-all-summary', 'KontrolController::pdfAllSummary', ['filter' => 'role:member,leader mtc,admin']);
+    $routes->get('excel', 'KontrolController::excelPerKategori', ['filter' => 'role:member,leader mtc,admin']);
+    $routes->get('excel-all-categories', 'KontrolController::excelAllCategories', ['filter' => 'role:member,leader mtc,admin']);
+    $routes->get('excel-all-summary', 'KontrolController::excelAllSummary', ['filter' => 'role:member,leader mtc,admin']);
     $routes->post('update-cell', 'KontrolController::updateCell');
     $routes->post('approve', 'KontrolController::approveBulanan');
     $routes->post('delete-approval', 'KontrolController::deleteApprovalBulanan');
@@ -90,7 +95,10 @@ $routes->group('abnormal', ['filter' => 'auth'], static function ($routes) {
     $routes->get('pdf', 'AbnormalController::pdf', ['filter' => 'role:member,leader mtc,admin']);
     $routes->get('pdf-all-categories', 'AbnormalController::pdfAllCategories', ['filter' => 'role:member,leader mtc,admin']);
     $routes->get('pdf-all-summary', 'AbnormalController::pdfAllSummary', ['filter' => 'role:member,leader mtc,admin']);
+    $routes->get('excel', 'AbnormalController::excelPerKategori', ['filter' => 'role:member,leader mtc,admin']);
+    $routes->get('excel-all-categories', 'AbnormalController::excelAllCategories', ['filter' => 'role:member,leader mtc,admin']);
     $routes->get('excel-all-summary', 'AbnormalController::excelAllSummary', ['filter' => 'role:member,leader mtc,admin']);
+    $routes->get('chart-data', 'AbnormalController::getChartData', ['filter' => 'auth']);
     $routes->post('update', 'AbnormalController::update');
     $routes->post('approve', 'AbnormalController::approveBulanan');
     
@@ -111,7 +119,9 @@ $routes->get('admin/audit-log', 'Admin\AuditLogController::index', ['filter' => 
   $routes->get('admin/log-mesin', 'Admin\LogMesinController::index', ['filter' => 'role:admin']);
   $routes->get('admin/log-user', 'Admin\LogUserController::index', ['filter' => 'role:admin']);
   $routes->get('testqueries', 'TestQueries::index');
-  $routes->get('laporan/durasi-pdf', 'LaporanController::durasiPdf', ['filter' => 'role:member,leader mtc,admin,magang,leader mtc']);
+  $routes->get('laporan/durasi', 'LaporanController::durasi', ['filter' => 'role:member,leader mtc,admin,magang']);
+  $routes->get('laporan/durasi-pdf', 'LaporanController::durasiPdf', ['filter' => 'role:member,leader mtc,admin,magang']);
+  $routes->get('laporan/durasi-excel', 'LaporanController::durasiExcel', ['filter' => 'role:member,leader mtc,admin,magang']);
 
 // Approval Inbox (semua role kecuali magang)
 $routes->get('approval', 'ApprovalController::index', ['filter' => 'role:admin,member,leader mtc,leader,sheadprd,sheadmtc']);
@@ -122,6 +132,7 @@ $routes->group('admin/mesin', ['filter' => 'role:admin,member,leader mtc,sheadpr
     $routes->post('store', 'MesinController::store');
     $routes->get('edit/(:num)', 'MesinController::edit/$1');
     $routes->post('update/(:num)', 'MesinController::update/$1');
+    $routes->post('delete-batch', 'MesinController::deleteBatch');
     $routes->get('delete/(:num)', 'MesinController::delete/$1');
     $routes->get('export', 'MesinController::export');
     $routes->get('template', 'MesinController::template');
@@ -140,7 +151,8 @@ $routes->group('admin/user', ['filter' => 'role:admin,leader mtc', 'namespace' =
     $routes->post('store', 'UserController::store');
     $routes->get('edit/(:num)', 'UserController::edit/$1');
     $routes->post('update/(:num)', 'UserController::update/$1');
-    $routes->get('delete/(:num)', 'UserController::delete/$1');
+    $routes->post('delete-batch', 'UserController::deleteBatch');
+    $routes->post('delete/(:num)', 'UserController::delete/$1');
     $routes->get('export', 'UserController::export');
     $routes->post('import', 'UserController::import');
     $routes->get('toggle-active/(:num)', 'UserController::toggleActive/$1');

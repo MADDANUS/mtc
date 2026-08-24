@@ -236,7 +236,7 @@
                   <div style="height: 20px; margin-bottom: 20px;"></div>
                 <?php endif; ?>
                 <div style="font-size: 0.9rem;">
-                  <?= isset($approvalData['approved_l2_by']) ? '<span style="text-decoration: underline;">' . esc($approvalData['l2_name'] ?? 'Section Head') . '</span>' : '<span style="color: #999;">( ........................................ )</span>' ?>
+                  <?= isset($approvalData['approved_l2_by']) ? '<span style="text-decoration: underline; font-weight: bold;">' . esc($approvalData['l2_name'] ?? 'Section Head') . '</span>' : '<span style="color: #999;">( ........................................ )</span>' ?>
                 </div>
                 <div style="font-size: 0.8rem; color: #555;">
                   Tanggal: <?= isset($approvalData['approved_l2_at']) ? format_tanggal_indo($approvalData['approved_l2_at'], false, true) : '( ......................... )' ?>
@@ -251,7 +251,7 @@
                   <div style="height: 20px; margin-bottom: 20px;"></div>
                 <?php endif; ?>
                 <div style="font-size: 0.9rem;">
-                  <?= isset($approvalData['approved_final_by']) ? '<span style="text-decoration: underline;">' . esc($approvalData['final_name'] ?? 'Section Head MTC') . '</span>' : '<span style="color: #999;">( ........................................ )</span>' ?>
+                  <?= isset($approvalData['approved_final_by']) ? '<span style="text-decoration: underline; font-weight: bold;">' . esc($approvalData['final_name'] ?? 'Section Head MTC') . '</span>' : '<span style="color: #999;">( ........................................ )</span>' ?>
                 </div>
                 <div style="font-size: 0.8rem; color: #555;">
                   Tanggal: <?= isset($approvalData['approved_final_at']) ? format_tanggal_indo($approvalData['approved_final_at'], false, true) : '( ......................... )' ?>

@@ -103,11 +103,22 @@ class MesinController extends BaseController
             $line = 'all';
         }
 
+        // Get distinct jenis for filter dropdown
+        $jenisQuery = (new \App\Models\MesinModel())->select('jenis')->where('jenis !=', '')->where('jenis IS NOT NULL');
+        if (has_role(Role::Leader->value) && $departemenUser) {
+            $jenisQuery->where('departemen', $departemenUser);
+        }
+        $distinctJenisRows = $jenisQuery->groupBy('jenis')->orderBy('jenis', 'ASC')->findAll();
+        $allJenisRaw = array_column($distinctJenisRows, 'jenis');
+        $allJenis = array_unique(array_map('strtoupper', $allJenisRaw));
+        sort($allJenis);
+
         return view('admin/mesin/index', [
             'title'  => 'Master Mesin',
             'daftar' => $builder->findAll(),
             'suggestions' => $suggestionList,
             'allLines' => $filteredLines,
+            'allJenis' => $allJenis,
             'filters' => [
                 'q' => $q,
                 'plant' => $plant,
@@ -121,10 +132,17 @@ class MesinController extends BaseController
     public function create()
     {
         $lineModel = new LineModel();
+        
+        $jenisQuery = (new \App\Models\MesinModel())->select('jenis')->where('jenis !=', '')->where('jenis IS NOT NULL');
+        $allJenisRaw = array_column($jenisQuery->groupBy('jenis')->orderBy('jenis', 'ASC')->findAll(), 'jenis');
+        $allJenis = array_unique(array_map('strtoupper', $allJenisRaw));
+        sort($allJenis);
+
         return view('admin/mesin/form', [
             'title'        => 'Tambah Mesin',
             'mesin'        => null,
             'linesGrouped' => $lineModel->getLinesGroupedByDepartemen(),
+            'allJenis'     => $allJenis,
         ]);
     }
 
@@ -149,6 +167,7 @@ class MesinController extends BaseController
             'departemen'      => $this->request->getPost('departemen'),
             'line'            => $this->request->getPost('line') ?: null,
             'bar_feeder_type' => $this->request->getPost('bar_feeder_type'),
+            'sn_barfeeder'    => $this->request->getPost('sn_barfeeder'),
             'jenis'           => $this->request->getPost('jenis') ?: null,
         ]);
 
@@ -183,6 +202,18 @@ class MesinController extends BaseController
         ]);
         // ---------------------------------------
 
+        // --- TAHAP 4: PENCATATAN LOG AKTIVITAS (CREATE) ---
+        $logAktivitasModel = new \App\Models\LogAktivitasMesinModel();
+        $logAktivitasModel->insert([
+            'id_mesin'       => $idMesin,
+            'no_mesin'       => $this->request->getPost('no_mesin'),
+            'aksi'           => 'CREATE',
+            'keterangan'     => 'Menambahkan mesin baru',
+            'detail'         => json_encode(['data_baru' => $this->model->find($idMesin)]),
+            'dilakukan_oleh' => session()->get('user_id'),
+            'created_at'     => date('Y-m-d H:i:s')
+        ]);
+
         $redirectUrl = session()->get('last_mesin_url') ?? '/admin/mesin';
         return $this->redirectSuccess($redirectUrl, 'Mesin berhasil ditambahkan.');
     }
@@ -196,10 +227,17 @@ class MesinController extends BaseController
         }
 
         $lineModel = new LineModel();
+        
+        $jenisQuery = (new \App\Models\MesinModel())->select('jenis')->where('jenis !=', '')->where('jenis IS NOT NULL');
+        $allJenisRaw = array_column($jenisQuery->groupBy('jenis')->orderBy('jenis', 'ASC')->findAll(), 'jenis');
+        $allJenis = array_unique(array_map('strtoupper', $allJenisRaw));
+        sort($allJenis);
+
         return view('admin/mesin/form', [
             'title'        => 'Edit Mesin',
             'mesin'        => $mesin,
             'linesGrouped' => $lineModel->getLinesGroupedByDepartemen(),
+            'allJenis'     => $allJenis,
         ]);
     }
 
@@ -225,6 +263,7 @@ class MesinController extends BaseController
             'departemen'      => $this->request->getPost('departemen'),
             'line'            => $this->request->getPost('line') ?: null,
             'bar_feeder_type' => $this->request->getPost('bar_feeder_type'),
+            'sn_barfeeder'    => $this->request->getPost('sn_barfeeder'),
             'jenis'           => $this->request->getPost('jenis') ?: null,
         ];
 
@@ -308,11 +347,27 @@ class MesinController extends BaseController
         // -----------------------------------------
 
         // --- TAHAP 4: PENCATATAN AUDIT TRAIL ---
-        $logModel = new \App\Models\LogMasterMesinModel();
-        $newData = $this->model->find($id);
-        $logModel->logChanges($id, $oldMesin, $newData, session()->get('user_id'));
-
-
+        $logAktivitasModel = new \App\Models\LogAktivitasMesinModel();
+        $changedFields = [];
+        foreach ($newData as $key => $val) {
+            $oldVal = trim((string)($oldMesin[$key] ?? ''));
+            $newVal = trim((string)$val);
+            if ($oldVal !== $newVal) {
+                $changedFields[$key] = ['lama' => $oldVal, 'baru' => $newVal];
+            }
+        }
+        
+        if (!empty($changedFields)) {
+            $logAktivitasModel->insert([
+                'id_mesin'       => $id,
+                'no_mesin'       => $newData['no_mesin'],
+                'aksi'           => 'UPDATE',
+                'keterangan'     => 'Mengubah data mesin',
+                'detail'         => json_encode(['perubahan' => $changedFields]),
+                'dilakukan_oleh' => session()->get('user_id'),
+                'created_at'     => date('Y-m-d H:i:s')
+            ]);
+        }
         return $this->redirectSuccess($redirectUrl, 'Mesin berhasil diperbarui.');
     }
 
@@ -330,16 +385,21 @@ class MesinController extends BaseController
             return $this->redirectError($redirectUrl, 'Alasan penghapusan harus diisi.');
         }
 
-        $logModel = new \App\Models\LogHapusMesinModel();
-        $logData = $mesin;
-        $logData['waktu_dihapus'] = date('Y-m-d H:i:s');
-        $logData['dihapus_oleh'] = session()->get('nama') ?? 'System';
-        $logData['alasan_dihapus'] = $alasan;
+        $logAktivitasModel = new \App\Models\LogAktivitasMesinModel();
+        $logAktivitasData = [
+            'id_mesin'       => $id,
+            'no_mesin'       => $mesin['no_mesin'],
+            'aksi'           => 'DELETE',
+            'keterangan'     => $alasan,
+            'detail'         => json_encode(['data_sebelum' => $mesin]),
+            'dilakukan_oleh' => session()->get('user_id'),
+            'created_at'     => date('Y-m-d H:i:s')
+        ];
         
         $db = \Config\Database::connect();
         $db->transStart();
 
-        $logModel->insert($logData);
+        $logAktivitasModel->insert($logAktivitasData);
         $this->model->delete($id, true); // Hard delete
 
         $db->transComplete();
@@ -349,6 +409,55 @@ class MesinController extends BaseController
         }
 
         return $this->redirectSuccess($redirectUrl, 'Mesin berhasil dihapus permanen beserta histori alasannya.');
+    }
+
+    public function deleteBatch()
+    {
+        if (!has_any_role(['admin', 'member', 'leader mtc'])) {
+            return $this->response->setJSON(['status' => false, 'message' => 'Anda tidak memiliki akses untuk menghapus mesin.']);
+        }
+
+        $json = $this->request->getJSON(true) ?? [];
+        $ids = $json['ids'] ?? [];
+        $alasan = $json['alasan'] ?? '';
+
+        if (empty($ids) || !is_array($ids)) {
+            return $this->response->setJSON(['status' => false, 'message' => 'Tidak ada mesin yang dipilih.']);
+        }
+        if (empty($alasan)) {
+            return $this->response->setJSON(['status' => false, 'message' => 'Alasan penghapusan massal harus diisi.']);
+        }
+
+        $logAktivitasModel = new \App\Models\LogAktivitasMesinModel();
+        
+        $db = \Config\Database::connect();
+        $db->transStart();
+        
+        $count = 0;
+        foreach ($ids as $id) {
+            $mesin = $this->model->find($id);
+            if ($mesin) {
+                $logAktivitasModel->insert([
+                    'id_mesin'       => $id,
+                    'no_mesin'       => $mesin['no_mesin'],
+                    'aksi'           => 'DELETE',
+                    'keterangan'     => $alasan,
+                    'detail'         => json_encode(['data_sebelum' => $mesin]),
+                    'dilakukan_oleh' => session()->get('user_id'),
+                    'created_at'     => date('Y-m-d H:i:s')
+                ]);
+                $this->model->delete($id, true);
+                $count++;
+            }
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return $this->response->setJSON(['status' => false, 'message' => 'Gagal menghapus mesin secara massal.']);
+        }
+
+        return $this->response->setJSON(['status' => true, 'message' => "$count mesin berhasil dihapus permanen."]);
     }
 
     public function export()
@@ -729,6 +838,7 @@ class MesinController extends BaseController
             'departemen'      => 'required|in_list[MFG 1,MFG 2]',
             'line'            => 'permit_empty|max_length[50]',
             'bar_feeder_type' => 'permit_empty|max_length[100]',
+            'sn_barfeeder'    => 'permit_empty|max_length[100]',
             'jenis'           => 'permit_empty|max_length[100]',
         ];
 

@@ -8,6 +8,9 @@
   </a>
   <div class="ms-auto d-flex gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
+<a href="<?= site_url('abnormal/excel?departemen=' . urlencode($departemenFilter) . '&kategori=' . urlencode($kategoriFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" class="btn btn-sm btn-outline-success fw-semibold shadow-sm" title="Export Excel">
+      <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel
+    </a>
 <a href="<?= site_url('abnormal/pdf?departemen=' . urlencode($departemenFilter) . '&kategori=' . urlencode($kategoriFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
       <i class="bi bi-eye-fill me-1"></i> Preview PDF
     </a>

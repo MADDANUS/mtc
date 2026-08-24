@@ -16,6 +16,15 @@
                 if (!empty($filterKategori)) $pdfUrl .= '&filter_kategori=' . urlencode($filterKategori);
             ?>
             <?php if (!has_any_role(['sheadprd', 'sheadmtc', 'leader'])): ?>
+            <?php
+                $excelSummaryUrl = site_url('kontrol/excel-all-summary?bulan=' . urlencode($bulan));
+                if (!empty($filterLokasi)) $excelSummaryUrl .= '&filter_lokasi=' . urlencode($filterLokasi);
+                if (!empty($filterLine)) $excelSummaryUrl .= '&filter_line=' . urlencode($filterLine);
+                if (!empty($filterKategori)) $excelSummaryUrl .= '&filter_kategori=' . urlencode($filterKategori);
+            ?>
+            <a href="<?= $excelSummaryUrl ?>" class="btn btn-sm btn-outline-success fw-semibold shadow-sm" title="Export Excel">
+                <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel
+            </a>
             <a href="<?= $pdfUrl ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Download PDF">
                 <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download PDF
             </a>
