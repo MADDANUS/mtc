@@ -113,7 +113,7 @@ class ApprovalService
         $riwayatMesinModel = new \App\Models\RiwayatMesinModel();
 
         $kategoriByLokasi = [
-            Departemen::MFG1->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
+            Departemen::MFG1->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox Cam', 'Belt Cam'],
             Departemen::MFG2->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'],
         ];
 

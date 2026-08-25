@@ -9,14 +9,18 @@
   <table style="margin-bottom:0 !important;">
     <tr>
       <td rowspan="4" style="width:15%; text-align:center; vertical-align:middle; padding:6px;">
-        <div style="width:40px; height:40px; border:2px double #0000ff; border-radius:50%; margin:0 auto; position:relative;">
-          <div style="position:absolute; top:-9px; left:50%; transform:translateX(-50%); background:#fff; padding:0 3px; font-size:1rem; font-weight:normal; color:#0000ff;">NSI</div>
-        </div>
-        <div style="font-size:0.6rem; margin-top:4px; font-style:italic; color:#0070c0; line-height:1.3; text-align:center;">
-          <div>The Future</div><div>In Our Hands</div>
-        </div>
+                <?php 
+          $logoPath = FCPATH . 'uploads/nsi_logo.png';
+          if (file_exists($logoPath)) {
+              $logoData = base64_encode(file_get_contents($logoPath));
+              echo '<img src="data:image/png;base64,' . $logoData . '" style="max-width: 80px; max-height: 80px; display: block; margin: 0 auto;">';
+          } else {
+              echo '<div style="font-weight:bold; color:blue; font-size:24px;">NSI</div>';
+          }
+        ?>
+        
       </td>
-      <td colspan="2" class="kop-table-title" style="padding:5px;">INSPECTION REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?></td>
+      <td colspan="2" style="background-color:#92b0d6; text-align:center; font-weight:bold; font-size:13px; color:#000;" bgcolor="#92b0d6" style="padding:5px;">INSPECTION REPORT - <?= strtoupper(esc($header['kategori'] ?? 'MESIN CNC')) ?></td>
     </tr>
     <tr>
       <td style="width:45%; font-weight:bold; text-align:center;">NO. DOCUMENT</td>
@@ -66,14 +70,14 @@
   <table style="margin-top:0;">
     <thead>
       <tr>
-        <th style="width:5%; text-align:center; background-color:#f2f2f2;">NO</th>
-        <th colspan="2" style="text-align:center; background-color:#f2f2f2;">ITEM CHECK</th>
-        <th style="width:20%; text-align:center; background-color:#f2f2f2;">POINT CHECK</th>
+        <th style="width:5%; text-align:center; background-color:#f2f2f2;" bgcolor="#f2f2f2">NO</th>
+        <th colspan="2" style="text-align:center; background-color:#f2f2f2;" bgcolor="#f2f2f2">ITEM CHECK</th>
+        <th width="20%" style="width:20%; text-align:center; background-color:#f2f2f2;" bgcolor="#f2f2f2">POINT CHECK</th>
         <?php if (strtolower($header['departemen_check']) !== 'mfg 2'): ?>
-        <th style="width:15%; text-align:center; background-color:#f2f2f2;">STANDAR ITEM</th>
+        <th style="width:15%; text-align:center; background-color:#f2f2f2;" bgcolor="#f2f2f2">STANDAR ITEM</th>
         <?php endif; ?>
-        <th style="width:10%; text-align:center; background-color:#f2f2f2;">HASIL</th>
-        <th style="width:20%; text-align:center; background-color:#f2f2f2;">ULASAN</th>
+        <th width="10%" style="width:10%; text-align:center; background-color:#f2f2f2;" bgcolor="#f2f2f2">HASIL</th>
+        <th width="20%" style="width:20%; text-align:center; background-color:#f2f2f2;" bgcolor="#f2f2f2">ULASAN</th>
       </tr>
     </thead>
     <?php $ov_tbody_opened = false; ?>
@@ -86,7 +90,7 @@
         <?php if (!empty($d['is_section_start'])): ?>
           <tr>
             <?php $colSpan = (strtolower($header['departemen_check']) !== 'mfg 2') ? 7 : 6; ?>
-            <td colspan="<?= $colSpan ?>" style="text-align:center; font-weight:bold; background-color:#f2f2f2;"><?= esc($d['dynamic_section_header'] ?? '') ?></td>
+            <td colspan="<?= $colSpan ?>" style="text-align:center; font-weight:bold; background-color:#f2f2f2;" bgcolor="#f2f2f2"><?= esc($d['dynamic_section_header'] ?? '') ?></td>
           </tr>
         <?php endif; ?>
         <tr>
@@ -162,7 +166,7 @@
           </div>
           <?php endif; ?>
 
-          <table class="keterangan-table" style="margin-top:8px; margin-left:auto; width:200px;">
+          <table align="right" class="keterangan-table" style="margin-top:8px; margin-left:auto; width:200px;">
             <tr>
               <td colspan="3" style="text-align:center; font-weight:bold; padding:2px 10px; background-color:#f2f2f2; font-size:8px;">KETERANGAN CHECK LIST</td>
             </tr>

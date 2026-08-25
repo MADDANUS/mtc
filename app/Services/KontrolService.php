@@ -205,7 +205,7 @@ class KontrolService
                     
                     $hasCam = (new \App\Models\MesinModel())->hasCamMachine($departemen, $line);
                     $categories = $hasCam 
-                        ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam']
+                        ? ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox Cam', 'Belt Cam']
                         : ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
                     
                     foreach ($categories as $cat) {
@@ -218,8 +218,8 @@ class KontrolService
                         // Skip if completely unfilled (no PIC assigned)
                         $hasData = false;
                         foreach ($grid as $row) {
-                            if ($row['plant'] !== $pln) continue; // Ensure the machine belongs to this plant
-                            if ($row['pic_nama'] !== 'PIC' && !empty($row['pic_nama'])) {
+                            if (isset($row['mesin']['plant']) && $row['mesin']['plant'] !== $pln) continue; // Ensure the machine belongs to this plant
+                            if (isset($row['pic_nama']) && $row['pic_nama'] !== 'PIC' && !empty($row['pic_nama'])) {
                                 $hasData = true;
                                 break;
                             }
@@ -228,7 +228,7 @@ class KontrolService
 
                         // Filter grid to only include machines for this plant
                         $filteredGrid = array_filter($grid, function($row) use ($pln) {
-                            return $row['plant'] === $pln;
+                            return (isset($row['mesin']['plant']) ? $row['mesin']['plant'] : '') === $pln;
                         });
                         
                         if (empty($filteredGrid)) continue;
@@ -417,7 +417,7 @@ class KontrolService
         // Categories mapping
         $mesinModel = new \App\Models\MesinModel();
         $kategoriByLokasi = [
-            Departemen::MFG1->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'],
+            Departemen::MFG1->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox Cam', 'Belt Cam'],
             Departemen::MFG2->value => ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'],
         ];
         
@@ -672,7 +672,7 @@ class KontrolService
     {
         $hasCam = (new \App\Models\MesinModel())->hasCamMachine($departemen, $line);
         if ($hasCam) {
-            return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
+            return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox Cam', 'Belt Cam'];
         }
         return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
     }

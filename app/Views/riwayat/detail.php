@@ -55,10 +55,13 @@
     </div>
   <div class="ms-auto d-flex align-items-center gap-2">
     <?php if (!has_any_role(['leader', 'sheadprd', 'sheadmtc'])): ?>
-<a href="<?= site_url('riwayat/download-pdf/' . $header['id_transaksi']) ?>" class="btn btn-sm btn-outline-danger shadow-sm" target="_blank">
+    <a href="<?= site_url('riwayat/download-excel-detail/' . $header['id_transaksi']) ?>" class="btn btn-sm btn-outline-success shadow-sm" target="_blank">
+      <i class="bi bi-file-earmark-excel-fill me-1"></i> Export Excel
+    </a>
+    <a href="<?= site_url('riwayat/download-pdf/' . $header['id_transaksi']) ?>" class="btn btn-sm btn-outline-danger shadow-sm" target="_blank">
       <i class="bi bi-eye-fill me-1"></i> Preview PDF
     </a>
-<?php endif; ?>
+    <?php endif; ?>
   </div>
 </div>
 

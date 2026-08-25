@@ -1,0 +1,576 @@
+MATCH 0
+Array
+(
+    [0] => Array
+        (
+            [name] => replace_file_content
+            [args] => Array
+                (
+                    [AllowMultiple] => 
+                    [Description] => Menerapkan struktur 32-kolom micro-grid ke Preventive Checklist
+                    [EndLine] => 355
+                    [Instruction] => Ubah pemanggilan di blok else agar menjalankan generatePreventiveExcelNative dan hapus fallback lama 5-kolom.
+                    [ReplacementContent] =>         if ($isOverhaul) {
+            $this->generateOverhaulExcelNative($header, $details, $spreadsheet, $filename);
+        } else {
+            $this->generatePreventiveExcelNative($header, $details, $spreadsheet, $filename);
+        }
+                    [StartLine] => 349
+                    [TargetContent] =>         if ($isOverhaul) {
+            $this->generateOverhaulExcelNative($header, $details, $spreadsheet, $filename);
+        } else {
+            $sheet->getColumnDimension('A')->setWidth(25);
+            $sheet->getColumnDimension('B')->setWidth(25);
+            $sheet->getColumnDimension('C')->setWidth(25);
+            $sheet->getColumnDimension('D')->setWidth(15);
+            $sheet->getColumnDimension('E')->setWidth(30);
+        }
+                    [TargetFile] => C:\xampp\mtc\app\Controllers\RiwayatController.php
+                    [toolAction] => Updating downloadExcelDetail to call generatePreventiveExcelNative
+                    [toolSummary] => Call generatePreventiveExcelNative
+                )
+
+        )
+
+)
+
+
+MATCH 5
+Array
+(
+    [0] => Array
+        (
+            [name] => replace_file_content
+            [args] => Array
+                (
+                    [AllowMultiple] => 
+                    [Description] => Memperbaiki logic di downloadExcelDetail yang hilang yaitu pemanggilan generatePreventiveExcelNative dan deklarasi $filename
+                    [EndLine] => 353
+                    [Instruction] => Tambahkan deklarasi $filename dan panggil $this->generatePreventiveExcelNative di dalam blok else.
+                    [ReplacementContent] =>         $filename = 'Laporan_' . ($isOverhaul ? 'Overhaul' : 'Preventive') . '_' . $header['no_mesin'] . '_' . date('Ymd', strtotime($header['waktu_mulai'])) . '.xlsx';
+
+        if ($isOverhaul) {
+            $this->generateOverhaulExcelNative($header, $details, $spreadsheet, $filename);
+        } else {
+            $this->generatePreventiveExcelNative($header, $details, $spreadsheet, $filename);
+        }
+                    [StartLine] => 349
+                    [TargetContent] =>         if ($isOverhaul) {
+            $this->generateOverhaulExcelNative($header, $details, $spreadsheet, $filename);
+        } else {
+        }
+                    [TargetFile] => C:\xampp\mtc\app\Controllers\RiwayatController.php
+                    [toolAction] => Fixing missing method call and undefined variable
+                    [toolSummary] => Fix downloadExcelDetail method
+                )
+
+        )
+
+)
+
+
+MATCH 7
+Array
+(
+    [0] => Array
+        (
+            [name] => multi_replace_file_content
+            [args] => Array
+                (
+                    [Description] => Menyesuaikan offsetX dan offsetY gambar logo agar berada di tengah kotak Excel
+                    [Instruction] => Ubah parameter setHeight, setOffsetX, dan setOffsetY pada block logo NSI di fungsi generatePreventiveExcelNative dan generateOverhaulExcelNative agar posisinya di tengah.
+                    [ReplacementChunks] => Array
+                        (
+                            [0] => Array
+                                (
+                                    [AllowMultiple] => 
+                                    [EndLine] => 391
+                                    [ReplacementContent] =>             $drawing->setCoordinates('B2');
+            $drawing->setHeight(80);
+            $drawing->setOffsetX(40);
+            $drawing->setOffsetY(15);
+            $drawing->setWorksheet($sheet);
+                                    [StartLine] => 387
+                                    [TargetContent] =>             $drawing->setCoordinates('B2');
+            $drawing->setHeight(100);
+            $drawing->setOffsetX(5);
+            $drawing->setOffsetY(5);
+            $drawing->setWorksheet($sheet);
+                                )
+
+                            [1] => Array
+                                (
+                                    [AllowMultiple] => 
+                                    [EndLine] => 664
+                                    [ReplacementContent] =>             $drawing->setCoordinates('B2');
+            $drawing->setHeight(80);
+            $drawing->setOffsetX(40);
+            $drawing->setOffsetY(15);
+            $drawing->setWorksheet($sheet);
+                                    [StartLine] => 660
+                                    [TargetContent] =>             $drawing->setCoordinates('B2');
+            $drawing->setHeight(100);
+            $drawing->setOffsetX(5);
+            $drawing->setOffsetY(5);
+            $drawing->setWorksheet($sheet);
+                                )
+
+                        )
+
+                    [TargetFile] => C:\xampp\mtc\app\Controllers\RiwayatController.php
+                    [toolAction] => Fixing logo centering in Excel
+                    [toolSummary] => Fix logo in Excel
+                )
+
+        )
+
+)
+
+
+MATCH 8
+Array
+(
+    [0] => Array
+        (
+            [name] => write_to_file
+            [args] => Array
+                (
+                    [ArtifactMetadata] => Array
+                        (
+                            [RequestFeedback] => 1
+                            [Summary] => Rencana untuk menambahkan fitur Download Full Excel (multi-sheet) berdasarkan filter.
+                            [UserFacing] => 1
+                        )
+
+                    [CodeContent] => # Penambahan Fitur "Download Full Excel" pada Riwayat
+
+Pengguna menginginkan tombol "Download Full Excel" di halaman ringkasan (depan) yang akan mengunduh laporan detail (bukan hanya tabel rekapitulasi) untuk seluruh transaksi yang sedang difilter. Ini akan berfungsi mirip dengan tombol "Download PDF", namun menghasilkan file Excel dengan banyak *sheet* (1 *sheet* untuk setiap transaksi).
+
+## Rencana Implementasi
+
+### 1. Refactor Generator Excel (RiwayatController.php)
+Saat ini fungsi `generateOverhaulExcelNative` dan `generatePreventiveExcelNative` membangun Excel sekaligus langsung melakukan *output* dan mematikan eksekusi skrip (`exit()`).
+- Akan dipisahkan menjadi `buildOverhaulExcelSheet($header, $details, $sheet)` dan `buildPreventiveExcelSheet($header, $details, $sheet)`.
+- Fungsi pembungkus lama akan tetap ada untuk melayani `downloadExcelDetail` (satu transaksi), yang memanggil fungsi `build...` lalu melakukan *output*.
+
+### 2. Buat Metode Baru `exportExcelAll($departemenSlug)` (RiwayatController.php)
+- Membaca filter pencarian seperti fungsi PDF-All.
+- Menarik seluruh data transaksi yang cocok dengan filter.
+- Membuat objek `Spreadsheet` baru.
+- Melakukan *loop* per transaksi:
+  - Membuat `Worksheet` (sheet) baru.
+  - Memanggil `buildOverhaulExcelSheet` atau `buildPreventiveExcelSheet` tergantung jenis transaksinya.
+- Menyimpan dan mengeluarkan output 1 file `.xlsx` berisi banyak *sheet*.
+
+### 3. Daftarkan Route (Routes.php)
+- Menambahkan route `GET riwayat/export-excel-all/(:segment)` -> `RiwayatController::exportExcelAll/$1`
+
+### 4. Tambahkan Tombol di Tampilan (app/Views/riwayat/index.php)
+- Menambahkan link/tombol `Download Full Excel` (misalnya warna biru/hijau) di samping tombol `Download PDF`.
+- Menyesuaikan parameter filter ke dalam query string URL.
+
+## User Review Required
+Apakah Anda setuju dengan pendekatan file Excel ber- *multi-sheet* (satu transaksi, satu halaman *sheet* di dalam file Excel yang sama) ini? Pendekatan ini sangat rapi dan memudahkan Anda menyimpan data banyak form inspeksi hanya dalam 1 buah file. 
+
+Silakan klik **Proceed** jika Anda setuju!
+                    [Description] => Implementation plan for Download Full Excel feature
+                    [Overwrite] => 
+                    [TargetFile] => C:\xampp\mtc\brain\a209cd11-ce46-4837-be49-4de3afd6cfc7\implementation_plan.md
+                    [toolAction] => Creating implementation plan for Download Full Excel feature
+                    [toolSummary] => Create implementation plan
+                )
+
+        )
+
+)
+
+
+MATCH 9
+Array
+(
+    [0] => Array
+        (
+            [name] => write_to_file
+            [args] => Array
+                (
+                    [ArtifactMetadata] => Array
+                        (
+                            [RequestFeedback] => 1
+                            [Summary] => Rencana untuk menambahkan fitur Download Full Excel (multi-sheet) berdasarkan filter.
+                            [UserFacing] => 1
+                        )
+
+                    [CodeContent] => # Penambahan Fitur "Download Full Excel" pada Riwayat
+
+Pengguna menginginkan tombol "Download Full Excel" di halaman ringkasan (depan) yang akan mengunduh laporan detail (bukan hanya tabel rekapitulasi) untuk seluruh transaksi yang sedang difilter. Ini akan berfungsi mirip dengan tombol "Download PDF", namun menghasilkan file Excel dengan banyak *sheet* (1 *sheet* untuk setiap transaksi).
+
+## Rencana Implementasi
+
+### 1. Refactor Generator Excel (RiwayatController.php)
+Saat ini fungsi `generateOverhaulExcelNative` dan `generatePreventiveExcelNative` membangun Excel sekaligus langsung melakukan *output* dan mematikan eksekusi skrip (`exit()`).
+- Akan dipisahkan menjadi `buildOverhaulExcelSheet($header, $details, $sheet)` dan `buildPreventiveExcelSheet($header, $details, $sheet)`.
+- Fungsi pembungkus lama akan tetap ada untuk melayani `downloadExcelDetail` (satu transaksi), yang memanggil fungsi `build...` lalu melakukan *output*.
+
+### 2. Buat Metode Baru `exportExcelAll($departemenSlug)` (RiwayatController.php)
+- Membaca filter pencarian seperti fungsi PDF-All.
+- Menarik seluruh data transaksi yang cocok dengan filter.
+- Membuat objek `Spreadsheet` baru.
+- Melakukan *loop* per transaksi:
+  - Membuat `Worksheet` (sheet) baru.
+  - Memanggil `buildOverhaulExcelSheet` atau `buildPreventiveExcelSheet` tergantung jenis transaksinya.
+- Menyimpan dan mengeluarkan output 1 file `.xlsx` berisi banyak *sheet*.
+
+### 3. Daftarkan Route (Routes.php)
+- Menambahkan route `GET riwayat/export-excel-all/(:segment)` -> `RiwayatController::exportExcelAll/$1`
+
+### 4. Tambahkan Tombol di Tampilan (app/Views/riwayat/index.php)
+- Menambahkan link/tombol `Download Full Excel` (misalnya warna biru/hijau) di samping tombol `Download PDF`.
+- Menyesuaikan parameter filter ke dalam query string URL.
+
+## User Review Required
+Apakah Anda setuju dengan pendekatan file Excel ber- *multi-sheet* (satu transaksi, satu halaman *sheet* di dalam file Excel yang sama) ini? Pendekatan ini sangat rapi dan memudahkan Anda menyimpan data banyak form inspeksi hanya dalam 1 buah file. 
+
+Silakan klik **Proceed** jika Anda setuju!
+                    [Description] => Implementation plan for Download Full Excel feature
+                    [Overwrite] => 1
+                    [TargetFile] => C:\Users\mcnrc\.gemini\antigravity-ide\brain\a209cd11-ce46-4837-be49-4de3afd6cfc7\implementation_plan.md
+                    [toolAction] => Creating implementation plan for Download Full Excel feature
+                    [toolSummary] => Create implementation plan
+                )
+
+        )
+
+)
+
+
+MATCH 11
+Array
+(
+    [0] => Array
+        (
+            [name] => write_to_file
+            [args] => Array
+                (
+                    [CodeContent] => <?php
+$f = 'app/Controllers/RiwayatController.php';
+$c = file_get_contents($f);
+
+// 1. Rename functions
+$c = str_replace('private function generatePreventiveExcelNative($header, $details, $spreadsheet, $filename)', 'private function buildPreventiveExcelSheet($header, $details, $spreadsheet, $sheet)', $c);
+$c = str_replace('private function generateOverhaulExcelNative($header, $details, $spreadsheet, $filename)', 'private function buildOverhaulExcelSheet($header, $details, $spreadsheet, $sheet)', $c);
+
+// 2. Remove $sheet = $spreadsheet->getActiveSheet(); from inside the functions
+$c = preg_replace('/private function buildPreventiveExcelSheet(.*?)\s*{\s*\$sheet = \$spreadsheet->getActiveSheet\(\);/s', 'private function buildPreventiveExcelSheet$1 {', $c);
+$c = preg_replace('/private function buildOverhaulExcelSheet(.*?)\s*{\s*\$sheet = \$spreadsheet->getActiveSheet\(\);/s', 'private function buildOverhaulExcelSheet$1 {', $c);
+
+// 3. Remove the output blocks at the end of buildPreventiveExcelSheet (around line 624-630)
+$c = preg_replace('/\$writer = \\\PhpOffice\\\PhpSpreadsheet\\\IOFactory::createWriter\(\$spreadsheet, \'Xlsx\'\);\s*header\(\'Content-Type: application\/vnd.openxmlformats-officedocument.spreadsheetml.sheet\'\);\s*header\(\'Content-Disposition: attachment; filename="\' \. \$filename \. \'"\'\);\s*header\(\'Cache-Control: max-age=0\'\);\s*\$writer->save\(\'php:\/\/output\'\);\s*exit\(\);/s', '', $c);
+
+// 4. Update downloadExcelDetail wrapper
+$downloadExcelDetailOld = <<<'EOT'
+        if ($isOverhaul) {
+            $this->generateOverhaulExcelNative($header, $details, $spreadsheet, $filename);
+        } else {
+            $this->generatePreventiveExcelNative($header, $details, $spreadsheet, $filename);
+        }
+    }
+EOT;
+
+$downloadExcelDetailNew = <<<'EOT'
+        $sheet->setTitle('Inspection Report');
+        if ($isOverhaul) {
+            $this->buildOverhaulExcelSheet($header, $details, $spreadsheet, $sheet);
+        } else {
+            $this->buildPreventiveExcelSheet($header, $details, $spreadsheet, $sheet);
+        }
+        
+        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit();
+    }
+EOT;
+$c = str_replace($downloadExcelDetailOld, $downloadExcelDetailNew, $c);
+
+file_put_contents($f, $c);
+echo "Refactor OK";
+
+                    [Description] => Script untuk refactor fungsi generator Excel
+                    [Overwrite] => 1
+                    [TargetFile] => C:\xampp\mtc\scratch\refactor_excel.php
+                    [toolAction] => Creating script to refactor Excel generator methods
+                    [toolSummary] => Create refactor script
+                )
+
+        )
+
+)
+
+
+MATCH 13
+Array
+(
+    [0] => Array
+        (
+            [name] => replace_file_content
+            [args] => Array
+                (
+                    [AllowMultiple] => 
+                    [Description] => Memperbaiki fungsi wrapper downloadExcelDetail setelah refactor
+                    [EndLine] => 356
+                    [Instruction] => Ubah pemanggilan generate menjadi build dan tambahkan header output.
+                    [ReplacementContent] =>         $sheet->setTitle('Inspection Report');
+        if ($isOverhaul) {
+            $this->buildOverhaulExcelSheet($header, $details, $spreadsheet, $sheet);
+        } else {
+            $this->buildPreventiveExcelSheet($header, $details, $spreadsheet, $sheet);
+        }
+        
+        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit();
+    }
+                    [StartLine] => 351
+                    [TargetContent] =>         if ($isOverhaul) {
+            $this->generateOverhaulExcelNative($header, $details, $spreadsheet, $filename);
+        } else {
+            $this->generatePreventiveExcelNative($header, $details, $spreadsheet, $filename);
+        }
+    }
+                    [TargetFile] => C:\xampp\mtc\app\Controllers\RiwayatController.php
+                    [toolAction] => Fixing downloadExcelDetail method
+                    [toolSummary] => Fix downloadExcelDetail method
+                )
+
+        )
+
+)
+
+
+MATCH 15
+Array
+(
+    [0] => Array
+        (
+            [name] => write_to_file
+            [args] => Array
+                (
+                    [CodeContent] => <?php
+$file = 'C:/Users/mcnrc/.gemini/antigravity-ide/brain/a209cd11-ce46-4837-be49-4de3afd6cfc7/.system_generated/logs/transcript_full.jsonl';
+$lines = file($file);
+$longestCode = '';
+foreach ($lines as $line) {
+    if (strpos($line, 'generatePreventiveExcelNative') !== false || strpos($line, 'generateOverhaulExcelNative') !== false) {
+        $json = json_decode($line, true);
+        if (isset($json['tool_calls'])) {
+            foreach ($json['tool_calls'] as $tc) {
+                if (isset($tc['function']['arguments'])) {
+                    $args = json_decode($tc['function']['arguments'], true);
+                    if (isset($args['ReplacementContent'])) {
+                        if (strlen($args['ReplacementContent']) > strlen($longestCode)) {
+                            $longestCode = $args['ReplacementContent'];
+                        }
+                    }
+                    if (isset($args['ReplacementChunks'])) {
+                        foreach ($args['ReplacementChunks'] as $chunk) {
+                            if (strlen($chunk['ReplacementContent']) > strlen($longestCode)) {
+                                $longestCode = $chunk['ReplacementContent'];
+                            }
+                        }
+                    }
+                    if (isset($args['CodeContent'])) {
+                        if (strlen($args['CodeContent']) > strlen($longestCode)) {
+                            $longestCode = $args['CodeContent'];
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+file_put_contents('scratch/recovered_code.txt', $longestCode);
+echo "Recovered length: " . strlen($longestCode);
+
+                    [Description] => Script untuk mengekstrak kode yang hilang dari transcript
+                    [Overwrite] => 1
+                    [TargetFile] => C:\xampp\mtc\scratch\recover.php
+                    [toolAction] => Creating script to extract code from transcript
+                    [toolSummary] => Create recovery script
+                )
+
+        )
+
+)
+
+
+MATCH 16
+Array
+(
+    [0] => Array
+        (
+            [name] => run_command
+            [args] => Array
+                (
+                    [CommandLine] => findstr /C:"generatePreventiveExcelNative" "C:\Users\mcnrc\.gemini\antigravity-ide\brain\a209cd11-ce46-4837-be49-4de3afd6cfc7\.system_generated\logs\transcript_full.jsonl" > scratch/raw_grep.txt
+                    [Cwd] => C:\xampp\mtc
+                    [WaitMsBeforeAsync] => 5000
+                    [toolAction] => Grepping transcript for the lost code
+                    [toolSummary] => Grep transcript
+                )
+
+        )
+
+)
+
+
+MATCH 17
+Array
+(
+    [0] => Array
+        (
+            [name] => write_to_file
+            [args] => Array
+                (
+                    [CodeContent] => <?php
+$file = 'C:/Users/mcnrc/.gemini/antigravity-ide/brain/a209cd11-ce46-4837-be49-4de3afd6cfc7/.system_generated/logs/transcript_full.jsonl';
+$handle = fopen($file, "r");
+$out = fopen("scratch/recovered.txt", "w");
+if ($handle) {
+    while (($line = fgets($handle)) !== false) {
+        if (stripos($line, 'generatePreventiveExcelNative') !== false || stripos($line, 'generateOverhaulExcelNative') !== false) {
+            fwrite($out, $line);
+        }
+    }
+    fclose($handle);
+    fclose($out);
+    echo "Found some lines!";
+} else {
+    echo "Error opening file.";
+}
+
+                    [Description] => Script untuk extract log
+                    [Overwrite] => 1
+                    [TargetFile] => C:\xampp\mtc\scratch\search_log.php
+                    [toolAction] => Writing script to properly search transcript
+                    [toolSummary] => Create search script
+                )
+
+        )
+
+)
+
+
+MATCH 18
+Array
+(
+    [0] => Array
+        (
+            [name] => replace_file_content
+            [args] => Array
+                (
+                    [AllowMultiple] => 
+                    [Description] => Memperbaiki fungsi downloadExcelDetail untuk memanggil fungsi build sheet
+                    [EndLine] => 355
+                    [Instruction] => Ubah isi fungsi downloadExcelDetail
+                    [ReplacementContent] =>         $filename = 'Laporan_' . ($isOverhaul ? 'Overhaul' : 'Preventive') . '_' . $header['no_mesin'] . '_' . date('Ymd', strtotime($header['waktu_mulai'])) . '.xlsx';
+
+        $sheet->setTitle('Inspection Report');
+        if ($isOverhaul) {
+            $this->buildOverhaulExcelSheet($header, $details, $spreadsheet, $sheet);
+        } else {
+            $this->buildPreventiveExcelSheet($header, $details, $spreadsheet, $sheet);
+        }
+        
+        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit();
+    }
+                    [StartLine] => 349
+                    [TargetContent] =>         $filename = 'Laporan_' . ($isOverhaul ? 'Overhaul' : 'Preventive') . '_' . $header['no_mesin'] . '_' . date('Ymd', strtotime($header['waktu_mulai'])) . '.xlsx';
+
+        if ($isOverhaul) {
+            $this->generateOverhaulExcelNative($header, $details, $spreadsheet, $filename);
+        } else {
+            $this->generatePreventiveExcelNative($header, $details, $spreadsheet, $filename);
+        }
+    }
+                    [TargetFile] => C:\xampp\mtc\app\Controllers\RiwayatController.php
+                    [toolAction] => Fixing downloadExcelDetail method in RiwayatController
+                    [toolSummary] => Fix downloadExcelDetail method
+                )
+
+        )
+
+)
+
+
+MATCH 20
+Array
+(
+    [0] => Array
+        (
+            [name] => view_file
+            [args] => Array
+                (
+                    [AbsolutePath] => C:\xampp\mtc\app\Controllers\RiwayatController.php
+                    [EndLine] => 640
+                    [StartLine] => 610
+                    [toolAction] => Viewing end of buildPreventiveExcelSheet and downloadExcelDetail
+                    [toolSummary] => View RiwayatController
+                )
+
+        )
+
+)
+
+
+MATCH 21
+Array
+(
+    [0] => Array
+        (
+            [name] => replace_file_content
+            [args] => Array
+                (
+                    [AllowMultiple] => 
+                    [Description] => Memperbaiki nama fungsi excel yang direfactor dan menambahkan kembali logic download file
+                    [EndLine] => 356
+                    [Instruction] => Ubah pemanggilan generateOverhaulExcelNative/generatePreventiveExcelNative menjadi buildOverhaulExcelSheet/buildPreventiveExcelSheet, dan tambahkan header serta Xlsx Writer untuk menyimpan dan mengunduh filenya.
+                    [ReplacementContent] =>         if ($isOverhaul) {
+            $this->buildOverhaulExcelSheet($header, $details, $spreadsheet, $sheet);
+        } else {
+            $this->buildPreventiveExcelSheet($header, $details, $spreadsheet, $sheet);
+        }
+
+        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit();
+    }
+                    [StartLine] => 351
+                    [TargetContent] =>         if ($isOverhaul) {
+            $this->generateOverhaulExcelNative($header, $details, $spreadsheet, $filename);
+        } else {
+            $this->generatePreventiveExcelNative($header, $details, $spreadsheet, $filename);
+        }
+    }
+                    [TargetFile] => C:\xampp\mtc\app\Controllers\RiwayatController.php
+                    [toolAction] => Fixing method calls and download logic in downloadExcelDetail
+                    [toolSummary] => Fix downloadExcelDetail
+                )
+
+        )
+
+)
+
+

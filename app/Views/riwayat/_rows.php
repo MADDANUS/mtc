@@ -60,7 +60,7 @@
         <a href="<?= site_url('riwayat/' . $r['id_transaksi']) . $qs ?>" class="btn btn-sm btn-outline-primary py-1 px-2">
           Detail
         </a>
-        <?php if (has_role('admin')): ?>
+        <?php if (has_role('admin') || has_role('leader mtc')): ?>
           <a href="<?= site_url('riwayat/edit/' . $r['id_transaksi']) . $qs ?>" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Edit Riwayat">
             <i class="bi bi-pencil"></i>
           </a>

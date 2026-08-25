@@ -1,0 +1,5 @@
+        if ($isOverhaul) {
+            $this->generateOverhaulExcelNative($header, $details, $spreadsheet, $filename);
+        } else {
+            $this->generatePreventiveExcelNative($header, $details, $spreadsheet, $filename);
+        }

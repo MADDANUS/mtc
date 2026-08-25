@@ -208,7 +208,7 @@
             <tr>
               <td style="border: 1.5pt solid #000; width: 33.33%; vertical-align: top; padding: 10px;">
                 <div style="margin-bottom: 5px; font-size: 0.85rem;">Dibuat Oleh</div>
-                <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">PIC LINE</div>
+                <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">INSPECTOR</div>
                 <?php if (isset($approvalData['approved_l1_by'])): ?>
                   <div style="color: green; font-weight: bold; margin-bottom: 20px;">[ Disetujui ]</div>
                 <?php else: ?>
@@ -223,7 +223,7 @@
               </td>
               <td style="border: 1.5pt solid #000; width: 33.33%; vertical-align: top; padding: 10px;">
                 <div style="margin-bottom: 5px; font-size: 0.85rem;">Disetujui Oleh</div>
-                <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">SECTION HEAD PRODUKSI</div>
+                <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">SEC.HEAD PRODUKSI</div>
                 <?php if (isset($approvalData['approved_l2_by'])): ?>
                   <div style="color: green; font-weight: bold; margin-bottom: 20px;">[ Disetujui ]</div>
                 <?php else: ?>
@@ -238,7 +238,7 @@
               </td>
               <td style="border: 1.5pt solid #000; width: 33.33%; vertical-align: top; padding: 10px;">
                 <div style="margin-bottom: 5px; font-size: 0.85rem;">Disetujui Oleh</div>
-                <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">SECTION HEAD MTC</div>
+                <div style="font-weight: bold; font-size: 0.9rem; margin-bottom: 20px;">SEC.HEAD MTC</div>
                 <?php if (isset($approvalData['approved_final_by'])): ?>
                   <div style="color: green; font-weight: bold; margin-bottom: 20px;">[ Disetujui ]</div>
                 <?php else: ?>

@@ -153,7 +153,7 @@ class CeklisKontrolModel extends Model
         // Define categories based on departemen
         $categories = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
         if ($departemen !== 'MFG 2') {
-            $categories = array_merge($categories, ['Bearing Cam', 'Gearbox', 'Belt Cam']);
+            $categories = array_merge($categories, ['Bearing Cam', 'Gearbox Cam', 'Belt Cam']);
         }
 
         $pendingList = [];

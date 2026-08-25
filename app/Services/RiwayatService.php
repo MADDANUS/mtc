@@ -355,7 +355,7 @@ class RiwayatService
 
     public function updateTransaksi(int $id, $request, $validation)
     {
-        if (session()->get('role') !== Role::Admin->value) {
+        if (!has_any_role(['admin', 'leader mtc'])) {
             return ["status" => false, "message" => 'Akses ditolak.'];
         }
 
@@ -564,17 +564,27 @@ class RiwayatService
                 
                 // Location Validation
                 if ($mesinInfo) {
-                    if (session()->get('departemen')) {
-                        $userDepts = array_map('trim', explode(',', session()->get('departemen')));
-                        if (!in_array($mesinInfo['departemen'], $userDepts)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di departemen ' . session()->get('departemen')];
+                    $checkDepartemen = !empty($transaksi['departemen_check']) ? $transaksi['departemen_check'] : $mesinInfo['departemen'];
+                    $checkLine       = (strtolower($transaksi['jenis_check']) === 'overhaul' && !empty($transaksi['line_check'])) ? $transaksi['line_check'] : $mesinInfo['line'];
+                    $checkPlant      = $mesinInfo['plant'];
+
+                    if ($userDepts = session()->get('departemen')) {
+                        if ($userDepts !== '-') {
+                            $deptsArray = array_map('trim', explode(',', $userDepts));
+                            if (!in_array($checkDepartemen, $deptsArray)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di departemen ' . $userDepts];
+                        }
                     }
-                    if (session()->get('plant')) {
-                        $userPlans = array_map('trim', explode(',', session()->get('plant')));
-                        if (!in_array($mesinInfo['plant'], $userPlans)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plant ' . session()->get('plant')];
+                    if ($userPlans = session()->get('plant')) {
+                        if ($userPlans !== '-') {
+                            $plansArray = array_map('trim', explode(',', $userPlans));
+                            if (!in_array($checkPlant, $plansArray)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plant ' . $userPlans];
+                        }
                     }
-                    if (session()->get('line')) {
-                        $userLines = array_map('trim', explode(',', session()->get('line')));
-                        if (!in_array($mesinInfo['line'], $userLines)) return ["status" => false, "message" => 'Akses ditolak! Mesin ini tidak berada di ' . session()->get('line') . ' yang menjadi tanggung jawab Anda.'];
+                    if ($userLines = session()->get('line')) {
+                        if ($userLines !== '-') {
+                            $linesArray = array_map('trim', explode(',', $userLines));
+                            if (!in_array($checkLine, $linesArray)) return ["status" => false, "message" => 'Akses ditolak! Laporan ini berada di Line ' . $checkLine . ', bukan di line tanggung jawab Anda (' . $userLines . ').'];
+                        }
                     }
                 }
                 
@@ -593,17 +603,27 @@ class RiwayatService
                 
                 // Location Validation
                 if ($mesinInfo) {
-                    if (session()->get('departemen')) {
-                        $userDepts = array_map('trim', explode(',', session()->get('departemen')));
-                        if (!in_array($mesinInfo['departemen'], $userDepts)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di departemen ' . session()->get('departemen')];
+                    $checkDepartemen = !empty($transaksi['departemen_check']) ? $transaksi['departemen_check'] : $mesinInfo['departemen'];
+                    $checkLine       = (strtolower($transaksi['jenis_check']) === 'overhaul' && !empty($transaksi['line_check'])) ? $transaksi['line_check'] : $mesinInfo['line'];
+                    $checkPlant      = $mesinInfo['plant'];
+
+                    if ($userDepts = session()->get('departemen')) {
+                        if ($userDepts !== '-') {
+                            $deptsArray = array_map('trim', explode(',', $userDepts));
+                            if (!in_array($checkDepartemen, $deptsArray)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di departemen ' . $userDepts];
+                        }
                     }
-                    if (session()->get('plant')) {
-                        $userPlans = array_map('trim', explode(',', session()->get('plant')));
-                        if (!in_array($mesinInfo['plant'], $userPlans)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plant ' . session()->get('plant')];
+                    if ($userPlans = session()->get('plant')) {
+                        if ($userPlans !== '-') {
+                            $plansArray = array_map('trim', explode(',', $userPlans));
+                            if (!in_array($checkPlant, $plansArray)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plant ' . $userPlans];
+                        }
                     }
-                    if (session()->get('line')) {
-                        $userLines = array_map('trim', explode(',', session()->get('line')));
-                        if (!in_array($mesinInfo['line'], $userLines)) return ["status" => false, "message" => 'Akses ditolak! Mesin ini tidak berada di ' . session()->get('line') . ' yang menjadi tanggung jawab Anda.'];
+                    if ($userLines = session()->get('line')) {
+                        if ($userLines !== '-') {
+                            $linesArray = array_map('trim', explode(',', $userLines));
+                            if (!in_array($checkLine, $linesArray)) return ["status" => false, "message" => 'Akses ditolak! Laporan ini berada di Line ' . $checkLine . ', bukan di line tanggung jawab Anda (' . $userLines . ').'];
+                        }
                     }
                 }
                 

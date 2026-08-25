@@ -161,7 +161,7 @@ class TransaksiCheckModel extends Model
      */
     public function getDetailTransaksi(int $idTransaksi): ?array
     {
-        return $this->select('transaksi_check.*, COALESCE(users.nama, transaksi_check.nama_pic) as nama_staff, COALESCE(approver.nama, transaksi_check.ss_approved_name) as approver_nama, COALESCE(approver_l1.nama, transaksi_check.ss_approval_l1_name) as approver_l1_nama, COALESCE(approver_l2.nama, transaksi_check.ss_approval_l2_name) as approver_l2_nama, COALESCE(master_mesin.no_mesin, transaksi_check.ss_no_mesin) as no_mesin, master_mesin.plant, COALESCE(transaksi_check.ss_type_mesin, master_mesin.type_mesin) as type_mesin, COALESCE(transaksi_check.ss_serial_nomor, master_mesin.serial_nomor) as serial_nomor, COALESCE(transaksi_check.ss_bar_feeder, transaksi_overhaul.bar_feeder_type) as bar_feeder_type, transaksi_overhaul.support_pic, transaksi_overhaul.note_recommendation')
+        return $this->select('transaksi_check.*, COALESCE(users.nama, transaksi_check.nama_pic) as nama_staff, COALESCE(approver.nama, transaksi_check.ss_approved_name) as approver_nama, COALESCE(approver_l1.nama, transaksi_check.ss_approval_l1_name) as approver_l1_nama, COALESCE(approver_l2.nama, transaksi_check.ss_approval_l2_name) as approver_l2_nama, COALESCE(master_mesin.no_mesin, transaksi_check.ss_no_mesin) as no_mesin, master_mesin.plant, master_mesin.line, master_mesin.departemen, COALESCE(transaksi_check.ss_type_mesin, master_mesin.type_mesin) as type_mesin, COALESCE(transaksi_check.ss_serial_nomor, master_mesin.serial_nomor) as serial_nomor, COALESCE(transaksi_check.ss_bar_feeder, transaksi_overhaul.bar_feeder_type) as bar_feeder_type, transaksi_overhaul.support_pic, transaksi_overhaul.note_recommendation')
                     ->join('users', 'users.id = transaksi_check.id_user', 'left')
                     ->join('users as approver', 'approver.id = transaksi_check.approved_by', 'left')
                     ->join('users as approver_l1', 'approver_l1.id = transaksi_check.approval_l1_by', 'left')
@@ -183,12 +183,17 @@ class TransaksiCheckModel extends Model
                     ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin', 'left')
                     ->join('transaksi_overhaul', 'transaksi_overhaul.id_transaksi = transaksi_check.id_transaksi', 'left');
                     
-        if (!empty($filters['departemen'])) {
-            $builder->where('master_mesin.departemen', $filters['departemen']);
+        if (!empty($filters['departemen']) && $filters['departemen'] !== '-') {
+            $deptsArray = array_map('trim', explode(',', $filters['departemen']));
+            $builder->whereIn('master_mesin.departemen', $deptsArray);
         }
-        if (!empty($filters['line'])) {
+        if (!empty($filters['line']) && $filters['line'] !== '-') {
             $linesArray = array_map('trim', explode(',', $filters['line']));
             $builder->whereIn('master_mesin.line', $linesArray);
+        }
+        if (!empty($filters['plant']) && $filters['plant'] !== '-') {
+            $planArray = array_map('trim', explode(',', $filters['plant']));
+            $builder->whereIn('master_mesin.plant', $planArray);
         }
         if (!empty($filters['id_mesin'])) {
             $builder->where('transaksi_check.id_mesin', (int)$filters['id_mesin']);
@@ -255,11 +260,16 @@ class TransaksiCheckModel extends Model
                     ->join('transaksi_overhaul', 'transaksi_overhaul.id_transaksi = transaksi_check.id_transaksi', 'left');
                     
         if (!empty($filters['departemen'])) {
-            $builder->where('master_mesin.departemen', $filters['departemen']);
+            $deptsArray = array_map('trim', explode(',', $filters['departemen']));
+            $builder->whereIn('master_mesin.departemen', $deptsArray);
         }
-        if (!empty($filters['line'])) {
+        if (!empty($filters['line']) && $filters['line'] !== '-') {
             $linesArray = array_map('trim', explode(',', $filters['line']));
             $builder->whereIn('master_mesin.line', $linesArray);
+        }
+        if (!empty($filters['plant']) && $filters['plant'] !== '-') {
+            $planArray = array_map('trim', explode(',', $filters['plant']));
+            $builder->whereIn('master_mesin.plant', $planArray);
         }
         if (!empty($filters['id_mesin'])) {
             $builder->where('transaksi_check.id_mesin', (int)$filters['id_mesin']);
@@ -320,9 +330,9 @@ class TransaksiCheckModel extends Model
         return $builder->orderBy('transaksi_check.waktu_mulai', 'DESC')->findAll();
     }
 
-    public function getPendingOverhaulByRole(?string $sessionLine = null): array
+    public function getPendingOverhaulByRole(?string $sessionLine = null, ?string $sessionDepts = null, ?string $sessionPlant = null): array
     {
-        $builder = $this->select('transaksi_check.*, master_mesin.no_mesin as nama_mesin')
+        $builder = $this->select('transaksi_check.*, master_mesin.no_mesin as nama_mesin, master_mesin.plant, master_mesin.departemen as departemen_mesin, master_mesin.line as line_mesin')
                         ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
                         ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value);
         
@@ -331,8 +341,16 @@ class TransaksiCheckModel extends Model
 
         if (has_role(\App\Enums\Role::Leader->value)) {
             $builder->orGroupStart()
-                        ->where('transaksi_check.status', 'Pending');
-            if ($sessionLine) {
+                        ->whereIn('transaksi_check.status', ['Pending', 'Revised']);
+            if ($sessionDepts && $sessionDepts !== '-') {
+                $deptsArray = array_map('trim', explode(',', $sessionDepts));
+                $builder->whereIn('transaksi_check.departemen_check', $deptsArray);
+            }
+            if ($sessionPlant && $sessionPlant !== '-') {
+                $planArray = array_map('trim', explode(',', $sessionPlant));
+                $builder->whereIn('master_mesin.plant', $planArray);
+            }
+            if ($sessionLine && $sessionLine !== '-') {
                 $linesArray = array_map('trim', explode(',', $sessionLine));
                 $builder->whereIn('master_mesin.line', $linesArray);
             }
@@ -341,12 +359,28 @@ class TransaksiCheckModel extends Model
         } 
         
         if (has_role(\App\Enums\Role::Sheadprd->value)) {
-            $builder->orWhere('transaksi_check.status', 'Approved L1');
+            $builder->orGroupStart()
+                        ->whereIn('transaksi_check.status', ['Approved L1', 'Revised']);
+            if ($sessionDepts && $sessionDepts !== '-') {
+                $deptsArray = array_map('trim', explode(',', $sessionDepts));
+                $builder->whereIn('transaksi_check.departemen_check', $deptsArray);
+            }
+            if ($sessionPlant && $sessionPlant !== '-') {
+                $planArray = array_map('trim', explode(',', $sessionPlant));
+                $builder->whereIn('master_mesin.plant', $planArray);
+            }
+            if ($sessionLine && $sessionLine !== '-') {
+                $linesArray = array_map('trim', explode(',', $sessionLine));
+                $builder->whereIn('master_mesin.line', $linesArray);
+            }
+            $builder->groupEnd();
             $conditionsAdded = true;
         } 
         
         if (has_role(\App\Enums\Role::Sheadmtc->value)) {
-            $builder->orWhere('transaksi_check.status', 'Approved L2');
+            $builder->orGroupStart()
+                        ->where('transaksi_check.status', 'Approved L2');
+            $builder->groupEnd();
             $conditionsAdded = true;
         }
 
@@ -451,16 +485,16 @@ class TransaksiCheckModel extends Model
         if (has_role(\App\Enums\Role::Leader->value)) {
             $builder->orGroupStart()
                         ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value)
-                        ->where('transaksi_check.status', 'Pending');
-            if ($userDepts = session()->get('departemen')) {
+                        ->whereIn('transaksi_check.status', ['Pending', 'Revised']);
+            if (($userDepts = session()->get('departemen')) && $userDepts !== '-') {
                 $deptsArray = array_map('trim', explode(',', $userDepts));
                 $builder->whereIn('transaksi_check.departemen_check', $deptsArray);
             }
-            if ($userPlan = session()->get('plant')) {
+            if (($userPlan = session()->get('plant')) && $userPlan !== '-') {
                 $planArray = array_map('trim', explode(',', $userPlan));
                 $builder->whereIn('master_mesin.plant', $planArray);
             }
-            if ($line) {
+            if ($line && $line !== '-') {
                 $linesArray = array_map('trim', explode(',', $line));
                 $escapedLines = array_map(function($l) { return $this->db->escape($l); }, $linesArray);
                 $inClause = implode(',', $escapedLines);
@@ -473,16 +507,16 @@ class TransaksiCheckModel extends Model
         if (has_role(\App\Enums\Role::Sheadprd->value)) {
             $builder->orGroupStart()
                         ->whereIn('transaksi_check.jenis_check', [\App\Enums\JenisCheck::Overhaul->value, \App\Enums\JenisCheck::Preventive->value])
-                        ->where('transaksi_check.status', 'Approved L1');
-            if ($userDepts = session()->get('departemen')) {
+                        ->whereIn('transaksi_check.status', ['Approved L1', 'Revised']);
+            if (($userDepts = session()->get('departemen')) && $userDepts !== '-') {
                 $deptsArray = array_map('trim', explode(',', $userDepts));
                 $builder->whereIn('transaksi_check.departemen_check', $deptsArray);
             }
-            if ($userPlan = session()->get('plant')) {
+            if (($userPlan = session()->get('plant')) && $userPlan !== '-') {
                 $planArray = array_map('trim', explode(',', $userPlan));
                 $builder->whereIn('master_mesin.plant', $planArray);
             }
-            if ($userLine = session()->get('line')) {
+            if (($userLine = session()->get('line')) && $userLine !== '-') {
                 $linesArray = array_map('trim', explode(',', $userLine));
                 $escapedLines = array_map(function($l) { return $this->db->escape($l); }, $linesArray);
                 $inClause = implode(',', $escapedLines);
@@ -496,20 +530,6 @@ class TransaksiCheckModel extends Model
             $builder->orGroupStart()
                         ->whereIn('transaksi_check.jenis_check', [\App\Enums\JenisCheck::Overhaul->value, \App\Enums\JenisCheck::Preventive->value])
                         ->where('transaksi_check.status', 'Approved L2');
-            if ($userDepts = session()->get('departemen')) {
-                $deptsArray = array_map('trim', explode(',', $userDepts));
-                $builder->whereIn('transaksi_check.departemen_check', $deptsArray);
-            }
-            if ($userPlan = session()->get('plant')) {
-                $planArray = array_map('trim', explode(',', $userPlan));
-                $builder->whereIn('master_mesin.plant', $planArray);
-            }
-            if ($userLine = session()->get('line')) {
-                $linesArray = array_map('trim', explode(',', $userLine));
-                $escapedLines = array_map(function($l) { return $this->db->escape($l); }, $linesArray);
-                $inClause = implode(',', $escapedLines);
-                $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) IN (' . $inClause . ')', null, false);
-            }
             $builder->groupEnd();
             $conditionsAdded = true;
         } 
@@ -535,13 +555,17 @@ class TransaksiCheckModel extends Model
         // 1. Tentukan Basis Total Mesin (Difilter jika ada)
         $mesinBuilder = $db->table('master_mesin m');
         
-        if (!empty($filters['line'])) {
+        if (!empty($filters['line']) && $filters['line'] !== '-') {
             $linesArray = array_map('trim', explode(',', $filters['line']));
             $mesinBuilder->whereIn('m.line', $linesArray);
         }
-        if (!empty($filters['departemen'])) {
+        if (!empty($filters['departemen']) && $filters['departemen'] !== '-') {
             $deptsArray = array_map('trim', explode(',', $filters['departemen']));
             $mesinBuilder->whereIn('m.departemen', $deptsArray);
+        }
+        if (!empty($filters['plant']) && $filters['plant'] !== '-') {
+            $planArray = array_map('trim', explode(',', $filters['plant']));
+            $mesinBuilder->whereIn('m.plant', $planArray);
         }
         if (!empty($filters['id_mesin'])) {
             $mesinBuilder->where('m.id_mesin', $filters['id_mesin']);
@@ -552,8 +576,8 @@ class TransaksiCheckModel extends Model
         // Hitung total mesin overhaul per plant
         $mesinOvP1 = clone $mesinBuilder;
         $mesinOvP2 = clone $mesinBuilder;
-        $totalMesinOvP1 = (int) $mesinOvP1->where('m.jenis !=', '-')->where('m.plant', 'Plant 1')->countAllResults(false);
-        $totalMesinOvP2 = (int) $mesinOvP2->where('m.jenis !=', '-')->where('m.plant', 'Plant 2')->countAllResults(false);
+        $totalMesinOvP1 = (int) $mesinOvP1->whereNotIn('m.jenis', ['-', 'CAM'])->where('m.plant', 'Plant 1')->countAllResults(false);
+        $totalMesinOvP2 = (int) $mesinOvP2->whereNotIn('m.jenis', ['-', 'CAM'])->where('m.plant', 'Plant 2')->countAllResults(false);
         $totalMesinOverhaul = $totalMesinOvP1 + $totalMesinOvP2;
         
         // Tentukan Periode Waktu Preventive
@@ -601,17 +625,21 @@ class TransaksiCheckModel extends Model
             if ($plant !== null) {
                 $builder->where('m.plant', $plant);
                 // Overhaul hanya untuk mesin yang punya jenis (bukan -)
-                $builder->where('m.jenis !=', '-');
+                $builder->whereNotIn('m.jenis', ['-', 'CAM']);
             }
 
             // Terapkan Filter Tambahan (Line, Departemen, Mesin)
-            if (!empty($filters['line'])) {
+            if (!empty($filters['line']) && $filters['line'] !== '-') {
                 $linesArray = array_map('trim', explode(',', $filters['line']));
                 $builder->whereIn('m.line', $linesArray);
             }
-            if (!empty($filters['departemen'])) {
+            if (!empty($filters['departemen']) && $filters['departemen'] !== '-') {
                 $deptsArray = array_map('trim', explode(',', $filters['departemen']));
                 $builder->whereIn('m.departemen', $deptsArray);
+            }
+            if ($plant === null && !empty($filters['plant']) && $filters['plant'] !== '-') {
+                $planArray = array_map('trim', explode(',', $filters['plant']));
+                $builder->whereIn('m.plant', $planArray);
             }
             if (!empty($filters['id_mesin'])) {
                 $builder->where('t.id_mesin', $filters['id_mesin']);

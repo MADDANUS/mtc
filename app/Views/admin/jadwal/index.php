@@ -509,7 +509,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let foundSelected = false;
             
             allOptions.forEach(optData => {
-                const isMfg1Only = ['Bearing Cam', 'Gearbox', 'Belt Cam'].includes(optData.value);
+                const isMfg1Only = ['Bearing Cam', 'Gearbox Cam', 'Belt Cam'].includes(optData.value);
                 
                 // Jika departemen MFG 2 dan kategori adalah milik MFG 1, jangan di-render
                 if (departemen === 'MFG 2' && isMfg1Only) {

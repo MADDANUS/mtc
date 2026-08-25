@@ -106,23 +106,46 @@
     <div class="mb-4">
       <label class="form-label">Line <span class="text-muted small">(Bisa pilih lebih dari 1)</span></label>
       <?php 
-        $lineVal = old('line', isset($user['line']) ? explode(', ', $user['line']) : []);
-        if (!is_array($lineVal)) $lineVal = [$lineVal];
+        $rawLineVal = old('line', isset($user['line']) ? explode(', ', $user['line']) : []);
+        if (!is_array($rawLineVal)) $rawLineVal = [$rawLineVal];
+        $rawLineVal = array_map('trim', $rawLineVal);
+
+        // Detect if values are new compound format (plant::dept::line) or old plain format
+        $isNewFormat = !empty($rawLineVal) && str_contains($rawLineVal[0], '::');
+
+        // For OLD format: scope matches using user's saved plant & departemen
+        $userPlants = !empty($user['plant']) ? array_map('trim', explode(', ', $user['plant'])) : [];
+        $userDepts  = !empty($user['departemen']) ? array_map('trim', explode(', ', $user['departemen'])) : [];
       ?>
       <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
         <?php foreach ($linesGrouped ?? [] as $plant => $departemens): ?>
           <?php foreach ($departemens as $departemen => $lines): ?>
             <div class="fw-bold small text-muted mt-2 mb-1"><?= esc($plant) ?> - <?= esc($departemen) ?></div>
             <?php foreach ($lines as $line): ?>
+              <?php
+                $compoundKey = $plant . '::' . $departemen . '::' . $line;
+                $uid = md5($compoundKey);
+
+                if ($isNewFormat) {
+                  // New format: exact compound match
+                  $isChecked = in_array($compoundKey, $rawLineVal);
+                } else {
+                  // Old format: match by line name ONLY if plant AND departemen also match user's saved values
+                  $plantMatch = empty($userPlants) || in_array($plant, $userPlants);
+                  $deptMatch  = empty($userDepts)  || in_array($departemen, $userDepts);
+                  $isChecked  = $plantMatch && $deptMatch && in_array($line, $rawLineVal);
+                }
+              ?>
               <div class="form-check form-check-inline ms-2">
-                <input class="form-check-input" type="checkbox" name="line[]" id="line_<?= md5($line) ?>" value="<?= esc($line) ?>" <?= in_array($line, $lineVal) ? 'checked' : '' ?>>
-                <label class="form-check-label" for="line_<?= md5($line) ?>"><?= esc($line) ?></label>
+                <input class="form-check-input" type="checkbox" name="line[]" id="line_<?= $uid ?>" value="<?= esc($compoundKey) ?>" <?= $isChecked ? 'checked' : '' ?>>
+                <label class="form-check-label" for="line_<?= $uid ?>"><?= esc($line) ?></label>
               </div>
             <?php endforeach; ?>
           <?php endforeach; ?>
         <?php endforeach; ?>
       </div>
     </div>
+
 
     </div>
 

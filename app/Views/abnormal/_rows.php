@@ -12,9 +12,9 @@
       $isFilled = !empty($r['type_sparepart']) || !empty($r['progres_stock']) || !empty($r['progres_tanggal']) || !empty($r['action']) || !empty($r['repair_pic']) || !empty($r['keterangan']) || !empty($r['foto_perbaikan']) || !empty($r['foto_perbaikan_2']);
       
       $canEdit = false;
-      if (in_array($role, ['member', 'sheadprd', 'sheadmtc', 'admin', 'magang'], true)) {
+      if (in_array($role, ['member', 'sheadprd', 'sheadmtc', 'admin', 'magang', 'leader mtc'], true)) {
           if ($isFilled) {
-              $canEdit = ($role === 'admin');
+              $canEdit = in_array($role, ['admin', 'leader mtc'], true);
           } else {
               $canEdit = true;
           }

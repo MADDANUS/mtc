@@ -654,7 +654,7 @@ class AbnormalService
             return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
         }
         
-        return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox', 'Belt Cam'];
+        return ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox Cam', 'Belt Cam'];
     }
 
 
@@ -839,7 +839,28 @@ class AbnormalService
             $data['updated_at'] = date('Y-m-d H:i:s');
         }
 
+        $existing = $abnormalModel->select('laporan_abnormal.*, master_mesin.no_mesin')
+                                  ->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin', 'left')
+                                  ->find($idAbnormal);
+
         if ($abnormalModel->update($idAbnormal, $data)) {
+            // Catat ke Log Audit
+            if ($existing) {
+                $snapshotOld = ['header' => $existing, 'details' => []];
+                $mergedNew = array_merge($existing, $data);
+                $snapshotNew = ['header' => $mergedNew, 'details' => []];
+                
+                $logAuditModel = new \App\Models\LogAuditLaporanModel();
+                $logAuditModel->insert([
+                    'kategori_dokumen' => 'Tindak Lanjut Abnormal',
+                    'aksi'             => $isHapusSemua ? 'Hapus' : 'Edit',
+                    'no_mesin'         => $existing['no_mesin'] ?? '-',
+                    'waktu_eksekusi'   => date('Y-m-d H:i:s'),
+                    'dieksekusi_oleh'  => session()->get('nama') ?? 'System',
+                    'alasan'           => $isHapusSemua ? 'Penghapusan tindak lanjut via sistem.' : 'Pembaruan rencana perbaikan (Action).',
+                    'detail_perubahan' => json_encode(['old_data' => $snapshotOld, 'new_data' => $snapshotNew]),
+                ]);
+            }
             return ["status" => true, "message" => $successMsg];
         }
 

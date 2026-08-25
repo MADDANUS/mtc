@@ -33,7 +33,7 @@ class ChecklistController extends BaseController
         'kabel-dan-pipa' => 'Kabel dan Pipa',
         'angin-bocor'    => 'Angin Bocor',
         'bearing-cam'    => 'Bearing Cam',
-        'gearbox'        => 'Gearbox',
+        'gearbox'        => 'Gearbox Cam',
         'belt-cam'       => 'Belt Cam',
         // Overhaul
         'mesin-cnc-bar-feeder' => 'Mesin CNC & Bar Feeder',
@@ -624,7 +624,7 @@ class ChecklistController extends BaseController
         if (strtolower($jenisSlug) === 'overhaul' && $departemenName === Departemen::MFG2->value) {
             $db = \Config\Database::connect();
             
-            $sql = "SELECT DISTINCT jenis FROM master_mesin WHERE plant = ? AND departemen = ? AND jenis IS NOT NULL AND jenis != '-'";
+            $sql = "SELECT DISTINCT jenis FROM master_mesin WHERE plant = ? AND departemen = ? AND jenis IS NOT NULL AND jenis NOT IN ('-', 'CAM')";
             $params = [$plantName, $departemenName];
             
             if (!empty($line)) {
@@ -674,7 +674,7 @@ class ChecklistController extends BaseController
             
             if ($hasCam) {
                 $baseCategories['bearing-cam'] = 'Bearing Cam';
-                $baseCategories['gearbox'] = 'Gearbox';
+                $baseCategories['gearbox'] = 'Gearbox Cam';
                 $baseCategories['belt-cam'] = 'Belt Cam';
             }
         }

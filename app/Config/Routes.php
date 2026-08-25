@@ -59,13 +59,14 @@ $routes->group('riwayat', ['filter' => 'auth'], static function ($routes) {
     $routes->get('download-pdf-all/(:segment)', 'RiwayatController::downloadPdfAll/$1', ['filter' => 'role:member,leader mtc,admin,magang,leader mtc']);
     $routes->get('export-excel/(:segment)', 'RiwayatController::exportExcel/$1', ['filter' => 'role:member,leader mtc,admin,magang,leader mtc']);
     $routes->get('download-pdf/(:num)', 'RiwayatController::downloadPdf/$1', ['filter' => 'role:member,leader mtc,admin,magang,leader mtc']);
+    $routes->get('download-excel-detail/(:num)', 'RiwayatController::downloadExcelDetail/$1', ['filter' => 'role:member,leader mtc,admin,magang,leader mtc']);
     $routes->get('(:num)', 'RiwayatController::detail/$1');
     $routes->post('approve/(:num)', 'RiwayatController::approve/$1', ['filter' => 'role:member,leader mtc,sheadprd,sheadmtc,admin,leader']);
     
-    // Khusus Admin: Edit & Hapus Riwayat
-    $routes->get('edit/(:num)', 'RiwayatController::edit/$1', ['filter' => 'role:admin']);
-    $routes->post('update/(:num)', 'RiwayatController::update/$1', ['filter' => 'role:admin']);
-    $routes->post('delete/(:num)', 'RiwayatController::delete/$1', ['filter' => 'role:admin']);
+    // Khusus Admin & Leader MTC: Edit & Hapus Riwayat
+    $routes->get('edit/(:num)', 'RiwayatController::edit/$1', ['filter' => 'role:admin,leader mtc']);
+    $routes->post('update/(:num)', 'RiwayatController::update/$1', ['filter' => 'role:admin,leader mtc']);
+    $routes->post('delete/(:num)', 'RiwayatController::delete/$1', ['filter' => 'role:admin,leader mtc']);
     $routes->post('delete-approval/(:num)', 'RiwayatController::deleteApproval/$1', ['filter' => 'role:admin']);
 });
 
@@ -75,8 +76,8 @@ $routes->group('scan', ['filter' => 'role:magang,member,leader mtc,admin'], stat
     $routes->get('mesin/(:num)', 'ScanController::mesin/$1');
 });
 
-// Checklist Control Bulanan (semua role login)
-$routes->group('kontrol', ['filter' => 'auth'], static function ($routes) {
+// Checklist Control Bulanan (semua role kecuali magang)
+$routes->group('kontrol', ['filter' => 'role:admin,member,leader mtc,leader,sheadprd,sheadmtc'], static function ($routes) {
     $routes->get('/', 'KontrolController::index');
     $routes->get('pdf', 'KontrolController::pdf', ['filter' => 'role:member,leader mtc,admin']);
     $routes->get('pdf-all-categories', 'KontrolController::pdfAllCategories', ['filter' => 'role:member,leader mtc,admin']);
@@ -113,15 +114,15 @@ $routes->group('abnormal', ['filter' => 'auth'], static function ($routes) {
     $routes->post('delete-foto-perbaikan', 'AbnormalController::deleteFotoPerbaikan');
 });
 
-// Laporan Durasi (member, admin, magang)
+// Laporan Durasi (member, admin)
 $routes->get('admin/user/export', 'Admin\UserController::export', ['filter' => 'role:admin,sheadmtc,sheadprd,leader,leader mtc']);
 $routes->get('admin/audit-log', 'Admin\AuditLogController::index', ['filter' => 'role:admin']);
   $routes->get('admin/log-mesin', 'Admin\LogMesinController::index', ['filter' => 'role:admin']);
   $routes->get('admin/log-user', 'Admin\LogUserController::index', ['filter' => 'role:admin']);
   $routes->get('testqueries', 'TestQueries::index');
-  $routes->get('laporan/durasi', 'LaporanController::durasi', ['filter' => 'role:member,leader mtc,admin,magang']);
-  $routes->get('laporan/durasi-pdf', 'LaporanController::durasiPdf', ['filter' => 'role:member,leader mtc,admin,magang']);
-  $routes->get('laporan/durasi-excel', 'LaporanController::durasiExcel', ['filter' => 'role:member,leader mtc,admin,magang']);
+  $routes->get('laporan/durasi', 'LaporanController::durasi', ['filter' => 'role:member,leader mtc,admin']);
+  $routes->get('laporan/durasi-pdf', 'LaporanController::durasiPdf', ['filter' => 'role:member,leader mtc,admin']);
+  $routes->get('laporan/durasi-excel', 'LaporanController::durasiExcel', ['filter' => 'role:member,leader mtc,admin']);
 
 // Approval Inbox (semua role kecuali magang)
 $routes->get('approval', 'ApprovalController::index', ['filter' => 'role:admin,member,leader mtc,leader,sheadprd,sheadmtc']);
@@ -133,7 +134,7 @@ $routes->group('admin/mesin', ['filter' => 'role:admin,member,leader mtc,sheadpr
     $routes->get('edit/(:num)', 'MesinController::edit/$1');
     $routes->post('update/(:num)', 'MesinController::update/$1');
     $routes->post('delete-batch', 'MesinController::deleteBatch');
-    $routes->get('delete/(:num)', 'MesinController::delete/$1');
+    $routes->post('delete/(:num)', 'MesinController::delete/$1');
     $routes->get('export', 'MesinController::export');
     $routes->get('template', 'MesinController::template');
     $routes->post('import', 'MesinController::import');

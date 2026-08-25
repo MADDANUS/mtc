@@ -42,13 +42,16 @@
   <!-- ROW 1: Logo (rowspan=4) + CHECKLIST CONTROL -->
   <tr>
     <td rowspan="4" style="width:15%; border:1.5pt solid #000; text-align:center; vertical-align:middle; padding:6px 4px;">
-      <div style="width:44px; height:44px; border:2px double #0000ff; border-radius:50%; margin:0 auto; position:relative;">
-        <div style="position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:#fff; padding:0 3px; font-size:1.1rem; font-weight:normal; color:#0000ff;">NSI</div>
-      </div>
-      <div style="font-size:0.6rem; margin-top:6px; font-style:italic; color:#0070c0; line-height:1.4; text-align:center;">
-        <div>The Future in Our</div>
-        <div>Hands</div>
-      </div>
+              <?php 
+          $logoPath = FCPATH . 'uploads/nsi_logo.png';
+          if (file_exists($logoPath)) {
+              $logoData = base64_encode(file_get_contents($logoPath));
+              echo '<img src="data:image/png;base64,' . $logoData . '" style="max-width: 80px; max-height: 80px; display: block; margin: 0 auto;">';
+          } else {
+              echo '<div style="font-weight:bold; color:blue; font-size:24px;">NSI</div>';
+          }
+        ?>
+      
     </td>
     <td colspan="8" style="border:1.5pt solid #000; text-align:center; font-weight:bold; font-size:16px; padding:6px; letter-spacing:0.5px;">CHECKLIST CONTROL</td>
   </tr>

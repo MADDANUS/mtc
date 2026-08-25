@@ -32,7 +32,7 @@ class JadwalController extends BaseController
             'Kabel dan Pipa',
             'Angin Bocor',
             'Bearing Cam',
-            'Gearbox',
+            'Gearbox Cam',
             'Belt Cam',
         ];
     }
@@ -391,7 +391,7 @@ class JadwalController extends BaseController
             }
 
             // Validasi Kategori khusus MFG 1 vs MFG 2
-            $isMfg1Only = in_array($kategori, ['Bearing Cam', 'Gearbox', 'Belt Cam'], true);
+            $isMfg1Only = in_array($kategori, ['Bearing Cam', 'Gearbox Cam', 'Belt Cam'], true);
             if ($departemen === 'MFG 2' && $isMfg1Only) {
                 $errors[] = "Baris {$rowNumber}: Kategori '<b>{$kategori}</b>' HANYA BOLEH untuk MFG 1.";
                 $skipCount++;

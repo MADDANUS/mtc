@@ -66,11 +66,17 @@ class DashboardController extends BaseController
     private function leaderStyleDashboard(string $title)
     {
         $transaksiModel = new TransaksiCheckModel();
-        $laporan        = $transaksiModel->getLaporanDurasi();
+        
+        $sessionLokasi = session()->get('departemen');
+        $sessionPlant = session()->get('plant');
+        $sessionLine = session()->get('line');
 
-        $laporan = array_filter($laporan, fn($l) => strtolower($l['jenis_check']) === 'overhaul');
-        $laporan = array_values($laporan);
-
+        $laporan = $transaksiModel->getLaporanDurasi([
+            'departemen' => $sessionLokasi,
+            'plant'      => $sessionPlant,
+            'line'       => $sessionLine
+        ]);
+        
         $totalTransaksi = count($laporan);
         $totalDurasi    = 0;
 
@@ -83,10 +89,10 @@ class DashboardController extends BaseController
                                        
         if (has_any_role([Role::Sheadprd->value, Role::Sheadmtc->value, Role::Leader->value])) {
             $findingsQuery->join('master_mesin', 'master_mesin.id_mesin = laporan_abnormal.id_mesin', 'left');
-            if ($userDepts = session()->get('departemen')) {
+            if (($userDepts = session()->get('departemen')) && $userDepts !== '-') {
                 $findingsQuery->whereIn('master_mesin.departemen', array_map('trim', explode(',', $userDepts)));
             }
-            if ($userPlan = session()->get('plant')) {
+            if (($userPlan = session()->get('plant')) && $userPlan !== '-') {
                 $findingsQuery->whereIn('master_mesin.plant', array_map('trim', explode(',', $userPlan)));
             }
             if (($userLine = session()->get('line')) && $userLine !== '-') {
@@ -105,12 +111,14 @@ class DashboardController extends BaseController
         $approvalModel = new \App\Models\ApprovalBulananModel();
         $pendingKontrol = $approvalModel->getPendingKontrolByRole();
 
+        $sessionLokasi = session()->get('departemen');
+        $sessionPlant = session()->get('plant');
+        $sessionLine = session()->get('line');
+
         // Fetch pending overhaul
-        $sessionLine = session()->get('line') ?: session()->get('departemen');
-        $pendingOverhaul = $transaksiModel->getPendingOverhaulByRole($sessionLine);
+        $pendingOverhaul = $transaksiModel->getPendingOverhaulByRole($sessionLine, $sessionLokasi, $sessionPlant);
 
         $bulan = $this->request->getGet('bulan') ?: date('Y-m');
-        $sessionLokasi = session()->get('departemen');
 
         return view('dashboard/leader', [
             'title'          => $title,
@@ -120,7 +128,12 @@ class DashboardController extends BaseController
             'terbaru'        => array_slice($laporan, 0, 8),
             'pendingKontrol' => $pendingKontrol,
             'pendingOverhaul'=> $pendingOverhaul,
-            'percentageSummary' => $transaksiModel->getPercentageSummary(['bulan' => $bulan, 'departemen' => $sessionLokasi]),
+            'percentageSummary' => $transaksiModel->getPercentageSummary([
+                'bulan'      => $bulan, 
+                'departemen' => $sessionLokasi,
+                'plant'      => $sessionPlant,
+                'line'       => $sessionLine
+            ]),
         ]);
     }
 
@@ -149,6 +162,8 @@ class DashboardController extends BaseController
         $jenis         = $this->request->getGet('jenis'); // 'preventive', 'overhaul_plant1', 'overhaul_plant2'
         $bulanSekarang = $this->request->getGet('bulan') ?: date('Y-m');
         $departemen    = $this->request->getGet('departemen');
+        $plant         = $this->request->getGet('plant');
+        $line          = $this->request->getGet('line');
 
         $db = \Config\Database::connect();
 
@@ -188,11 +203,20 @@ class DashboardController extends BaseController
         $mesinBuilder = $db->table('master_mesin m')
                            ->select('m.id_mesin, m.no_mesin, m.type_mesin, m.departemen, m.line, m.plant');
 
-        if (!empty($departemen)) {
-            $mesinBuilder->where('m.departemen', $departemen);
+        if (!empty($departemen) && $departemen !== '-') {
+            $deptsArray = array_map('trim', explode(',', $departemen));
+            $mesinBuilder->whereIn('m.departemen', $deptsArray);
+        }
+        if (!empty($line) && $line !== '-') {
+            $linesArray = array_map('trim', explode(',', $line));
+            $mesinBuilder->whereIn('m.line', $linesArray);
+        }
+        if (!$isOverhaul && !empty($plant) && $plant !== '-') {
+            $planArray = array_map('trim', explode(',', $plant));
+            $mesinBuilder->whereIn('m.plant', $planArray);
         }
         if ($isOverhaul) {
-            $mesinBuilder->where('m.jenis !=', '-');
+            $mesinBuilder->whereNotIn('m.jenis', ['-', 'CAM']);
             if ($plantFilter) {
                 $mesinBuilder->where('m.plant', $plantFilter);
             }
@@ -215,8 +239,17 @@ class DashboardController extends BaseController
                           ->where('t.jenis_check', $jenisStr)
                           ->where('t.status', 'Approved');
 
-            if (!empty($departemen)) {
-                $builder->where('m.departemen', $departemen);
+            if (!empty($departemen) && $departemen !== '-') {
+                $deptsArray = array_map('trim', explode(',', $departemen));
+                $builder->whereIn('m.departemen', $deptsArray);
+            }
+            if (!empty($line) && $line !== '-') {
+                $linesArray = array_map('trim', explode(',', $line));
+                $builder->whereIn('m.line', $linesArray);
+            }
+            if (!$isOverhaul && !empty($plant) && $plant !== '-') {
+                $planArray = array_map('trim', explode(',', $plant));
+                $builder->whereIn('m.plant', $planArray);
             }
             if ($isOverhaul && $plantFilter) {
                 $builder->where('m.plant', $plantFilter);

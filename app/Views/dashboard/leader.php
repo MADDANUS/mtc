@@ -115,7 +115,10 @@
       <table class="table table-hover align-middle mb-0 border rounded-3 overflow-hidden">
         <thead class="table-primary">
           <tr>
-            <th class="ps-3">No Mesin</th>
+            <th class="ps-3">Plant</th>
+            <th>Departemen</th>
+            <th>Line</th>
+            <th>No Mesin</th>
             <th>Kategori</th>
             <th>Tanggal</th>
             <th>PIC</th>
@@ -126,7 +129,10 @@
         <tbody>
           <?php foreach ($pendingOverhaul as $po): ?>
           <tr>
-            <td class="ps-3 fw-semibold"><?= esc($po['no_mesin'] ?? $po['nama_mesin'] ?? '-') ?></td>
+            <td class="ps-3 fw-semibold text-primary"><?= esc($po['plant'] ?? '-') ?></td>
+            <td class="fw-semibold"><?= esc($po['departemen_check'] ?? $po['departemen_mesin'] ?? '-') ?></td>
+            <td><?= esc($po['line_check'] ?? $po['line_mesin'] ?? '-') ?></td>
+            <td class="fw-semibold"><?= esc($po['no_mesin'] ?? $po['nama_mesin'] ?? '-') ?></td>
             <td><?= esc($po['kategori'] ?? '-') ?></td>
             <td class="text-muted small"><?= !empty($po['waktu_mulai']) ? format_tanggal_indo($po['waktu_mulai'], true) : '-' ?></td>
             <td><?= esc($po['nama_pic'] ?? '-') ?></td>
@@ -175,7 +181,8 @@
       <table class="table table-hover align-middle mb-0 border rounded-3 overflow-hidden">
         <thead class="table-success">
           <tr>
-            <th class="ps-3">Departemen</th>
+            <th class="ps-3">Plant</th>
+            <th>Departemen</th>
             <th>Line</th>
             <th>Kategori</th>
             <th>Bulan</th>
@@ -186,11 +193,12 @@
         <tbody>
           <?php foreach ($pendingKontrol as $pk): ?>
           <tr>
-            <td class="ps-3 fw-semibold"><?= esc($pk['departemen'] ?? '-') ?></td>
+            <td class="ps-3 fw-semibold text-primary"><?= esc($pk['plant'] ?? '-') ?></td>
+            <td class="fw-semibold"><?= esc($pk['departemen'] ?? '-') ?></td>
             <td><?= esc($pk['line'] ?? '-') ?></td>
             <td><?= esc($pk['kategori'] ?? '-') ?></td>
                         <?php 
-              $rawBulan = $pk['bulan_tahun'] ?? '';
+              $rawBulan = $pk['doc_date'] ?? $pk['bulan_tahun'] ?? '';
               if (!empty($rawBulan)) {
                   $blnArr = explode('-', $rawBulan);
                   $namaBulanList = ['01'=>'Januari', '02'=>'Februari', '03'=>'Maret', '04'=>'April', '05'=>'Mei', '06'=>'Juni', '07'=>'Juli', '08'=>'Agustus', '09'=>'September', '10'=>'Oktober', '11'=>'November', '12'=>'Desember'];
@@ -227,7 +235,7 @@
             </td>
             <td class="text-end pe-3">
               <?php
-                $kontrolUrl = site_url('kontrol') . '?departemen=' . urlencode($pk['departemen'] ?? '') . '&line=' . urlencode($pk['line'] ?? '') . '&kategori=' . urlencode($pk['kategori'] ?? '') . '&bulan=' . urlencode($pk['bulan_tahun'] ?? '') . '&from=approval';
+                $kontrolUrl = site_url('kontrol') . '?departemen=' . urlencode($pk['departemen'] ?? '') . '&line=' . urlencode($pk['line'] ?? '') . '&kategori=' . urlencode($pk['kategori'] ?? '') . '&bulan=' . urlencode($pk['doc_date'] ?? $pk['bulan_tahun'] ?? '') . '&from=approval';
               ?>
               <a href="<?= $kontrolUrl ?>" class="btn btn-sm btn-success fw-bold rounded-pill px-3">
                 <i class="bi bi-check-circle me-1"></i> Review & Approve

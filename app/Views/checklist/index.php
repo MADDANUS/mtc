@@ -187,7 +187,7 @@ $getCreateUrl = function(string $categorySlug) use ($plantSlug, $departemenSlug,
             </div>
             <div>
               <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);"><?= esc($jenisName) ?></div>
-              <h6 class="mb-0" style="font-weight:700;">Gearbox</h6>
+              <h6 class="mb-0" style="font-weight:700;">Gearbox Cam</h6>
             </div>
           </div>
           <p style="font-size:0.83rem;color:var(--text-secondary);line-height:1.6;" class="mb-4">

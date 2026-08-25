@@ -175,80 +175,136 @@ class LaporanController extends BaseController
         ];
 
         helper('tanggal');
-        $laporan = (new TransaksiCheckModel())->getLaporanDurasi($filters);
+        $laporan = (new \App\Models\TransaksiCheckModel())->getLaporanDurasi($filters);
+        
+        $totalDetik = 0;
+        $countSelesai = 0;
+        foreach ($laporan as $l) {
+            if ($l['durasi_detik'] !== null) {
+                $totalDetik += $l['durasi_detik'];
+                $countSelesai++;
+            }
+        }
+        $rataDetik = $countSelesai > 0 ? floor($totalDetik / $countSelesai) : 0;
 
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Laporan Durasi');
 
-        $headerStyle = [
-            'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
-            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1E3A5F']],
-            'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-        ];
-        $dataStyle = [
-            'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
-            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
-        ];
+        $sheet->getParent()->getDefaultStyle()->getFont()->setName('Arial')->setSize(10);
+        $sheet->getColumnDimension('A')->setWidth(5);
+        $sheet->getColumnDimension('B')->setWidth(25);
+        $sheet->getColumnDimension('C')->setWidth(15);
+        $sheet->getColumnDimension('D')->setWidth(25);
+        $sheet->getColumnDimension('E')->setWidth(20);
+        $sheet->getColumnDimension('F')->setWidth(25);
+        $sheet->getColumnDimension('G')->setWidth(25);
+        $sheet->getColumnDimension('H')->setWidth(15);
+
+        $borderThin = ['borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN, 'color' => ['argb' => 'FF000000']]]];
 
         // Title row
-        $sheet->mergeCells('A1:K1');
+        $sheet->mergeCells('A1:H1');
         $sheet->setCellValue('A1', 'LAPORAN DURASI PENGECEKAN');
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13);
-        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
 
-        // Column headers row 3
-        $headers = ['No', 'PIC', 'Mesin', 'Departemen', 'Line', 'Jenis', 'Kategori', 'Waktu Mulai', 'Waktu Selesai', 'Durasi', 'Status'];
+        // Stat Box (like PDF)
+        $sheet->mergeCells('A3:H3');
+        $sheet->setCellValue('A3', 'Rata-rata Durasi Semua Transaksi (Berdasarkan Filter)');
+        $sheet->getStyle('A3')->getFont()->getColor()->setARGB('FF666666');
+        
+        $sheet->mergeCells('A4:H4');
+        $sheet->setCellValue('A4', gmdate('i \m\e\n\i\t s \d\e\t\i\k', $rataDetik));
+        $sheet->getStyle('A4')->getFont()->setBold(true)->setSize(12);
+        
+        $sheet->getStyle('A3:H4')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFF8F9FA');
+        $sheet->getStyle('A3:H4')->getBorders()->getOutline()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THICK);
+
+        // Column headers row 6
+        $headers = ['NO', 'PIC', 'Mesin', 'Departemen / Line', 'Jenis Pengecekan', 'Waktu Mulai', 'Waktu Selesai', 'Durasi'];
         $col = 'A';
         foreach ($headers as $h) {
-            $sheet->setCellValue($col . '3', $h);
+            $sheet->setCellValue($col . '6', $h);
             $col++;
         }
-        $sheet->getStyle('A3:K3')->applyFromArray($headerStyle);
+        $sheet->getStyle('A6:H6')->getFont()->setBold(true);
+        $sheet->getStyle('A6:H6')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFF2F2F2');
+        $sheet->getStyle('A6:H6')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
 
-        $row = 4;
-        $no  = 1;
-        foreach ($laporan as $l) {
-            $durasiDetik = $l['durasi_detik'] ?? null;
-            if ($durasiDetik !== null) {
-                $jam   = floor($durasiDetik / 3600);
-                $menit = floor(($durasiDetik % 3600) / 60);
-                $det   = $durasiDetik % 60;
-                $durasiStr = $jam > 0
-                    ? sprintf('%02d:%02d:%02d', $jam, $menit, $det)
-                    : sprintf('%02d:%02d', $menit, $det);
-            } else {
-                $durasiStr = '-';
-            }
-            $sheet->setCellValue('A' . $row, $no++);
-            $sheet->setCellValue('B' . $row, $l['nama_pic'] ?? ($l['nama_staff'] ?? '-'));
-            $sheet->setCellValue('C' . $row, $l['no_mesin'] ?? '-');
-            $sheet->setCellValue('D' . $row, $l['departemen_check'] ?? '-');
-            $sheet->setCellValue('E' . $row, $l['line'] ?? '-');
-            $sheet->setCellValue('F' . $row, $l['jenis_check'] === 'Preventive' ? 'Checklist Report' : ($l['jenis_check'] ?? '-'));
-            $sheet->setCellValue('G' . $row, $l['kategori'] ?? '-');
-            $sheet->setCellValue('H' . $row, !empty($l['waktu_mulai']) ? date('d/m/Y H:i', strtotime($l['waktu_mulai'])) : '-');
-            $sheet->setCellValue('I' . $row, !empty($l['waktu_selesai']) ? date('d/m/Y H:i', strtotime($l['waktu_selesai'])) : '-');
-            $sheet->setCellValue('J' . $row, $durasiStr);
-            $sheet->setCellValue('K' . $row, $l['status'] ?? '-');
+        $row = 7;
+        if (empty($laporan)) {
+            $sheet->mergeCells("A{$row}:H{$row}");
+            $sheet->setCellValue("A{$row}", 'Belum ada data transaksi.');
+            $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
             $row++;
+        } else {
+            $no  = 1;
+            foreach ($laporan as $l) {
+                $rawNamaDurasi = $l['nama_pic'] ?: ($l['nama_staff'] ?? '');
+                $namaDurasiParts = explode(' - ', $rawNamaDurasi);
+                $namaPicDurasi = end($namaDurasiParts) ?: $rawNamaDurasi;
+
+                $deptLine = ($l['departemen_check'] ?? '-') . (!empty($l['line']) ? "\nLine: " . $l['line'] : '');
+                $jenisCheck = $l['jenis_check'] === 'Preventive' ? 'Checklist Report' : 'Inspection Report';
+                
+                $mulai = !empty($l['waktu_mulai']) ? format_tanggal_indo($l['waktu_mulai'], true) . "\n" . date('H:i:s', strtotime($l['waktu_mulai'])) : '-';
+                $selesai = !empty($l['waktu_selesai']) ? format_tanggal_indo($l['waktu_selesai'], true) . "\n" . date('H:i:s', strtotime($l['waktu_selesai'])) : 'Belum selesai';
+
+                $durasiStr = '-';
+                if ($l['durasi_detik'] !== null) {
+                    $jam   = floor($l['durasi_detik'] / 3600);
+                    $sisa  = $l['durasi_detik'] % 3600;
+                    $menit = floor($sisa / 60);
+                    $det   = $sisa % 60;
+                    $waktuStrs = [];
+                    if ($jam > 0) $waktuStrs[] = $jam . 'j';
+                    if ($menit > 0) $waktuStrs[] = $menit . 'm';
+                    if ($det > 0 || empty($waktuStrs)) $waktuStrs[] = $det . 's';
+                    $durasiStr = implode(' ', $waktuStrs);
+                }
+
+                $sheet->setCellValue('A' . $row, $no++);
+                $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $sheet->setCellValue('B' . $row, $namaPicDurasi);
+                $sheet->setCellValue('C' . $row, $l['no_mesin'] ?? '-');
+                
+                $sheet->setCellValue('D' . $row, $deptLine);
+                $sheet->getStyle('D' . $row)->getAlignment()->setWrapText(true);
+                
+                $sheet->setCellValue('E' . $row, $jenisCheck);
+                $sheet->getStyle('E' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                if ($jenisCheck === 'Checklist Report') {
+                    $sheet->getStyle('E' . $row)->getFont()->getColor()->setARGB('FF0D6EFD');
+                } else {
+                    $sheet->getStyle('E' . $row)->getFont()->getColor()->setARGB('FF0DCAF0');
+                }
+                
+                $sheet->setCellValue('F' . $row, $mulai);
+                $sheet->getStyle('F' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setWrapText(true);
+                
+                $sheet->setCellValue('G' . $row, $selesai);
+                $sheet->getStyle('G' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setWrapText(true);
+                if ($selesai === 'Belum selesai') {
+                    $sheet->getStyle('G' . $row)->getFont()->setItalic(true)->getColor()->setARGB('FF999999');
+                }
+                
+                $sheet->setCellValue('H' . $row, $durasiStr);
+                $sheet->getStyle('H' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('H' . $row)->getFont()->setBold(true);
+                
+                $row++;
+            }
         }
 
-        if ($row > 4) {
-            $sheet->getStyle('A4:K' . ($row - 1))->applyFromArray($dataStyle);
-            $sheet->getStyle('A4:A' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        }
-
-        foreach (range('A', 'K') as $c) {
-            $sheet->getColumnDimension($c)->setAutoSize(true);
-        }
+        $sheet->getStyle('A6:H' . ($row - 1))->applyFromArray($borderThin);
+        $sheet->getStyle('A6:H' . ($row - 1))->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
 
         $filename = 'Laporan_Durasi_Pengecekan_' . date('Ymd') . '.xlsx';
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="' . $filename . '"');
         header('Cache-Control: max-age=0');
-        (new Xlsx($spreadsheet))->save('php://output');
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save('php://output');
         exit;
     }
 }

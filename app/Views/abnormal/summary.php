@@ -74,6 +74,141 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
 };
 ?>
 
+
+<div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+
+    <div class="card-body p-0">
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover align-middle mb-0 paginated-table">
+                <thead class="table-light">
+                    <!-- Baris Kolom dan Sorting -->
+                    <tr>
+                        <th class="ps-4" style="width: 15%;">
+                            <span class="text-white d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                                PLANT
+                            </span>
+                        </th>
+                        <th style="width: 20%;">
+                            <a href="<?= $getSortUrl('departemen') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                                DEPARTEMEN <?= $getSortIcon('departemen') ?>
+                            </a>
+                        </th>
+                        <th style="width: 20%;">
+                            <a href="<?= $getSortUrl('line') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                                LINE <?= $getSortIcon('line') ?>
+                            </a>
+                        </th>
+                        <th style="width: 25%;">
+                            <a href="<?= $getSortUrl('kategori') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                                KATEGORI <?= $getSortIcon('kategori') ?>
+                            </a>
+                        </th>
+                        <th class="fw-bold text-uppercase text-secondary align-middle" style="width: 25%; font-size: 0.72rem; letter-spacing: 0.08em;">
+                            <a href="<?= $getSortUrl('statusText') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase">
+                                STATUS PERBAIKAN <?= $getSortIcon('statusText') ?>
+                            </a>
+                        </th>
+                        <th style="width: 15%;">
+                            <span class="text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
+                                BULAN
+                            </span>
+                        </th>
+                        <th class="pe-4 text-center fw-bold text-uppercase text-secondary align-middle" style="font-size: 0.72rem; letter-spacing: 0.08em;">Aksi</th>
+                    </tr>
+                    <!-- NEW FILTER ROW -->
+                    <tr class="bg-white">
+                        <th class="ps-4 py-2">
+                            <select name="filter_plant" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Plant..." onchange="document.getElementById('filterForm').submit();">
+                                <option value="all" <?= ($filterPlant ?? '') === 'all' ? 'selected' : '' ?>>Semua Plant</option>
+                                <option value="Plant 1" <?= ($filterPlant ?? '') === 'Plant 1' ? 'selected' : '' ?>>Plant 1</option>
+                                <option value="Plant 2" <?= ($filterPlant ?? '') === 'Plant 2' ? 'selected' : '' ?>>Plant 2</option>
+                            </select>
+                        </th>
+                        <th class="py-2">
+                            <select name="filter_lokasi" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Departemen..." onchange="document.getElementById('filterForm').submit();">
+                                <option value=""></option>
+                                <option value="all" <?= ($filterLokasi ?? '') === 'all' ? 'selected' : '' ?>>Semua Departemen</option>
+                                <option value="MFG 1" <?= ($filterLokasi ?? '') === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
+                                <option value="MFG 2" <?= ($filterLokasi ?? '') === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
+                            </select>
+                        </th>
+                        <th class="py-2">
+                            <select name="filter_line" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Line..." onchange="document.getElementById('filterForm').submit();">
+                                <option value=""></option>
+                                <option value="all" <?= ($filterLine ?? '') === 'all' ? 'selected' : '' ?>>Semua Line</option>
+                                <?php foreach ($availableLines as $optLine): ?>
+                                    <option value="<?= esc($optLine) ?>" <?= ($filterLine ?? '') === $optLine ? 'selected' : '' ?>><?= esc($optLine) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </th>
+                        <th class="py-2">
+                            <select name="filter_kategori" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Kategori..." onchange="document.getElementById('filterForm').submit();">
+                                <option value=""></option>
+                                <option value="all" <?= ($filterKategori ?? '') === 'all' ? 'selected' : '' ?>>Semua Kategori</option>
+                                <?php foreach ($availableCategories as $optCat): ?>
+                                    <option value="<?= esc($optCat) ?>" <?= ($filterKategori ?? '') === $optCat ? 'selected' : '' ?>><?= esc($optCat) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </th>
+                        <th class="py-2">
+                            <select name="filter_status" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Status..." onchange="document.getElementById('filterForm').submit();">
+                                <option value=""></option>
+                                <option value="all" <?= ($filterStatus ?? '') === 'all' ? 'selected' : '' ?>>Semua Status</option>
+                                <option value="Belum Perbaikan" <?= ($filterStatus ?? '') === 'Belum Perbaikan' ? 'selected' : '' ?>>Belum Perbaikan</option>
+                                <option value="Sudah Perbaikan" <?= ($filterStatus ?? '') === 'Sudah Perbaikan' ? 'selected' : '' ?>>Sudah Perbaikan</option>
+                            </select>
+                        </th>
+                        <th class="py-2">
+                            <select name="bulan" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-no-sort="true" onchange="document.getElementById('filterForm').submit();">
+                                <?php foreach ($bulanList as $val => $label): ?>
+                                    <option value="<?= $val ?>" <?= $val === $bulan ? 'selected' : '' ?>><?= $label ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </th>
+                        <th class="pe-4 py-2 text-center align-middle">
+                            <a href="<?= site_url('abnormal') ?>" class="btn btn-sm btn-danger fw-bold px-3" title="Reset Filter" style="font-size: 0.75rem;">
+                                <i class="bi bi-arrow-counterclockwise fw-bold"></i> Reset
+                            </a>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="border-top-0">
+                    <?php if(empty($summaryRows)): ?>
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">Tidak ada data ditemukan.</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($summaryRows as $row): ?>
+                            <tr>
+                                <td class="ps-4 fw-bold text-dark"><?= esc($row['plant'] ?? 'Plant 1') ?></td>
+                                <td class="fw-bold text-dark"><?= esc($row['departemen']) ?></td>
+                                <td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25"><?= esc($row['line']) ?></span></td>
+                                <td class="fw-medium text-dark"><?= esc($row['kategori']) ?></td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge <?= $row['badgeClass'] ?> rounded-pill px-3 py-2"><?= $row['statusText'] ?></span>
+                                        <?php if ($row['totalOpen'] > 0): ?>
+                                            <span class="badge bg-danger rounded-circle p-1" title="<?= $row['totalOpen'] ?> Laporan Belum Diselesaikan">
+                                                <?= $row['totalOpen'] ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td class="fw-bold text-dark" style="font-size: 0.85rem;"><?= $bulanList[$bulan] ?? $bulan ?></td>
+                                <td class="pe-4 text-end">
+                                    <a href="<?= site_url('abnormal?departemen=' . urlencode($row['departemen']) . '&line=' . urlencode($row['line']) . '&kategori=' . urlencode($row['kategori']) . '&bulan=' . urlencode($bulan)) ?>" class="btn btn-sm btn-outline-danger fw-bold rounded-pill px-3">
+                                        Lihat Data
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════════════
      GRAFIK TREN ABNORMALITAS DINAMIS
      ═══════════════════════════════════════════════════════════════ -->
@@ -303,138 +438,5 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
 })();
 </script>
 
-<div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-
-    <div class="card-body p-0">
-        <div class="table-responsive text-nowrap">
-            <table class="table table-hover align-middle mb-0 paginated-table">
-                <thead class="table-light">
-                    <!-- Baris Kolom dan Sorting -->
-                    <tr>
-                        <th class="ps-4" style="width: 15%;">
-                            <span class="text-white d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
-                                PLANT
-                            </span>
-                        </th>
-                        <th style="width: 20%;">
-                            <a href="<?= $getSortUrl('departemen') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
-                                DEPARTEMEN <?= $getSortIcon('departemen') ?>
-                            </a>
-                        </th>
-                        <th style="width: 20%;">
-                            <a href="<?= $getSortUrl('line') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
-                                LINE <?= $getSortIcon('line') ?>
-                            </a>
-                        </th>
-                        <th style="width: 25%;">
-                            <a href="<?= $getSortUrl('kategori') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
-                                KATEGORI <?= $getSortIcon('kategori') ?>
-                            </a>
-                        </th>
-                        <th class="fw-bold text-uppercase text-secondary align-middle" style="width: 25%; font-size: 0.72rem; letter-spacing: 0.08em;">
-                            <a href="<?= $getSortUrl('statusText') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase">
-                                STATUS PERBAIKAN <?= $getSortIcon('statusText') ?>
-                            </a>
-                        </th>
-                        <th style="width: 15%;">
-                            <span class="text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
-                                BULAN
-                            </span>
-                        </th>
-                        <th class="pe-4 text-center fw-bold text-uppercase text-secondary align-middle" style="font-size: 0.72rem; letter-spacing: 0.08em;">Aksi</th>
-                    </tr>
-                    <!-- NEW FILTER ROW -->
-                    <tr class="bg-white">
-                        <th class="ps-4 py-2">
-                            <select name="filter_plant" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Plant..." onchange="document.getElementById('filterForm').submit();">
-                                <option value="all" <?= ($filterPlant ?? '') === 'all' ? 'selected' : '' ?>>Semua Plant</option>
-                                <option value="Plant 1" <?= ($filterPlant ?? '') === 'Plant 1' ? 'selected' : '' ?>>Plant 1</option>
-                                <option value="Plant 2" <?= ($filterPlant ?? '') === 'Plant 2' ? 'selected' : '' ?>>Plant 2</option>
-                            </select>
-                        </th>
-                        <th class="py-2">
-                            <select name="filter_lokasi" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Departemen..." onchange="document.getElementById('filterForm').submit();">
-                                <option value=""></option>
-                                <option value="all" <?= ($filterLokasi ?? '') === 'all' ? 'selected' : '' ?>>Semua Departemen</option>
-                                <option value="MFG 1" <?= ($filterLokasi ?? '') === 'MFG 1' ? 'selected' : '' ?>>MFG 1</option>
-                                <option value="MFG 2" <?= ($filterLokasi ?? '') === 'MFG 2' ? 'selected' : '' ?>>MFG 2</option>
-                            </select>
-                        </th>
-                        <th class="py-2">
-                            <select name="filter_line" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Line..." onchange="document.getElementById('filterForm').submit();">
-                                <option value=""></option>
-                                <option value="all" <?= ($filterLine ?? '') === 'all' ? 'selected' : '' ?>>Semua Line</option>
-                                <?php foreach ($availableLines as $optLine): ?>
-                                    <option value="<?= esc($optLine) ?>" <?= ($filterLine ?? '') === $optLine ? 'selected' : '' ?>><?= esc($optLine) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </th>
-                        <th class="py-2">
-                            <select name="filter_kategori" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Kategori..." onchange="document.getElementById('filterForm').submit();">
-                                <option value=""></option>
-                                <option value="all" <?= ($filterKategori ?? '') === 'all' ? 'selected' : '' ?>>Semua Kategori</option>
-                                <?php foreach ($availableCategories as $optCat): ?>
-                                    <option value="<?= esc($optCat) ?>" <?= ($filterKategori ?? '') === $optCat ? 'selected' : '' ?>><?= esc($optCat) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </th>
-                        <th class="py-2">
-                            <select name="filter_status" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Status..." onchange="document.getElementById('filterForm').submit();">
-                                <option value=""></option>
-                                <option value="all" <?= ($filterStatus ?? '') === 'all' ? 'selected' : '' ?>>Semua Status</option>
-                                <option value="Belum Perbaikan" <?= ($filterStatus ?? '') === 'Belum Perbaikan' ? 'selected' : '' ?>>Belum Perbaikan</option>
-                                <option value="Sudah Perbaikan" <?= ($filterStatus ?? '') === 'Sudah Perbaikan' ? 'selected' : '' ?>>Sudah Perbaikan</option>
-                            </select>
-                        </th>
-                        <th class="py-2">
-                            <select name="bulan" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-no-sort="true" onchange="document.getElementById('filterForm').submit();">
-                                <?php foreach ($bulanList as $val => $label): ?>
-                                    <option value="<?= $val ?>" <?= $val === $bulan ? 'selected' : '' ?>><?= $label ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </th>
-                        <th class="pe-4 py-2 text-center align-middle">
-                            <a href="<?= site_url('abnormal') ?>" class="btn btn-sm btn-danger fw-bold px-3" title="Reset Filter" style="font-size: 0.75rem;">
-                                <i class="bi bi-arrow-counterclockwise fw-bold"></i> Reset
-                            </a>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="border-top-0">
-                    <?php if(empty($summaryRows)): ?>
-                        <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">Tidak ada data ditemukan.</td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($summaryRows as $row): ?>
-                            <tr>
-                                <td class="ps-4 fw-bold text-dark"><?= esc($row['plant'] ?? 'Plant 1') ?></td>
-                                <td class="fw-bold text-dark"><?= esc($row['departemen']) ?></td>
-                                <td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25"><?= esc($row['line']) ?></span></td>
-                                <td class="fw-medium text-dark"><?= esc($row['kategori']) ?></td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="badge <?= $row['badgeClass'] ?> rounded-pill px-3 py-2"><?= $row['statusText'] ?></span>
-                                        <?php if ($row['totalOpen'] > 0): ?>
-                                            <span class="badge bg-danger rounded-circle p-1" title="<?= $row['totalOpen'] ?> Laporan Belum Diselesaikan">
-                                                <?= $row['totalOpen'] ?>
-                                            </span>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                                <td class="fw-bold text-dark" style="font-size: 0.85rem;"><?= $bulanList[$bulan] ?? $bulan ?></td>
-                                <td class="pe-4 text-end">
-                                    <a href="<?= site_url('abnormal?departemen=' . urlencode($row['departemen']) . '&line=' . urlencode($row['line']) . '&kategori=' . urlencode($row['kategori']) . '&bulan=' . urlencode($bulan)) ?>" class="btn btn-sm btn-outline-danger fw-bold rounded-pill px-3">
-                                        Lihat Data
-                                    </a>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
+<br>
 <?= view('layout/footer') ?>

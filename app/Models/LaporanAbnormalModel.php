@@ -158,7 +158,7 @@ class LaporanAbnormalModel extends Model
                         ->join('master_parameter_check', 'master_parameter_check.id_parameter = transaksi_check_detail.id_parameter', 'left')
                         ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value);
         
-        $this->applyUserFilter($builder);
+        $this->applyUserFilter($builder, true);
 
         if (!empty($departemen) && $departemen !== 'all') {
             $builder->where('master_mesin.departemen', $departemen);
@@ -194,7 +194,7 @@ class LaporanAbnormalModel extends Model
                         ->join('transaksi_check', 'transaksi_check.id_transaksi = laporan_abnormal.id_transaksi', 'left')
                         ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value);
         
-        $this->applyUserFilter($builder);
+        $this->applyUserFilter($builder, true);
         
         $this->applySemesterFilter($builder, $bulan);
 
@@ -212,7 +212,7 @@ class LaporanAbnormalModel extends Model
                     ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value)
                     ->where('master_mesin.departemen', $departemen);
         
-        $this->applyUserFilter($builder);
+        $this->applyUserFilter($builder, true);
         
         $this->applySemesterFilter($builder, $bulan);
         return $builder->findAll();
@@ -227,10 +227,12 @@ class LaporanAbnormalModel extends Model
         return $builder->first() ?: [];
     }
 
-    private function applyUserFilter($builder)
+    private function applyUserFilter($builder, bool $isOverhaul = false)
     {
         if (function_exists('has_role') && has_role('magang')) {
-            $builder->where('transaksi_check.id_user', session()->get('user_id'));
+            if ($isOverhaul) {
+                $builder->where('transaksi_check.id_user', session()->get('user_id'));
+            }
         }
     }
 

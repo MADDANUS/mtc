@@ -1,0 +1,55 @@
+Array
+(
+    [0] => Array
+        (
+            [name] => write_to_file
+            [args] => Array
+                (
+                    [ArtifactMetadata] => Array
+                        (
+                            [RequestFeedback] => 1
+                            [Summary] => Rencana untuk menambahkan fitur Download Full Excel (multi-sheet) berdasarkan filter.
+                            [UserFacing] => 1
+                        )
+
+                    [CodeContent] => # Penambahan Fitur "Download Full Excel" pada Riwayat
+
+Pengguna menginginkan tombol "Download Full Excel" di halaman ringkasan (depan) yang akan mengunduh laporan detail (bukan hanya tabel rekapitulasi) untuk seluruh transaksi yang sedang difilter. Ini akan berfungsi mirip dengan tombol "Download PDF", namun menghasilkan file Excel dengan banyak *sheet* (1 *sheet* untuk setiap transaksi).
+
+## Rencana Implementasi
+
+### 1. Refactor Generator Excel (RiwayatController.php)
+Saat ini fungsi `generateOverhaulExcelNative` dan `generatePreventiveExcelNative` membangun Excel sekaligus langsung melakukan *output* dan mematikan eksekusi skrip (`exit()`).
+- Akan dipisahkan menjadi `buildOverhaulExcelSheet($header, $details, $sheet)` dan `buildPreventiveExcelSheet($header, $details, $sheet)`.
+- Fungsi pembungkus lama akan tetap ada untuk melayani `downloadExcelDetail` (satu transaksi), yang memanggil fungsi `build...` lalu melakukan *output*.
+
+### 2. Buat Metode Baru `exportExcelAll($departemenSlug)` (RiwayatController.php)
+- Membaca filter pencarian seperti fungsi PDF-All.
+- Menarik seluruh data transaksi yang cocok dengan filter.
+- Membuat objek `Spreadsheet` baru.
+- Melakukan *loop* per transaksi:
+  - Membuat `Worksheet` (sheet) baru.
+  - Memanggil `buildOverhaulExcelSheet` atau `buildPreventiveExcelSheet` tergantung jenis transaksinya.
+- Menyimpan dan mengeluarkan output 1 file `.xlsx` berisi banyak *sheet*.
+
+### 3. Daftarkan Route (Routes.php)
+- Menambahkan route `GET riwayat/export-excel-all/(:segment)` -> `RiwayatController::exportExcelAll/$1`
+
+### 4. Tambahkan Tombol di Tampilan (app/Views/riwayat/index.php)
+- Menambahkan link/tombol `Download Full Excel` (misalnya warna biru/hijau) di samping tombol `Download PDF`.
+- Menyesuaikan parameter filter ke dalam query string URL.
+
+## User Review Required
+Apakah Anda setuju dengan pendekatan file Excel ber- *multi-sheet* (satu transaksi, satu halaman *sheet* di dalam file Excel yang sama) ini? Pendekatan ini sangat rapi dan memudahkan Anda menyimpan data banyak form inspeksi hanya dalam 1 buah file. 
+
+Silakan klik **Proceed** jika Anda setuju!
+                    [Description] => Implementation plan for Download Full Excel feature
+                    [Overwrite] => 
+                    [TargetFile] => C:\xampp\mtc\brain\a209cd11-ce46-4837-be49-4de3afd6cfc7\implementation_plan.md
+                    [toolAction] => Creating implementation plan for Download Full Excel feature
+                    [toolSummary] => Create implementation plan
+                )
+
+        )
+
+)

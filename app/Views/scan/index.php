@@ -29,41 +29,76 @@
 
 <!-- Local html5-qrcode -->
 <script src="<?= base_url('assets/js/html5-qrcode.min.js') ?>" type="text/javascript"></script>
+<!-- jsQR: decoder untuk gambar lokal -->
+<script src="<?= base_url('assets/js/jsQR.min.js') ?>"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    // Inisialisasi scanner
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-      "reader", 
-      { 
-        fps: 15, 
-        qrbox: { width: 230, height: 230 },
-        aspectRatio: 1.0
-      },
-      /* verbose= */ false
-    );
 
-    function onScanSuccess(decodedText, decodedResult) {
-      // Verifikasi apakah QR Code berisi tautan valid ke scan mesin sistem kita
-      if (decodedText.includes('/scan/mesin/')) {
-        // Hentikan pemindaian kamera untuk mencegah redirect berulang
-        html5QrcodeScanner.clear().then(() => {
-          window.location.href = decodedText;
-        }).catch(() => {
-          window.location.href = decodedText;
-        });
+    function navigateToResult(url) {
+      if (url.includes('/scan/mesin/')) {
+        window.location.href = url;
       } else {
         alert("QR Code tidak valid! Pastikan Anda memindai stiker QR Code Mesin MTCE resmi.");
       }
     }
 
-    function onScanFailure(error) {
-      // Abaikan kegagalan frame pembacaan berkala (karena kamera terus melacak)
+    // ── Decode file gambar dengan jsQR ─────────────────────────────────────
+    function decodeFileWithJsQR(file) {
+      var fr = new FileReader();
+      fr.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          canvas.width  = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+          var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
+          if (code) {
+            navigateToResult(code.data);
+          }
+        };
+        img.src = e.target.result;
+      };
+      fr.readAsDataURL(file);
     }
 
-    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    // ── Event delegation: tangkap semua file input di dalam #reader ────────
+    // Ini bekerja meskipun html5-qrcode membuat ulang elemen input setiap saat,
+    // karena listener dipasang di document, bukan di elemen spesifik.
+    document.addEventListener('change', function(e) {
+      var target = e.target;
+      if (
+        target.tagName === 'INPUT' &&
+        target.type === 'file' &&
+        document.getElementById('reader') &&
+        document.getElementById('reader').contains(target)
+      ) {
+        if (target.files && target.files[0]) {
+          decodeFileWithJsQR(target.files[0]);
+        }
+      }
+    });
+
+    // ── Scanner kamera utama ───────────────────────────────────────────────
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+      "reader", 
+      { fps: 15, qrbox: { width: 230, height: 230 }, aspectRatio: 1.0 },
+      false
+    );
+
+    html5QrcodeScanner.render(
+      function(decodedText) {
+        html5QrcodeScanner.clear()
+          .then(function()  { navigateToResult(decodedText); })
+          .catch(function() { navigateToResult(decodedText); });
+      },
+      function() { /* abaikan error frame kamera */ }
+    );
   });
 </script>
-
 <style>
   /* Kustomisasi gaya elemen html5-qrcode untuk mencocokkan dengan minimal design */
   #reader {

@@ -16,7 +16,7 @@
     $namaOvParts = explode(' - ', $rawNamaOv);
     $namaOvOnly  = end($namaOvParts);
   ?>
-  <table style="width:100%; border-collapse:collapse; text-align:center; margin-top:20px;">
+  <table width="100%" style="width:100%; border-collapse:collapse; text-align:center; margin-top:20px;">
     <tr>
       <td style="border:1.5pt solid #000; width:25%; vertical-align:top; padding:10px;">
         <div style="margin-bottom:5px; font-size:0.85rem;">Prepared</div>
@@ -85,7 +85,7 @@
 
   <?php else: ?>
   <!-- SIGNATURE: CHECKLIST REPORT (2 kolom) -->
-  <table style="width:100%; border-collapse:collapse; text-align:center; margin-top:20px;">
+  <table width="100%" style="width:100%; border-collapse:collapse; text-align:center; margin-top:20px;">
     <tr>
       <td style="border:1.5pt solid #000; width:50%; vertical-align:top; padding:10px;">
         <div style="margin-bottom:5px; font-size:0.85rem;">Dibuat Oleh</div>

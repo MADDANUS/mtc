@@ -41,7 +41,7 @@
       <table class="table table-sm align-middle">
         <thead>
           <tr>
-            <?php if (has_role('admin')): ?>
+            <?php if (has_any_role(['admin', 'leader mtc'])): ?>
             <th style="width: 40px;" class="text-center">
               <input type="checkbox" id="checkAllUser" class="form-check-input">
             </th>
@@ -59,12 +59,20 @@
         <tbody>
           <?php foreach ($daftar as $u): ?>
             <tr>
-              <?php if (has_role('admin')): ?>
+              <?php if (has_any_role(['admin', 'leader mtc'])): ?>
               <td class="text-center">
-                <?php if ((int) $u['id'] !== (int) session()->get('user_id')): ?>
+                <?php 
+                  $isSelf = ((int) $u['id'] === (int) session()->get('user_id'));
+                  $isAdminTarget = (strpos(strtolower($u['role']), 'admin') !== false);
+                  $canCheck = !$isSelf;
+                  if (has_role('leader mtc') && $isAdminTarget) {
+                      $canCheck = false;
+                  }
+                ?>
+                <?php if ($canCheck): ?>
                   <input type="checkbox" class="form-check-input check-item-user" value="<?= $u['id'] ?>">
                 <?php else: ?>
-                  <input type="checkbox" class="form-check-input" disabled title="Tidak bisa menghapus akun yang sedang digunakan">
+                  <input type="checkbox" class="form-check-input" disabled title="<?= $isSelf ? 'Tidak bisa menghapus akun yang sedang digunakan' : 'Leader MTC tidak dapat menghapus Admin' ?>">
                 <?php endif; ?>
               </td>
               <?php endif; ?>
@@ -94,7 +102,17 @@
                     <?= $isActive ? 'Inactive' : 'Active' ?>
                   </a>
                   <a href="<?= site_url('admin/user/edit/' . $u['id']) ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
-                  <?php if ((int) $u['id'] !== (int) session()->get('user_id') && has_role('admin')): ?>
+                  <?php 
+                    $canDelete = false;
+                    if ((int) $u['id'] !== (int) session()->get('user_id')) {
+                        if (has_role('admin')) {
+                            $canDelete = true;
+                        } elseif (has_role('leader mtc') && strpos(strtolower($u['role']), 'admin') === false) {
+                            $canDelete = true;
+                        }
+                    }
+                  ?>
+                  <?php if ($canDelete): ?>
                     <button type="button" class="btn btn-sm btn-outline-danger" 
                             onclick="openDeleteModal(<?= $u['id'] ?>, '<?= esc($u['nama'], 'js') ?>')" title="Hapus User">
                       Hapus

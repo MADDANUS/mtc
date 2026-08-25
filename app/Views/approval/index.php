@@ -258,7 +258,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                       </a>
                     <?php endif; ?>
 
-                    <?php if (has_role('admin') && ($doc['doc_source'] ?? '') === 'transaksi'): ?>
+                    <?php if ((has_role('admin') || has_role('leader mtc')) && ($doc['doc_source'] ?? '') === 'transaksi'): ?>
                       <a href="<?= site_url('riwayat/edit/' . $doc['doc_id']) ?>?from=approval" class="btn btn-sm btn-outline-warning py-1 px-2" style="font-size:0.8rem;" title="Edit">
                         <i class="bi bi-pencil"></i>
                       </a>

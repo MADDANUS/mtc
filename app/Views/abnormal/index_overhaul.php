@@ -3,6 +3,9 @@
 
 
 <div class="d-flex align-items-center mb-3">
+  <a href="<?= site_url('abnormal/overhaul?view=summary') ?>" class="btn btn-sm btn-outline-secondary fw-semibold shadow-sm me-2">
+    <i class="bi bi-arrow-left me-1"></i> Kembali ke Ringkasan
+  </a>
   <div class="ms-auto d-flex gap-2">
     <?php if (!in_array(session()->get('role'), ['leader', 'sheadprd', 'sheadmtc'])): ?>
     <a href="<?= site_url('abnormal/overhaul/pdf?departemen=' . urlencode($departemenFilter) . '&bulan=' . urlencode($bulanFilter) . '&search=' . urlencode($searchFilter)) ?>" target="_blank" class="btn btn-sm btn-danger fw-semibold shadow-sm" title="Preview PDF">
@@ -13,39 +16,12 @@
 </div>
 
 <form id="filterForm" method="GET" action="<?= site_url('abnormal/overhaul') ?>">
+    <input type="hidden" name="departemen" value="<?= esc($departemenFilter) ?>">
+    <input type="hidden" name="bulan" value="<?= esc($bulanFilter) ?>">
     <?php if(!empty($searchFilter)): ?>
         <input type="hidden" name="search" value="<?= esc($searchFilter) ?>">
     <?php endif; ?>
 </form>
-
-<table class="kop-table text-center shadow-sm">
-  <tr>
-    <td colspan="4" class="kop-table-title" style="padding: 10px;">ABNORMAL REPORT CONDITION OVERHAUL</td>
-  </tr>
-  <tr>
-    <td colspan="2" class="kop-label text-center" style="width: 50%;">AREA</td>
-    <td colspan="2" class="kop-label text-center" style="width: 50%;">BULAN</td>
-  </tr>
-  <tr>
-    <td colspan="2" class="kop-val text-center p-2">
-        <select name="departemen" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white text-center mx-auto searchable-select" style="width: 80%; font-size: 0.8rem; text-align: center; text-align-last: center;" onchange="document.getElementById('filterForm').submit();">
-            <option value="all" <?= ($departemenFilter === 'all') ? 'selected' : '' ?>>Semua Area</option>
-            <option value="MFG 1" <?= ($departemenFilter === 'MFG 1') ? 'selected' : '' ?>>MFG 1</option>
-            <option value="MFG 2" <?= ($departemenFilter === 'MFG 2') ? 'selected' : '' ?>>MFG 2</option>
-        </select>
-    </td>
-    <td colspan="2" class="kop-val text-center p-2">
-        <select name="bulan" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white text-center mx-auto searchable-select" data-no-sort="true" style="width: 80%; font-size: 0.8rem; text-align: center; text-align-last: center;" onchange="document.getElementById('filterForm').submit();">
-            <option value="all" <?= ($bulanFilter === 'all') ? 'selected' : '' ?>>Semua Bulan</option>
-            <?php if(isset($bulanList)): ?>
-                <?php foreach ($bulanList as $val => $label): ?>
-                    <option value="<?= $val ?>" <?= $val === $bulanFilter ? 'selected' : '' ?>><?= $label ?></option>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </select>
-    </td>
-  </tr>
-</table>
 
 
 <!-- ABNORMAL TABLE CARD -->
@@ -91,7 +67,7 @@
 
 
 <!-- MODAL QUICK EDIT ABNORMAL -->
-<?php if (in_array(session()->get('role'), ['member', 'sheadprd', 'sheadmtc', 'admin', 'magang'], true)): ?>
+<?php if (in_array(session()->get('role'), ['member', 'sheadprd', 'sheadmtc', 'admin', 'magang', 'leader mtc'], true)): ?>
 <div class="modal fade" id="editAbnormalModal" tabindex="-1" aria-labelledby="editAbnormalModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-md">
     <div class="modal-content border-0 shadow-lg rounded-4">
@@ -188,7 +164,7 @@
         </div>
 
         <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
-          <?php if (session()->get('role') === 'admin'): ?>
+          <?php if (session()->get('role') === 'admin' || session()->get('role') === 'leader mtc'): ?>
             <button type="button" class="btn btn-danger btn-sm px-3 rounded-3 me-auto" id="btnHapusTindakLanjut"><i class="bi bi-trash me-1"></i> Hapus</button>
           <?php endif; ?>
           <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-3" data-bs-dismiss="modal">Batal</button>

@@ -75,7 +75,7 @@
 
 
 <!-- MODAL QUICK EDIT ABNORMAL -->
-<?php if (in_array(session()->get('role'), ['member', 'sheadprd', 'sheadmtc', 'admin', 'magang'], true)): ?>
+<?php if (in_array(session()->get('role'), ['member', 'sheadprd', 'sheadmtc', 'admin', 'magang', 'leader mtc'], true)): ?>
 <div class="modal fade" id="editAbnormalModal" tabindex="-1" aria-labelledby="editAbnormalModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-md">
     <div class="modal-content border-0 shadow-lg rounded-4">
@@ -172,7 +172,7 @@
         </div>
 
         <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
-          <?php if (session()->get('role') === 'admin'): ?>
+          <?php if (session()->get('role') === 'admin' || session()->get('role') === 'leader mtc'): ?>
             <button type="button" class="btn btn-danger btn-sm px-3 rounded-3 me-auto" id="btnHapusTindakLanjut"><i class="bi bi-trash me-1"></i> Hapus</button>
           <?php endif; ?>
           <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-3" data-bs-dismiss="modal">Batal</button>

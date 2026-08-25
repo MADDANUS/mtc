@@ -330,7 +330,7 @@ class RiwayatController extends BaseController
 
     public function edit(int $id)
     {
-        if (!has_role(Role::Admin->value)) {
+        if (!has_any_role(['admin', 'leader mtc'])) {
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
         $riwayatService = new \App\Services\RiwayatService();
@@ -343,7 +343,7 @@ class RiwayatController extends BaseController
 
     public function update(int $id)
     {
-        if (!has_role(Role::Admin->value)) {
+        if (!has_any_role(['admin', 'leader mtc'])) {
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
@@ -365,7 +365,7 @@ class RiwayatController extends BaseController
 
     public function delete(int $id)
     {
-        if (!has_role(Role::Admin->value)) {
+        if (!has_any_role(['admin', 'leader mtc'])) {
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
         

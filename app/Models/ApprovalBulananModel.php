@@ -29,7 +29,7 @@ class ApprovalBulananModel extends Model
     public function getPendingKontrolByRole(): array
     {
         // Panggil getInboxApprovalKontrol karena logika filter Plant/Dept/Line-nya sudah terpusat di sana
-        return $this->getInboxApprovalKontrol();
+        return $this->getInboxApprovalKontrol(true);
     }
 
     public function getApprovalWithUsers(string $departemen, string $kategori, string $bulan, ?string $line, ?string $plant = null): ?array
@@ -84,7 +84,7 @@ class ApprovalBulananModel extends Model
         return $builder->delete();
     }
 
-    public function getInboxApprovalKontrol(): array
+    public function getInboxApprovalKontrol(bool $isDashboard = false): array
     {
         $builder = $this->select('approval_bulanan.id_approval AS doc_id, approval_bulanan.type AS jenis_check, approval_bulanan.kategori, approval_bulanan.plant, approval_bulanan.departemen, approval_bulanan.line, approval_bulanan.bulan_tahun AS doc_date, approval_bulanan.status, "kontrol" AS doc_source, NULL AS departemen_check, NULL AS nama_pic, NULL AS nama_staff, NULL AS no_mesin, NULL AS type_mesin, NULL AS persen', false);
 
@@ -97,13 +97,13 @@ class ApprovalBulananModel extends Model
                         ->where('approval_bulanan.status', 'Approved L1');
             
             $userPlans = session()->get('plant');
-            if ($userPlans) {
+            if ($userPlans && $userPlans !== '-') {
                 $plansArray = array_map('trim', explode(',', $userPlans));
                 $builder->whereIn('approval_bulanan.plant', $plansArray);
             }
             
             $userDepts = session()->get('departemen');
-            if ($userDepts) {
+            if ($userDepts && $userDepts !== '-') {
                 $deptsArray = array_map('trim', explode(',', $userDepts));
                 $builder->whereIn('approval_bulanan.departemen', $deptsArray);
             }
@@ -119,22 +119,15 @@ class ApprovalBulananModel extends Model
         if (has_role(\App\Enums\Role::Sheadmtc->value)) {
             $builder->orGroupStart()
                         ->where('approval_bulanan.status', 'Approved L2');
-            
-            $userPlans = session()->get('plant');
-            if ($userPlans) {
-                $plansArray = array_map('trim', explode(',', $userPlans));
-                $builder->whereIn('approval_bulanan.plant', $plansArray);
-            }
-            
             $builder->groupEnd();
             $conditionsAdded = true;
         }
         
-        if (has_any_role([\App\Enums\Role::Admin->value, \App\Enums\Role::Member->value, \App\Enums\Role::LeaderMember->value])) {
+        if (!$isDashboard && has_any_role([\App\Enums\Role::Admin->value, \App\Enums\Role::Member->value, \App\Enums\Role::LeaderMember->value])) {
             $builder->orWhereNotIn('approval_bulanan.status', ['Final', 'Approved Final']);
             $conditionsAdded = true;
         }
-        
+
         if (!$conditionsAdded) {
             return [];
         }

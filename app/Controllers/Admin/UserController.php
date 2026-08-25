@@ -65,18 +65,35 @@ class UserController extends BaseController
         }
 
         if (!$requiresAssignment) {
-            $planStr = '-';
+            $planStr    = '-';
             $departemen = '-';
-            $lineStr = '-';
+            $lineStr    = '-';
         } else {
-            $planPost = $this->request->getPost('plant');
-            $planStr = is_array($planPost) ? implode(', ', $planPost) : ($planPost ?: '-');
-            
             $linePost = $this->request->getPost('line');
-            $lineStr = is_array($linePost) ? implode(', ', $linePost) : ($linePost ?: '-');
+            $explicitPlants = is_array($this->request->getPost('plant')) ? $this->request->getPost('plant') : [];
+            $explicitDepts  = is_array($this->request->getPost('departemen')) ? $this->request->getPost('departemen') : [];
             
-            $departemenPost = $this->request->getPost('departemen');
-            $departemen = is_array($departemenPost) ? implode(', ', $departemenPost) : ($departemenPost ?: '-');
+            $lineNames  = [];
+            $plantNames = $explicitPlants;
+            $deptNames  = $explicitDepts;
+            
+            if (is_array($linePost) && !empty($linePost)) {
+                // Parse compound keys: "Plant 1::MFG 1::Line 1"
+                foreach ($linePost as $compound) {
+                    $parts = explode('::', $compound);
+                    if (count($parts) === 3) {
+                        $plantNames[] = trim($parts[0]);
+                        $deptNames[]  = trim($parts[1]);
+                        $lineNames[]  = trim($parts[2]);
+                    } else {
+                        $lineNames[] = trim($compound);
+                    }
+                }
+            }
+            
+            $lineStr    = empty($lineNames) ? '-' : implode(', ', array_unique($lineNames));
+            $planStr    = empty($plantNames) ? '-' : implode(', ', array_unique($plantNames));
+            $departemen = empty($deptNames) ? '-' : implode(', ', array_unique($deptNames));
         }
 
         $this->model->insert([
@@ -154,18 +171,35 @@ class UserController extends BaseController
         }
 
         if (!$requiresAssignment) {
-            $planStr = '-';
+            $planStr    = '-';
             $departemen = '-';
-            $lineStr = '-';
+            $lineStr    = '-';
         } else {
-            $planPost = $this->request->getPost('plant');
-            $planStr = is_array($planPost) ? implode(', ', $planPost) : ($planPost ?: '-');
-            
             $linePost = $this->request->getPost('line');
-            $lineStr = is_array($linePost) ? implode(', ', $linePost) : ($linePost ?: '-');
+            $explicitPlants = is_array($this->request->getPost('plant')) ? $this->request->getPost('plant') : [];
+            $explicitDepts  = is_array($this->request->getPost('departemen')) ? $this->request->getPost('departemen') : [];
             
-            $departemenPost = $this->request->getPost('departemen');
-            $departemen = is_array($departemenPost) ? implode(', ', $departemenPost) : ($departemenPost ?: '-');
+            $lineNames  = [];
+            $plantNames = $explicitPlants;
+            $deptNames  = $explicitDepts;
+            
+            if (is_array($linePost) && !empty($linePost)) {
+                // Parse compound keys: "Plant 1::MFG 1::Line 1"
+                foreach ($linePost as $compound) {
+                    $parts = explode('::', $compound);
+                    if (count($parts) === 3) {
+                        $plantNames[] = trim($parts[0]);
+                        $deptNames[]  = trim($parts[1]);
+                        $lineNames[]  = trim($parts[2]);
+                    } else {
+                        $lineNames[] = trim($compound);
+                    }
+                }
+            }
+            
+            $lineStr    = empty($lineNames) ? '-' : implode(', ', array_unique($lineNames));
+            $planStr    = empty($plantNames) ? '-' : implode(', ', array_unique($plantNames));
+            $departemen = empty($deptNames) ? '-' : implode(', ', array_unique($deptNames));
         }
 
         $data = [
@@ -232,8 +266,8 @@ class UserController extends BaseController
 
     public function delete(int $id)
     {
-        if (!has_role(\App\Enums\Role::Admin->value)) {
-            return $this->redirectError('/admin/user', 'Hanya admin yang dapat menghapus user.');
+        if (!has_any_role(['admin', 'leader mtc'])) {
+            return $this->redirectError('/admin/user', 'Anda tidak memiliki akses untuk menghapus user.');
         }
 
         if ((int) $id === (int) session()->get('user_id')) {
@@ -243,6 +277,10 @@ class UserController extends BaseController
         $user = $this->model->find($id);
         if (! $user) {
             return $this->redirectNotFound('/admin/user', 'User');
+        }
+
+        if (has_role('leader mtc') && str_contains(strtolower($user['role']), 'admin')) {
+            return $this->redirectError('/admin/user', 'Leader MTC tidak dapat menghapus akun Admin.');
         }
 
         $alasan = $this->request->getPost('alasan');
@@ -278,8 +316,8 @@ class UserController extends BaseController
 
     public function deleteBatch()
     {
-        if (!has_role(\App\Enums\Role::Admin->value)) {
-            return $this->response->setJSON(['status' => false, 'message' => 'Hanya admin yang dapat menghapus user secara massal.']);
+        if (!has_any_role(['admin', 'leader mtc'])) {
+            return $this->response->setJSON(['status' => false, 'message' => 'Anda tidak memiliki akses untuk menghapus user secara massal.']);
         }
 
         $json = $this->request->getJSON(true) ?? [];
@@ -306,6 +344,9 @@ class UserController extends BaseController
 
             $user = $this->model->find($id);
             if ($user) {
+                if (has_role('leader mtc') && str_contains(strtolower($user['role']), 'admin')) {
+                    continue; // Skip admin deletion for leader mtc
+                }
                 $logAktivitasModel->insert([
                     'id_user_target' => $id,
                     'nama_user'      => $user['nama'],
@@ -450,15 +491,11 @@ class UserController extends BaseController
 
     private function rules(): array
     {
-        // Ambil daftar line yang valid dari database secara dinamis
-        $lineModel = new LineModel();
-        $validLines = implode(',', $lineModel->getAllLineNames());
-
         return [
             'nama'   => 'required|max_length[100]',
             'role'   => 'required',
             'role.*' => 'in_list[magang,member,sheadprd,sheadmtc,admin,leader,leader mtc]',
-            'line.*' => 'permit_empty|in_list[' . $validLines . ']',
+            // line.* tidak divalidasi in_list karena nilai berupa compound key "plant::dept::line"
         ];
     }
 }

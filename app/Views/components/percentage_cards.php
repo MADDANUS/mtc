@@ -47,7 +47,7 @@
                             <span class="d-block fw-bold text-danger fs-6"><?= $percentageSummary['preventive']['abnormal_count'] ?> <small class="fw-normal text-muted" style="font-size:0.7rem;">Abnorm.</small></span>
                         </div>
                     </div>
-                    <small class="text-muted mt-2 d-block" style="font-size:0.7rem;">Dari <?= $percentageSummary['total_mesin'] ?> Total Mesin di Pabrik <span class="ms-1 badge bg-light text-primary border border-primary opacity-75">Lihat Detail <i class="bi bi-arrow-right-short"></i></span></small>
+                    <small class="text-muted mt-2 d-block" style="font-size:0.7rem;">Dari <?= $percentageSummary['total_mesin'] ?> Total Mesin di Area Anda <span class="ms-1 badge bg-light text-primary border border-primary opacity-75">Lihat Detail <i class="bi bi-arrow-right-short"></i></span></small>
                 </div>
             </div>
         </div>
@@ -166,6 +166,7 @@
                                 <tr>
                                     <th class="ps-3 py-2">No Mesin</th>
                                     <th>Type</th>
+                                    <th>Plant</th>
                                     <th>Departemen</th>
                                     <th>Line</th>
                                     <th class="text-center pe-3">Status</th>
@@ -182,6 +183,7 @@
                                 <tr>
                                     <th class="ps-3 py-2">No Mesin</th>
                                     <th>Type</th>
+                                    <th>Plant</th>
                                     <th>Departemen</th>
                                     <th>Line</th>
                                 </tr>
@@ -218,8 +220,14 @@ function showDetailPencapaian(jenis, bulan) {
     
     // Fetch data
     let url = `<?= site_url('dashboard/detail-pencapaian') ?>?jenis=${jenis}&bulan=${bulan}`;
-    <?php if(service('request')->getGet('departemen')): ?>
-    url += `&departemen=<?= service('request')->getGet('departemen') ?>`;
+    <?php if($val = service('request')->getGet('departemen') ?: session()->get('departemen')): ?>
+    url += `&departemen=<?= urlencode($val) ?>`;
+    <?php endif; ?>
+    <?php if($val = session()->get('plant')): ?>
+    url += `&plant=<?= urlencode($val) ?>`;
+    <?php endif; ?>
+    <?php if($val = session()->get('line')): ?>
+    url += `&line=<?= urlencode($val) ?>`;
     <?php endif; ?>
 
     fetch(url)
@@ -344,6 +352,7 @@ function renderTables(checked, unchecked) {
                 <tr>
                     <td class="ps-3 fw-bold">${m.no_mesin}</td>
                     <td>${m.type_mesin || '-'}</td>
+                    <td><span class="text-muted fw-medium">${m.plant || '-'}</span></td>
                     <td><span class="badge bg-secondary">${m.departemen}</span></td>
                     <td>${m.line || '-'}</td>
                     <td class="text-center pe-3">${statusBadge}</td>
@@ -361,6 +370,7 @@ function renderTables(checked, unchecked) {
                 <tr>
                     <td class="ps-3 fw-bold">${m.no_mesin}</td>
                     <td>${m.type_mesin || '-'}</td>
+                    <td><span class="text-muted fw-medium">${m.plant || '-'}</span></td>
                     <td><span class="badge bg-secondary">${m.departemen}</span></td>
                     <td>${m.line || '-'}</td>
                 </tr>

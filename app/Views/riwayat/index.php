@@ -239,7 +239,7 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
 </div>
 </form>
 
-<?php if (has_role('admin')): ?>
+<?php if (has_role('admin') || has_role('leader mtc')): ?>
 <!-- Delete Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
