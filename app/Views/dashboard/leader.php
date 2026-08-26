@@ -130,9 +130,9 @@
           <?php foreach ($pendingOverhaul as $po): ?>
           <tr>
             <td class="ps-3 fw-semibold text-primary"><?= esc($po['plant'] ?? '-') ?></td>
-            <td class="fw-semibold"><?= esc($po['departemen_check'] ?? $po['departemen_mesin'] ?? '-') ?></td>
-            <td><?= esc($po['line_check'] ?? $po['line_mesin'] ?? '-') ?></td>
-            <td class="fw-semibold"><?= esc($po['no_mesin'] ?? $po['nama_mesin'] ?? '-') ?></td>
+            <td class="fw-semibold"><?= esc($po['departemen_mesin'] ?? $po['departemen_check'] ?? '-') ?></td>
+            <td><?= esc($po['line_mesin'] ?? $po['line_check'] ?? '-') ?></td>
+            <td class="fw-semibold"><?= esc($po['nama_mesin'] ?? $po['ss_no_mesin'] ?? '-') ?></td>
             <td><?= esc($po['kategori'] ?? '-') ?></td>
             <td class="text-muted small"><?= !empty($po['waktu_mulai']) ? format_tanggal_indo($po['waktu_mulai'], true) : '-' ?></td>
             <td><?= esc($po['nama_pic'] ?? '-') ?></td>

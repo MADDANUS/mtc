@@ -38,7 +38,7 @@ class TransaksiCheckModel extends Model
      */
     public function getRiwayat(?int $userId = null, ?int $limit = null, ?string $kategori = null): array
     {
-        $builder = $this->select('transaksi_check.*, COALESCE(users.nama, transaksi_check.nama_pic) as nama_staff, COALESCE(approver.nama, transaksi_check.ss_approved_name) as approver_nama, COALESCE(master_mesin.no_mesin, transaksi_check.ss_no_mesin) as no_mesin, master_mesin.type_mesin, master_mesin.plant, IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) as line')
+        $builder = $this->select('transaksi_check.*, COALESCE(users.nama, transaksi_check.nama_pic) as nama_staff, COALESCE(approver.nama, transaksi_check.ss_approved_name) as approver_nama, COALESCE(master_mesin.no_mesin, transaksi_check.ss_no_mesin) as no_mesin, master_mesin.type_mesin, COALESCE(master_mesin.plant, transaksi_check.plant) as plant, COALESCE(master_mesin.line, riwayat_mesin.line, transaksi_check.line_check) as line')
                          ->join('users', 'users.id = transaksi_check.id_user', 'left')
                          ->join('users as approver', 'approver.id = transaksi_check.approved_by', 'left')
                          ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin', 'left')
@@ -63,7 +63,7 @@ class TransaksiCheckModel extends Model
      */
     public function getRiwayatFiltered(array $filters = [], ?int $userId = null, ?int $limit = null, ?int $perPage = null): array
     {
-        $builder = $this->select('transaksi_check.*, COALESCE(users.nama, transaksi_check.nama_pic) as nama_staff, COALESCE(approver.nama, transaksi_check.ss_approved_name) as approver_nama, COALESCE(master_mesin.no_mesin, transaksi_check.ss_no_mesin) as no_mesin, master_mesin.plant, COALESCE(transaksi_check.ss_type_mesin, master_mesin.type_mesin) as type_mesin, IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) as line, (SELECT CASE WHEN SUM(CASE WHEN hasil_check = \'Δ\' THEN 1 ELSE 0 END) > 0 THEN \'Δ\' WHEN COUNT(id_detail) > 0 AND SUM(CASE WHEN hasil_check = \'X\' THEN 1 ELSE 0 END) = COUNT(id_detail) THEN \'X\' ELSE \'V\' END FROM transaksi_check_detail WHERE id_transaksi = transaksi_check.id_transaksi) as kondisi_mesin')
+        $builder = $this->select('transaksi_check.*, COALESCE(users.nama, transaksi_check.nama_pic) as nama_staff, COALESCE(approver.nama, transaksi_check.ss_approved_name) as approver_nama, COALESCE(master_mesin.no_mesin, transaksi_check.ss_no_mesin) as no_mesin, COALESCE(master_mesin.plant, transaksi_check.plant) as plant, COALESCE(master_mesin.type_mesin, transaksi_check.ss_type_mesin) as type_mesin, COALESCE(master_mesin.line, riwayat_mesin.line, transaksi_check.line_check) as line, (SELECT CASE WHEN SUM(CASE WHEN hasil_check = \'Δ\' THEN 1 ELSE 0 END) > 0 THEN \'Δ\' WHEN COUNT(id_detail) > 0 AND SUM(CASE WHEN hasil_check = \'X\' THEN 1 ELSE 0 END) = COUNT(id_detail) THEN \'X\' ELSE \'V\' END FROM transaksi_check_detail WHERE id_transaksi = transaksi_check.id_transaksi) as kondisi_mesin')
                          ->join('users', 'users.id = transaksi_check.id_user', 'left')
                          ->join('users as approver', 'approver.id = transaksi_check.approved_by', 'left')
                          ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin', 'left')
@@ -93,7 +93,7 @@ class TransaksiCheckModel extends Model
             $linesArray = array_map('trim', explode(',', $filters['line']));
             $escapedLines = array_map(function($l) { return $this->db->escape($l); }, $linesArray);
             $inClause = implode(',', $escapedLines);
-            $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) IN (' . $inClause . ')', null, false);
+            $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(master_mesin.line, transaksi_check.line_check), COALESCE(master_mesin.line, riwayat_mesin.line)) IN (' . $inClause . ')', null, false);
         }
 
         if (!empty($filters['kategori'])) {
@@ -161,7 +161,7 @@ class TransaksiCheckModel extends Model
      */
     public function getDetailTransaksi(int $idTransaksi): ?array
     {
-        return $this->select('transaksi_check.*, COALESCE(users.nama, transaksi_check.nama_pic) as nama_staff, COALESCE(approver.nama, transaksi_check.ss_approved_name) as approver_nama, COALESCE(approver_l1.nama, transaksi_check.ss_approval_l1_name) as approver_l1_nama, COALESCE(approver_l2.nama, transaksi_check.ss_approval_l2_name) as approver_l2_nama, COALESCE(master_mesin.no_mesin, transaksi_check.ss_no_mesin) as no_mesin, master_mesin.plant, master_mesin.line, master_mesin.departemen, COALESCE(transaksi_check.ss_type_mesin, master_mesin.type_mesin) as type_mesin, COALESCE(transaksi_check.ss_serial_nomor, master_mesin.serial_nomor) as serial_nomor, COALESCE(transaksi_check.ss_bar_feeder, transaksi_overhaul.bar_feeder_type) as bar_feeder_type, transaksi_overhaul.support_pic, transaksi_overhaul.note_recommendation')
+        return $this->select('transaksi_check.*, COALESCE(users.nama, transaksi_check.nama_pic) as nama_staff, COALESCE(approver.nama, transaksi_check.ss_approved_name) as approver_nama, COALESCE(approver_l1.nama, transaksi_check.ss_approval_l1_name) as approver_l1_nama, COALESCE(approver_l2.nama, transaksi_check.ss_approval_l2_name) as approver_l2_nama, COALESCE(master_mesin.no_mesin, transaksi_check.ss_no_mesin) as no_mesin, COALESCE(master_mesin.plant, transaksi_check.plant) as plant, COALESCE(master_mesin.line, transaksi_check.line_check) as line, COALESCE(master_mesin.departemen, transaksi_check.departemen_check) as departemen, COALESCE(master_mesin.type_mesin, transaksi_check.ss_type_mesin) as type_mesin, COALESCE(master_mesin.serial_nomor, transaksi_check.ss_serial_nomor) as serial_nomor, COALESCE(transaksi_overhaul.bar_feeder_type, transaksi_check.ss_bar_feeder) as bar_feeder_type, transaksi_overhaul.support_pic, transaksi_overhaul.note_recommendation')
                     ->join('users', 'users.id = transaksi_check.id_user', 'left')
                     ->join('users as approver', 'approver.id = transaksi_check.approved_by', 'left')
                     ->join('users as approver_l1', 'approver_l1.id = transaksi_check.approval_l1_by', 'left')
@@ -177,7 +177,7 @@ class TransaksiCheckModel extends Model
      */
     public function getLaporanDurasi(array $filters = [], ?int $perPage = null): array
     {
-        $builder = $this->select("transaksi_check.*, COALESCE(users.nama, transaksi_check.nama_pic) as nama_staff, COALESCE(approver.nama, transaksi_check.ss_approved_name) as approver_nama, COALESCE(master_mesin.no_mesin, transaksi_check.ss_no_mesin) as no_mesin, master_mesin.plant, COALESCE(transaksi_check.ss_type_mesin, master_mesin.type_mesin) as type_mesin, master_mesin.line, master_mesin.departemen as lokasi_mesin, TIMESTAMPDIFF(SECOND, transaksi_check.waktu_mulai, transaksi_check.waktu_selesai) as durasi_detik, COALESCE(transaksi_check.ss_bar_feeder, transaksi_overhaul.bar_feeder_type) as bar_feeder_type, transaksi_overhaul.support_pic, transaksi_overhaul.note_recommendation")
+        $builder = $this->select("transaksi_check.*, COALESCE(users.nama, transaksi_check.nama_pic) as nama_staff, COALESCE(approver.nama, transaksi_check.ss_approved_name) as approver_nama, COALESCE(master_mesin.no_mesin, transaksi_check.ss_no_mesin) as no_mesin, COALESCE(master_mesin.plant, transaksi_check.plant) as plant, COALESCE(master_mesin.type_mesin, transaksi_check.ss_type_mesin) as type_mesin, COALESCE(master_mesin.line, transaksi_check.line_check) as line, COALESCE(master_mesin.departemen, transaksi_check.departemen_check) as lokasi_mesin, TIMESTAMPDIFF(SECOND, transaksi_check.waktu_mulai, transaksi_check.waktu_selesai) as durasi_detik, COALESCE(transaksi_overhaul.bar_feeder_type, transaksi_check.ss_bar_feeder) as bar_feeder_type, transaksi_overhaul.support_pic, transaksi_overhaul.note_recommendation")
                     ->join('users', 'users.id = transaksi_check.id_user', 'left')
                     ->join('users as approver', 'approver.id = transaksi_check.approved_by', 'left')
                     ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin', 'left')
@@ -303,7 +303,7 @@ class TransaksiCheckModel extends Model
 
     public function getTerbaruKhususLine(?string $departemenLine = null): array
     {
-        $builder = $this->select('transaksi_check.*, users.nama as nama_staff, master_mesin.no_mesin, master_mesin.plant, master_mesin.type_mesin, master_mesin.line, TIMESTAMPDIFF(SECOND, transaksi_check.waktu_mulai, transaksi_check.waktu_selesai) as durasi_detik')
+        $builder = $this->select('transaksi_check.*, users.nama as nama_staff, master_mesin.no_mesin, COALESCE(master_mesin.plant, transaksi_check.plant) as plant, master_mesin.type_mesin, COALESCE(master_mesin.line, transaksi_check.line_check) as line, TIMESTAMPDIFF(SECOND, transaksi_check.waktu_mulai, transaksi_check.waktu_selesai) as durasi_detik')
                         ->join('users', 'users.id = transaksi_check.id_user')
                         ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
                         ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value);
@@ -332,7 +332,7 @@ class TransaksiCheckModel extends Model
 
     public function getPendingOverhaulByRole(?string $sessionLine = null, ?string $sessionDepts = null, ?string $sessionPlant = null): array
     {
-        $builder = $this->select('transaksi_check.*, master_mesin.no_mesin as nama_mesin, master_mesin.plant, master_mesin.departemen as departemen_mesin, master_mesin.line as line_mesin')
+        $builder = $this->select('transaksi_check.*, master_mesin.no_mesin as nama_mesin, COALESCE(master_mesin.plant, transaksi_check.plant) as plant, COALESCE(master_mesin.departemen, transaksi_check.departemen_check) as departemen_mesin, COALESCE(master_mesin.line, transaksi_check.line_check) as line_mesin')
                         ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin')
                         ->where('transaksi_check.jenis_check', \App\Enums\JenisCheck::Overhaul->value);
         
@@ -473,7 +473,7 @@ class TransaksiCheckModel extends Model
         $joinDate = 'COALESCE(NULLIF(transaksi_check.target_periode, ""), DATE_FORMAT(transaksi_check.waktu_mulai, "%Y-%m"))';
         $joinCondition = 'riwayat_mesin.id_mesin = transaksi_check.id_mesin AND riwayat_mesin.tanggal_mulai <= LAST_DAY(STR_TO_DATE(CONCAT(' . $joinDate . ', "-01"), "%Y-%m-%d")) AND (riwayat_mesin.tanggal_selesai IS NULL OR riwayat_mesin.tanggal_selesai >= LAST_DAY(STR_TO_DATE(CONCAT(' . $joinDate . ', "-01"), "%Y-%m-%d")))';
 
-        $builder = $this->select('transaksi_check.id_transaksi AS doc_id, transaksi_check.jenis_check, transaksi_check.kategori, transaksi_check.departemen_check, IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) AS line, transaksi_check.nama_pic, users.nama AS nama_staff, transaksi_check.waktu_mulai AS doc_date, transaksi_check.status, master_mesin.no_mesin, master_mesin.plant, master_mesin.type_mesin, "transaksi" AS doc_source, NULL AS departemen, NULL AS persen', false)
+        $builder = $this->select('transaksi_check.id_transaksi AS doc_id, transaksi_check.jenis_check, transaksi_check.kategori, transaksi_check.departemen_check, COALESCE(master_mesin.line, riwayat_mesin.line, transaksi_check.line_check) AS line, transaksi_check.nama_pic, users.nama AS nama_staff, transaksi_check.waktu_mulai AS doc_date, transaksi_check.status, master_mesin.no_mesin, COALESCE(master_mesin.plant, transaksi_check.plant) as plant, master_mesin.type_mesin, "transaksi" AS doc_source, NULL AS departemen, NULL AS persen', false)
                         ->join('users', 'users.id = transaksi_check.id_user', 'left')
                         ->join('master_mesin', 'master_mesin.id_mesin = transaksi_check.id_mesin', 'left')
                         ->join('riwayat_mesin', $joinCondition, 'left');
@@ -498,7 +498,7 @@ class TransaksiCheckModel extends Model
                 $linesArray = array_map('trim', explode(',', $line));
                 $escapedLines = array_map(function($l) { return $this->db->escape($l); }, $linesArray);
                 $inClause = implode(',', $escapedLines);
-                $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) IN (' . $inClause . ')', null, false);
+                $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(master_mesin.line, transaksi_check.line_check), COALESCE(master_mesin.line, riwayat_mesin.line)) IN (' . $inClause . ')', null, false);
             }
             $builder->groupEnd();
             $conditionsAdded = true;
@@ -520,7 +520,7 @@ class TransaksiCheckModel extends Model
                 $linesArray = array_map('trim', explode(',', $userLine));
                 $escapedLines = array_map(function($l) { return $this->db->escape($l); }, $linesArray);
                 $inClause = implode(',', $escapedLines);
-                $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(transaksi_check.line_check, master_mesin.line), COALESCE(riwayat_mesin.line, master_mesin.line)) IN (' . $inClause . ')', null, false);
+                $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(master_mesin.line, transaksi_check.line_check), COALESCE(master_mesin.line, riwayat_mesin.line)) IN (' . $inClause . ')', null, false);
             }
             $builder->groupEnd();
             $conditionsAdded = true;
@@ -610,7 +610,7 @@ class TransaksiCheckModel extends Model
         // Fungsi Helper untuk mengambil status
         $getStats = function(string $jenis, string $periodeStart, string $periodeEnd, int $totalTarget, ?string $plant = null) use ($db, $filters) {
             $builder = $db->table('transaksi_check t')
-                          ->select('t.id_mesin, 
+                          ->select('t.id_mesin, t.kategori, m.jenis,
                                     (SELECT CASE 
                                         WHEN SUM(CASE WHEN d.hasil_check = \'Δ\' THEN 1 ELSE 0 END) > 0 THEN \'Δ\' 
                                         WHEN COUNT(d.id_detail) > 0 AND SUM(CASE WHEN d.hasil_check = \'X\' THEN 1 ELSE 0 END) = COUNT(d.id_detail) THEN \'X\' 
@@ -678,21 +678,44 @@ class TransaksiCheckModel extends Model
 
             $mesinUnik = [];
             foreach ($results as $row) {
-                $mesinUnik[$row['id_mesin']] = $row['kondisi'];
+                if (!isset($mesinUnik[$row['id_mesin']])) {
+                    $mesinUnik[$row['id_mesin']] = [
+                        'jenis' => $row['jenis'] ?? '',
+                        'kategori' => [],
+                        'kondisi' => 'V'
+                    ];
+                }
+                
+                // Tambahkan kategori unik
+                if (!in_array($row['kategori'], $mesinUnik[$row['id_mesin']]['kategori'])) {
+                    $mesinUnik[$row['id_mesin']]['kategori'][] = $row['kategori'];
+                }
+                
+                // Hitung kondisi gabungan
+                if ($row['kondisi'] === 'Δ') {
+                    $mesinUnik[$row['id_mesin']]['kondisi'] = 'Δ';
+                } else if ($row['kondisi'] === 'X' && $mesinUnik[$row['id_mesin']]['kondisi'] !== 'Δ') {
+                    $mesinUnik[$row['id_mesin']]['kondisi'] = 'X';
+                }
             }
 
-            $checked  = count($mesinUnik);
+            $checked  = 0;
             $normal   = 0;
             $abnormal = 0;
             $tidakAda = 0;
             
-            foreach ($mesinUnik as $kondisi) {
-                if ($kondisi === 'V') {
-                    $normal++;
-                } elseif ($kondisi === 'Δ') {
-                    $abnormal++;
-                } else if ($kondisi === 'X') {
-                    $tidakAda++;
+            foreach ($mesinUnik as $idMesin => $data) {
+                $isCam = (strcasecmp($data['jenis'], 'CAM') === 0);
+                
+                if ($jenis === 'Overhaul' || count($data['kategori']) > 0) {
+                    $checked++;
+                    if ($data['kondisi'] === 'V') {
+                        $normal++;
+                    } elseif ($data['kondisi'] === 'Δ') {
+                        $abnormal++;
+                    } else if ($data['kondisi'] === 'X') {
+                        $tidakAda++;
+                    }
                 }
             }
 

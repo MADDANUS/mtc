@@ -244,13 +244,15 @@ class JadwalController extends BaseController
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         
-        $sheet->setCellValue('A1', 'Departemen (MFG 1 / MFG 2)');
-        $sheet->setCellValue('B1', 'Kategori (Cth: Penerangan)');
-        $sheet->setCellValue('C1', 'Rentang Tanggal (Cth: 27/07/2026-31/07/2026)');
+        $sheet->setCellValue('A1', 'Plant (Plant 1 / Plant 2)');
+        $sheet->setCellValue('B1', 'Departemen (MFG 1 / MFG 2)');
+        $sheet->setCellValue('C1', 'Kategori (Cth: Penerangan)');
+        $sheet->setCellValue('D1', 'Rentang Tanggal (Cth: 27/07/2026-31/07/2026)');
 
         $sheet->getColumnDimension('A')->setAutoSize(true);
         $sheet->getColumnDimension('B')->setAutoSize(true);
         $sheet->getColumnDimension('C')->setAutoSize(true);
+        $sheet->getColumnDimension('D')->setAutoSize(true);
 
         $writer = new Xlsx($spreadsheet);
         $filename = 'Template_Import_Jadwal.xlsx';
@@ -272,11 +274,12 @@ class JadwalController extends BaseController
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
-        $sheet->setCellValue('A1', 'Departemen');
-        $sheet->setCellValue('B1', 'Kategori');
-        $sheet->setCellValue('C1', 'Rentang Tanggal');
-        $sheet->setCellValue('D1', 'Bulan Tahun');
-        $sheet->setCellValue('E1', 'Pekan Ke');
+        $sheet->setCellValue('A1', 'Plant');
+        $sheet->setCellValue('B1', 'Departemen');
+        $sheet->setCellValue('C1', 'Kategori');
+        $sheet->setCellValue('D1', 'Rentang Tanggal');
+        $sheet->setCellValue('E1', 'Bulan Tahun');
+        $sheet->setCellValue('F1', 'Pekan Ke');
 
         $row = 2;
         foreach ($schedules as $s) {
@@ -288,11 +291,12 @@ class JadwalController extends BaseController
 
             $rentang = date('d/m/Y', $mondayTs) . '-' . date('d/m/Y', $fridayTs);
 
-            $sheet->setCellValue('A' . $row, $s['departemen']);
-            $sheet->setCellValue('B' . $row, $s['kategori']);
-            $sheet->setCellValue('C' . $row, $rentang);
-            $sheet->setCellValue('D' . $row, $s['bulan_tahun']);
-            $sheet->setCellValue('E' . $row, $s['periode_ke']);
+            $sheet->setCellValue('A' . $row, $s['plant']);
+            $sheet->setCellValue('B' . $row, $s['departemen']);
+            $sheet->setCellValue('C' . $row, $s['kategori']);
+            $sheet->setCellValue('D' . $row, $rentang);
+            $sheet->setCellValue('E' . $row, $s['bulan_tahun']);
+            $sheet->setCellValue('F' . $row, $s['periode_ke']);
             $row++;
         }
 
@@ -301,6 +305,7 @@ class JadwalController extends BaseController
         $sheet->getColumnDimension('C')->setAutoSize(true);
         $sheet->getColumnDimension('D')->setAutoSize(true);
         $sheet->getColumnDimension('E')->setAutoSize(true);
+        $sheet->getColumnDimension('F')->setAutoSize(true);
 
         $writer = new Xlsx($spreadsheet);
         $filename = 'Export_Jadwal_Preventive.xlsx';
@@ -347,16 +352,28 @@ class JadwalController extends BaseController
             $rowNumber = $i + 1; // Untuk referensi user
             $row = $sheetData[$i];
             
-            $departemen = trim($row[0] ?? '');
-            $kategori = trim($row[1] ?? '');
-            $rentangTanggal = trim($row[2] ?? '');
+            $plant          = trim($row[0] ?? '');
+            $departemen     = trim($row[1] ?? '');
+            $kategori       = trim($row[2] ?? '');
+            $rentangTanggal = trim($row[3] ?? '');
 
-            if (empty($departemen) || empty($kategori) || empty($rentangTanggal)) {
+            if (empty($plant) || empty($departemen) || empty($kategori) || empty($rentangTanggal)) {
                 // Jika baris benar-benar kosong semua, kita abaikan saja diam-diam (bukan error).
-                if (!empty($departemen) || !empty($kategori) || !empty($rentangTanggal)) {
-                    $errors[] = "Baris {$rowNumber}: Data tidak lengkap (Departemen/Kategori/Tanggal ada yang kosong).";
+                if (!empty($plant) || !empty($departemen) || !empty($kategori) || !empty($rentangTanggal)) {
+                    $errors[] = "Baris {$rowNumber}: Data tidak lengkap (Plant/Departemen/Kategori/Tanggal ada yang kosong).";
                     $skipCount++;
                 }
+                continue;
+            }
+
+            // --- AUTO-CORRECT PLANT ---
+            $plant = ucwords(strtolower($plant));
+            if ($plant === 'Plant1') $plant = 'Plant 1';
+            if ($plant === 'Plant2') $plant = 'Plant 2';
+
+            if (!in_array($plant, ['Plant 1', 'Plant 2'], true)) {
+                $errors[] = "Baris {$rowNumber}: Plant '<b>{$plant}</b>' tidak valid. Harus Plant 1 atau Plant 2.";
+                $skipCount++;
                 continue;
             }
 
@@ -419,7 +436,6 @@ class JadwalController extends BaseController
 
             // Hitung bulan dan pekan menggunakan fungsi tersentralisasi
             list($bulanTahun, $periodeKe) = $this->hitungBulanDanPekan($tanggalRencana);
-            $plant = 'Plant 1'; // Default plant for Excel import until template is updated
 
             // Cek duplikasi bulanan
             $exist = $this->jadwalModel->where('plant', $plant)

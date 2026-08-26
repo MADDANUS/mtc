@@ -20,12 +20,44 @@ class UserController extends BaseController
 
     public function index()
     {
+        $q = $this->request->getGet('q');
+        $role = $this->request->getGet('role');
+        $plant = $this->request->getGet('plant');
+
+        $builder = $this->model;
+        
+        if (!empty($q)) {
+            $builder->groupStart()
+                ->like('nama', $q)
+                ->orLike('username', $q)
+                ->groupEnd();
+        }
+        
+        if (!empty($role) && $role !== 'all') {
+            $builder->like('role', $role);
+        }
+        
+        if (!empty($plant) && $plant !== 'all') {
+            $builder->like('plant', $plant);
+        }
+
+        $daftar = $builder
+                ->orderBy("FIELD(LOWER(role), 'admin', 'sheadmtc', 'sheadprd,sheadmtc', 'sheadprd', 'leader', 'leader mtc', 'member', 'magang') = 0", "", false)
+                ->orderBy("FIELD(LOWER(role), 'admin', 'sheadmtc', 'sheadprd,sheadmtc', 'sheadprd', 'leader', 'leader mtc', 'member', 'magang')", "", false)
+                ->orderBy('plant', 'ASC')
+                ->orderBy('departemen', 'ASC')
+                ->orderBy('line', 'ASC')
+                ->orderBy('nama', 'ASC')
+                ->findAll();
+
         return view('admin/user/index', [
             'title'  => 'Master User',
-            'daftar' => $this->model
-                ->orderBy("FIELD(role, 'admin', 'sheadmtc', 'sheadprd', 'leader', 'leader mtc', 'member', 'magang')")
-                ->orderBy('nama', 'ASC')
-                ->findAll(),
+            'daftar' => $daftar,
+            'filters' => [
+                'q' => $q,
+                'role' => $role,
+                'plant' => $plant
+            ]
         ]);
     }
 

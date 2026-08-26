@@ -17,7 +17,7 @@ class RiwayatService
             $userLokasi = session()->get('departemen');
             if ($userLokasi) {
                 $userDepts = array_map('trim', explode(',', $userLokasi));
-                if ($departemenName !== null && !in_array($departemenName, $userDepts)) {
+                if ($departemenName !== null && !in_array(strtolower((string)$departemenName), array_map('strtolower', $userDepts))) {
                     throw new \Exception('Akses ditolak.');
                 }
                 if ($departemenName === null) {
@@ -319,14 +319,31 @@ class RiwayatService
 
             if ($kategoriName) {
                 $ceklisKontrolModel = new \App\Models\CeklisKontrolModel();
-                $exist = $ceklisKontrolModel->findChecklistKontrol($header['id_mesin'], $kategoriName, $bulanTahun, $periodeKe);
-                
-                if (!$exist) {
-                    $exist = $ceklisKontrolModel->where('id_mesin', $header['id_mesin'])
+                $exist = null;
+                if (!empty($header['id_mesin'])) {
+                    $exist = $ceklisKontrolModel->findChecklistKontrol((int)$header['id_mesin'], $kategoriName, $bulanTahun, $periodeKe);
+                    if (!$exist) {
+                        $exist = $ceklisKontrolModel->where('id_mesin', $header['id_mesin'])
+                                                    ->where('kategori', $kategoriName)
+                                                    ->where('bulan_tahun', $bulanTahun)
+                                                    ->where('tanggal_check', $tanggalCheckDate)
+                                                    ->first();
+                    }
+                } else if (!empty($header['ss_no_mesin'])) {
+                    $exist = $ceklisKontrolModel->where('id_mesin', null)
+                                                ->where('ss_no_mesin', $header['ss_no_mesin'])
                                                 ->where('kategori', $kategoriName)
                                                 ->where('bulan_tahun', $bulanTahun)
-                                                ->where('tanggal_check', $tanggalCheckDate)
+                                                ->where('periode_ke', $periodeKe)
                                                 ->first();
+                    if (!$exist) {
+                        $exist = $ceklisKontrolModel->where('id_mesin', null)
+                                                    ->where('ss_no_mesin', $header['ss_no_mesin'])
+                                                    ->where('kategori', $kategoriName)
+                                                    ->where('bulan_tahun', $bulanTahun)
+                                                    ->where('tanggal_check', $tanggalCheckDate)
+                                                    ->first();
+                    }
                 }
 
                 if ($exist) {
@@ -564,26 +581,26 @@ class RiwayatService
                 
                 // Location Validation
                 if ($mesinInfo) {
-                    $checkDepartemen = !empty($transaksi['departemen_check']) ? $transaksi['departemen_check'] : $mesinInfo['departemen'];
-                    $checkLine       = (strtolower($transaksi['jenis_check']) === 'overhaul' && !empty($transaksi['line_check'])) ? $transaksi['line_check'] : $mesinInfo['line'];
-                    $checkPlant      = $mesinInfo['plant'];
+                    $checkDepartemen = !empty($mesinInfo['departemen']) ? $mesinInfo['departemen'] : $transaksi['departemen_check'];
+                    $checkLine       = !empty($mesinInfo['line']) ? $mesinInfo['line'] : $transaksi['line_check'];
+                    $checkPlant      = !empty($mesinInfo['plant']) ? $mesinInfo['plant'] : $transaksi['plant'];
 
                     if ($userDepts = session()->get('departemen')) {
                         if ($userDepts !== '-') {
                             $deptsArray = array_map('trim', explode(',', $userDepts));
-                            if (!in_array($checkDepartemen, $deptsArray)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di departemen ' . $userDepts];
+                            if (!in_array(strtolower((string)$checkDepartemen), array_map('strtolower', $deptsArray))) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di departemen ' . $userDepts];
                         }
                     }
                     if ($userPlans = session()->get('plant')) {
                         if ($userPlans !== '-') {
                             $plansArray = array_map('trim', explode(',', $userPlans));
-                            if (!in_array($checkPlant, $plansArray)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plant ' . $userPlans];
+                            if (!in_array(strtolower((string)$checkPlant), array_map('strtolower', $plansArray))) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plant ' . $userPlans];
                         }
                     }
                     if ($userLines = session()->get('line')) {
                         if ($userLines !== '-') {
                             $linesArray = array_map('trim', explode(',', $userLines));
-                            if (!in_array($checkLine, $linesArray)) return ["status" => false, "message" => 'Akses ditolak! Laporan ini berada di Line ' . $checkLine . ', bukan di line tanggung jawab Anda (' . $userLines . ').'];
+                            if (!in_array(strtolower((string)$checkLine), array_map('strtolower', $linesArray))) return ["status" => false, "message" => 'Akses ditolak! Laporan ini berada di Line ' . $checkLine . ', bukan di line tanggung jawab Anda (' . $userLines . ').'];
                         }
                     }
                 }
@@ -603,26 +620,26 @@ class RiwayatService
                 
                 // Location Validation
                 if ($mesinInfo) {
-                    $checkDepartemen = !empty($transaksi['departemen_check']) ? $transaksi['departemen_check'] : $mesinInfo['departemen'];
-                    $checkLine       = (strtolower($transaksi['jenis_check']) === 'overhaul' && !empty($transaksi['line_check'])) ? $transaksi['line_check'] : $mesinInfo['line'];
-                    $checkPlant      = $mesinInfo['plant'];
+                    $checkDepartemen = !empty($mesinInfo['departemen']) ? $mesinInfo['departemen'] : $transaksi['departemen_check'];
+                    $checkLine       = !empty($mesinInfo['line']) ? $mesinInfo['line'] : $transaksi['line_check'];
+                    $checkPlant      = !empty($mesinInfo['plant']) ? $mesinInfo['plant'] : $transaksi['plant'];
 
                     if ($userDepts = session()->get('departemen')) {
                         if ($userDepts !== '-') {
                             $deptsArray = array_map('trim', explode(',', $userDepts));
-                            if (!in_array($checkDepartemen, $deptsArray)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di departemen ' . $userDepts];
+                            if (!in_array(strtolower((string)$checkDepartemen), array_map('strtolower', $deptsArray))) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di departemen ' . $userDepts];
                         }
                     }
                     if ($userPlans = session()->get('plant')) {
                         if ($userPlans !== '-') {
                             $plansArray = array_map('trim', explode(',', $userPlans));
-                            if (!in_array($checkPlant, $plansArray)) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plant ' . $userPlans];
+                            if (!in_array(strtolower((string)$checkPlant), array_map('strtolower', $plansArray))) return ["status" => false, "message" => 'Anda hanya dapat menyetujui laporan dari mesin di plant ' . $userPlans];
                         }
                     }
                     if ($userLines = session()->get('line')) {
                         if ($userLines !== '-') {
                             $linesArray = array_map('trim', explode(',', $userLines));
-                            if (!in_array($checkLine, $linesArray)) return ["status" => false, "message" => 'Akses ditolak! Laporan ini berada di Line ' . $checkLine . ', bukan di line tanggung jawab Anda (' . $userLines . ').'];
+                            if (!in_array(strtolower((string)$checkLine), array_map('strtolower', $linesArray))) return ["status" => false, "message" => 'Akses ditolak! Laporan ini berada di Line ' . $checkLine . ', bukan di line tanggung jawab Anda (' . $userLines . ').'];
                         }
                     }
                 }
@@ -743,6 +760,11 @@ class RiwayatService
             'out_of_plan'   => $outOfPlanDate,
             'ulasan'        => $ulasanKontrol,
             'tanggal_check' => $tanggalCheckDate,
+            'plant'         => $transaksi['plant'],
+            'departemen'    => $transaksi['departemen_check'],
+            'line'          => $transaksi['line_check'],
+            'ss_no_mesin'   => $transaksi['ss_no_mesin'],
+            'ss_type_mesin' => $transaksi['ss_type_mesin'],
             'updated_at'    => date('Y-m-d H:i:s'),
         ];
 

@@ -20,22 +20,55 @@
             vertical-align: top;
         }
         .qr-box {
-            border: 1px dashed #9ca3af;
-            padding: 10px;
-            display: inline-block;
-            border-radius: 8px;
-            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 15px;
+            display: block;
+            margin: 0 auto;
+            border-radius: 12px;
+            background-color: #ffffff;
+            text-align: center;
+            box-sizing: border-box;
         }
         .qr-image {
             width: 5cm;
             height: 5cm;
             display: block;
-            margin: 0 auto;
+            margin: 0 auto 15px auto;
+            background-color: #f9fafb;
+            padding: 10px;
+            border-radius: 8px;
         }
         .qr-text {
-            margin-top: 10px;
             font-weight: bold;
             font-size: 16px;
+            color: #111827;
+        }
+        .info-table {
+            margin: 0 auto;
+            text-align: left;
+            font-size: 11px;
+            width: 100%;
+            border-collapse: collapse;
+            color: #374151;
+            background-color: #ffffff;
+        }
+        .info-table td {
+            border: 1px solid #e5e7eb;
+            padding: 6px 4px;
+            width: auto;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .info-table td:nth-child(1) {
+            width: 35%;
+            font-weight: 500;
+        }
+        .info-table td:nth-child(2) {
+            width: 5%;
+            text-align: center;
+        }
+        .info-table td:nth-child(3) {
+            font-weight: bold;
             color: #111827;
         }
     </style>
@@ -63,17 +96,37 @@
                         $base64Src = $qrcode->render($scanUrl);
                     ?>
                     <img src="<?= $base64Src ?>" class="qr-image" alt="QR Code">
-                    <div class="qr-text" style="font-size: 20px; font-weight: bold; margin-bottom: 2px;"><?= esc($m['no_mesin']) ?></div>
-                    <div class="qr-text" style="font-size: 14px; font-weight: bold; color: #4b5563; margin-top: 0; margin-bottom: 2px;">S/N: <?= esc(!empty($m['serial_nomor']) ? $m['serial_nomor'] : $m['no_mesin']) ?></div>
-                    <div class="qr-text" style="font-size: 12px; font-weight: normal; color: #374151; margin-top: 0; margin-bottom: 2px;">Type: <?= esc($m['type_mesin']) ?></div>
-                    <?php if (strtoupper(trim($m['jenis'] ?? '')) === 'CNC'): ?>
-                        <?php if (!empty($m['bar_feeder_type'])): ?>
-                            <div class="qr-text" style="font-size: 11px; font-weight: normal; color: #6b7280; margin-top: 0; margin-bottom: 2px;">BF: <?= esc($m['bar_feeder_type']) ?></div>
+                    <div class="qr-text" style="font-size: 22px; font-weight: 800; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <?= esc((!empty($m['jenis']) && $m['jenis'] !== '-' ? $m['jenis'] . ' ' : '') . $m['no_mesin']) ?>
+                    </div>
+                    <table class="info-table">
+                        <tr>
+                            <td>Type</td>
+                            <td>:</td>
+                            <td><?= esc($m['type_mesin']) ?></td>
+                        </tr>
+                        <tr>
+                            <td>S/N</td>
+                            <td>:</td>
+                            <td><?= esc(!empty($m['serial_nomor']) ? $m['serial_nomor'] : $m['no_mesin']) ?></td>
+                        </tr>
+                        <?php if (strtoupper(trim($m['jenis'] ?? '')) === 'CNC'): ?>
+                            <?php if (!empty($m['bar_feeder_type']) && $m['bar_feeder_type'] !== '-'): ?>
+                                <tr>
+                                    <td>Bar Feeder</td>
+                                    <td>:</td>
+                                    <td><?= esc($m['bar_feeder_type']) ?></td>
+                                </tr>
+                            <?php endif; ?>
+                            <?php if (!empty($m['sn_barfeeder']) && $m['sn_barfeeder'] !== '-'): ?>
+                                <tr>
+                                    <td>S/N BF</td>
+                                    <td>:</td>
+                                    <td><?= esc($m['sn_barfeeder']) ?></td>
+                                </tr>
+                            <?php endif; ?>
                         <?php endif; ?>
-                        <?php if (!empty($m['sn_barfeeder'])): ?>
-                            <div class="qr-text" style="font-size: 11px; font-weight: normal; color: #6b7280; margin-top: 0;">S/N BF: <?= esc($m['sn_barfeeder']) ?></div>
-                        <?php endif; ?>
-                    <?php endif; ?>
+                    </table>
                 </div>
             </td>
             <?php endforeach; ?>

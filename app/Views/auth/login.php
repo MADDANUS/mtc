@@ -280,7 +280,7 @@
                 </div>
 
                 <button type="submit" class="btn btn-login">
-                    CONNECT <i class="bi bi-box-arrow-in-right ms-2"></i>
+                    LOGIN <i class="bi bi-box-arrow-in-right ms-2"></i>
                 </button>
             </form>
 

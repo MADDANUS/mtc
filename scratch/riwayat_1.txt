@@ -1,7 +1,0 @@
-        $filename = 'Laporan_' . ($isOverhaul ? 'Overhaul' : 'Preventive') . '_' . $header['no_mesin'] . '_' . date('Ymd', strtotime($header['waktu_mulai'])) . '.xlsx';
-
-        if ($isOverhaul) {
-            $this->generateOverhaulExcelNative($header, $details, $spreadsheet, $filename);
-        } else {
-            $this->generatePreventiveExcelNative($header, $details, $spreadsheet, $filename);
-        }

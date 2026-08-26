@@ -244,25 +244,33 @@
         <div class="bg-light p-3 rounded-4 mb-3 d-inline-block">
           <img id="qrImage" src="" alt="QR Code" class="img-fluid" style="width: 200px; height: 200px; display: block; margin: 0 auto; image-rendering: pixelated;">
         </div>
-        <div class="mb-1">
+        <div class="mb-3">
           <h4 class="fw-bold mb-0 text-dark" id="qrNoMesin"></h4>
         </div>
-        <div class="mb-1">
-          <span class="text-muted" style="font-size:0.75rem;">S/N: </span>
-          <span class="fw-bold mb-0 text-secondary" id="qrSerialNomor" style="font-size:0.9rem;"></span>
-        </div>
-        <div class="mb-1">
-          <span class="text-muted" style="font-size:0.75rem;">Type: </span>
-          <span class="mb-0 text-secondary" id="qrTypeMesin" style="font-size:0.8rem;"></span>
-        </div>
-        <div class="mb-1 d-none" id="qrBfContainer">
-          <span class="text-muted" style="font-size:0.75rem;">BF: </span>
-          <span class="mb-0 text-secondary" id="qrBarFeeder" style="font-size:0.75rem;"></span>
-        </div>
-        <div class="mb-2 d-none" id="qrSnBfContainer">
-          <span class="text-muted" style="font-size:0.75rem;">S/N BF: </span>
-          <span class="mb-0 text-secondary" id="qrSnBarFeeder" style="font-size:0.75rem;"></span>
-        </div>
+        <table class="table table-sm table-bordered text-start mx-auto mb-0" style="max-width: 250px;">
+          <tbody>
+            <tr>
+              <td class="text-muted" style="width: 35%; font-size:0.8rem;">Type</td>
+              <td style="width: 5%; text-align:center;">:</td>
+              <td class="fw-bold text-secondary" id="qrTypeMesin" style="font-size:0.85rem;"></td>
+            </tr>
+            <tr>
+              <td class="text-muted" style="font-size:0.8rem;">S/N</td>
+              <td style="text-align:center;">:</td>
+              <td class="fw-bold text-secondary" id="qrSerialNomor" style="font-size:0.85rem;"></td>
+            </tr>
+            <tr id="qrBfContainer" class="d-none">
+              <td class="text-muted" style="font-size:0.8rem;">Bar Feeder</td>
+              <td style="text-align:center;">:</td>
+              <td class="fw-bold text-secondary" id="qrBarFeeder" style="font-size:0.85rem;"></td>
+            </tr>
+            <tr id="qrSnBfContainer" class="d-none">
+              <td class="text-muted" style="font-size:0.8rem;">S/N BF</td>
+              <td style="text-align:center;">:</td>
+              <td class="fw-bold text-secondary" id="qrSnBarFeeder" style="font-size:0.85rem;"></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
       <div class="modal-footer border-0 pt-0 justify-content-center">
         <button type="button" class="btn btn-sm btn-primary w-100 py-2 rounded-3" id="printQrBtn">
@@ -404,7 +412,8 @@
         qrImage.src = "<?= site_url('admin/mesin/generate-qr?data=') ?>" + encodeURIComponent(scanUrl);
 
         qrSerialNomor.innerText = currentPrintData.serial;
-        qrNoMesin.innerText = currentPrintData.no;
+        const jenisTitle = (jenis && jenis !== '-') ? (jenis + ' ') : '';
+        qrNoMesin.innerText = (jenisTitle + currentPrintData.no).toUpperCase();
         qrTypeMesin.innerText = currentPrintData.type;
 
         if (jenis && jenis.trim().toUpperCase() === 'CNC') {
@@ -438,16 +447,21 @@
       const barfeeder = currentPrintData.barfeeder;
       const snbarfeeder = currentPrintData.snbarfeeder;
 
-      let extraHtml = '<p style="font-size:0.8rem; margin-top:2px; color:#374151;">Type: ' + type + '</p>';
+      const titleName = (jenis && jenis !== '-') ? (jenis + ' ') : '';
+      const fullTitle = (titleName + no).toUpperCase();
+      let extraHtml = '<table style="margin: 0 auto; text-align: left; font-size: 0.9rem; color: #4b5563; border-collapse: collapse; width: 100%;">';
+      extraHtml += '<tr><td style="border: 1px solid #e5e7eb; padding: 6px 8px; width: 35%;">Type</td><td style="border: 1px solid #e5e7eb; padding: 6px 4px; text-align: center; width: 5%;">:</td><td style="border: 1px solid #e5e7eb; font-weight: bold; padding: 6px 8px; color: #111827;">' + type + '</td></tr>';
+      extraHtml += '<tr><td style="border: 1px solid #e5e7eb; padding: 6px 8px;">S/N</td><td style="border: 1px solid #e5e7eb; padding: 6px 4px; text-align: center;">:</td><td style="border: 1px solid #e5e7eb; font-weight: bold; padding: 6px 8px; color: #111827;">' + serial + '</td></tr>';
       
       if (jenis && jenis.trim().toUpperCase() === 'CNC') {
-         if (barfeeder) {
-            extraHtml += '<p style="font-size:0.75rem; margin-top:2px; color:#6b7280;">BF: ' + barfeeder + '</p>';
+         if (barfeeder && barfeeder !== '-') {
+            extraHtml += '<tr><td style="border: 1px solid #e5e7eb; padding: 6px 8px;">Bar Feeder</td><td style="border: 1px solid #e5e7eb; padding: 6px 4px; text-align: center;">:</td><td style="border: 1px solid #e5e7eb; font-weight: bold; padding: 6px 8px; color: #111827;">' + barfeeder + '</td></tr>';
          }
-         if (snbarfeeder) {
-            extraHtml += '<p style="font-size:0.75rem; margin-top:2px; color:#6b7280;">S/N BF: ' + snbarfeeder + '</p>';
+         if (snbarfeeder && snbarfeeder !== '-') {
+            extraHtml += '<tr><td style="border: 1px solid #e5e7eb; padding: 6px 8px;">S/N BF</td><td style="border: 1px solid #e5e7eb; padding: 6px 4px; text-align: center;">:</td><td style="border: 1px solid #e5e7eb; font-weight: bold; padding: 6px 8px; color: #111827;">' + snbarfeeder + '</td></tr>';
          }
       }
+      extraHtml += '</table>';
 
       // Gunakan iframe tersembunyi agar lebih cepat
       let iframe = document.getElementById('printIframe');
@@ -472,8 +486,8 @@
         '</style></head><body>' +
         '<div class="card">' +
         '<img src="' + qrSrc + '">' +
-        '<h2>' + no + '</h2>' +
-        '<p style="font-size:0.9rem; margin-top:2px; font-weight:bold; color:#4b5563;">S/N: ' + serial + '</p>' +
+        '<h2>' + fullTitle + '</h2>' +
+        '<div style="height: 10px;"></div>' +
         extraHtml +
         '</div>' +
         '</body></html>'

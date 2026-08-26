@@ -17,7 +17,12 @@ class CeklisKontrolModel extends Model
         'pic_nama',
         'out_of_plan',
         'ulasan',
-        'tanggal_check'
+        'tanggal_check',
+        'plant',
+        'departemen',
+        'line',
+        'ss_no_mesin',
+        'ss_type_mesin'
     ];
     protected $useTimestamps = true;
     protected $returnType    = 'array';
@@ -65,16 +70,46 @@ class CeklisKontrolModel extends Model
                         ->where('bulan_tahun', $bulanTahun)
                         ->findAll();
 
+        // 2.5 Kumpulkan data mesin yatim piatu (orphaned) ke dalam daftarMesin
+        $orphanedMachines = [];
+        foreach ($records as $r) {
+            if (empty($r['id_mesin']) && !empty($r['ss_no_mesin']) && $r['departemen'] === $departemen) {
+                // Filter by line if provided
+                if ($line) {
+                    $linesArray = array_map('trim', explode(',', $line));
+                    if (!in_array($r['line'], $linesArray)) {
+                        continue;
+                    }
+                }
+                
+                $noMesin = $r['ss_no_mesin'];
+                if (!isset($orphanedMachines[$noMesin])) {
+                    $orphanedMachines[$noMesin] = [
+                        'id_mesin' => 'orphaned_' . $noMesin,
+                        'no_mesin' => $noMesin,
+                        'type_mesin' => $r['ss_type_mesin'],
+                        'departemen' => $r['departemen'],
+                        'line' => $r['line'],
+                        'plant' => $r['plant'],
+                    ];
+                }
+            }
+        }
+        foreach ($orphanedMachines as $om) {
+            $daftarMesin[] = $om;
+        }
+
         // Map records by [id_mesin][periode_ke] untuk akses instan
         $mapped = [];
         foreach ($records as $r) {
-            $mapped[$r['id_mesin']][$r['periode_ke']] = $r;
+            $id = !empty($r['id_mesin']) ? $r['id_mesin'] : ('orphaned_' . $r['ss_no_mesin']);
+            $mapped[$id][$r['periode_ke']] = $r;
         }
 
         // 3. Gabungkan data mesin dengan data Checklist Control periode 1 s.d 5
         $grid = [];
         foreach ($daftarMesin as $m) {
-            $idMesin = (int) $m['id_mesin'];
+            $idMesin = $m['id_mesin'];
             $row = [
                 'mesin' => $m,
                 'periodes' => []
@@ -136,6 +171,7 @@ class CeklisKontrolModel extends Model
                     if (!empty($ph['foto_abnormal_2']) && !in_array($ph['foto_abnormal_2'], $row['photos'])) $row['photos'][] = $ph['foto_abnormal_2'];
                 }
             }
+            // Fallback for orphaned machines (if no latestTx found because id_mesin is null, we can try by ss_no_mesin later, but usually orphaned means no new transactions anyway)
 
             $grid[] = $row;
         }
@@ -228,7 +264,7 @@ class CeklisKontrolModel extends Model
         return $builder->get()->getResultArray();
     }
 
-    public function updateChecklistKontrol(int $idMesin, string $kategori, string $tanggalCheck, array $data): bool
+    public function updateChecklistKontrol($idMesin, string $kategori, string $tanggalCheck, array $data): bool
     {
         return $this->where('id_mesin', $idMesin)
                     ->where('kategori', $kategori)
@@ -237,7 +273,7 @@ class CeklisKontrolModel extends Model
                     ->update();
     }
 
-    public function findChecklistKontrol(int $idMesin, string $kategori, string $bulanTahun, ?int $periodeKe): ?array
+    public function findChecklistKontrol($idMesin, string $kategori, string $bulanTahun, ?int $periodeKe): ?array
     {
         return $this->where('id_mesin', $idMesin)
                     ->where('kategori', $kategori)
@@ -257,7 +293,7 @@ class CeklisKontrolModel extends Model
                 c.bulan_tahun, 
                 COUNT(DISTINCT c.id_mesin) as checked_count
             FROM ceklis_kontrol c
-            JOIN riwayat_mesin r ON r.id_mesin = c.id_mesin
+            JOIN riwayat_mesin r ON r.id_mesin = c.id_mesin JOIN master_mesin m ON m.id_mesin = r.id_mesin
                 AND r.tanggal_mulai <= LAST_DAY(STR_TO_DATE(CONCAT(c.bulan_tahun, '-01'), '%Y-%m-%d'))
                 AND (r.tanggal_selesai IS NULL OR r.tanggal_selesai >= LAST_DAY(STR_TO_DATE(CONCAT(c.bulan_tahun, '-01'), '%Y-%m-%d')))
             WHERE c.pic_nama != 'PIC' AND c.pic_nama IS NOT NULL

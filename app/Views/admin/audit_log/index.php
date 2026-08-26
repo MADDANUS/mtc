@@ -23,6 +23,57 @@
                             <th class="py-3 text-secondary" style="font-weight:600; font-size:0.85rem;">Alasan</th>
                             <th class="py-3 text-secondary text-center" style="font-weight:600; font-size:0.85rem;">Detail</th>
                         </tr>
+                        <!-- NEW FILTER ROW -->
+                        <tr class="bg-white">
+                            <th class="py-2">
+                                <select name="filter_bulan" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Bulan..." onchange="document.getElementById('filterForm').submit();">
+                                    <option value="all">Semua Bulan</option>
+                                    <?php foreach ($bulanList as $val => $label): ?>
+                                        <option value="<?= $val ?>" <?= $val === $filterBulan ? 'selected' : '' ?>><?= $label ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </th>
+                            <th class="py-2">
+                                <select name="filter_user" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari User..." onchange="document.getElementById('filterForm').submit();">
+                                    <option value="">Semua User</option>
+                                    <?php foreach ($availableUsers as $user): ?>
+                                        <option value="<?= esc($user) ?>" <?= $user === $filterUser ? 'selected' : '' ?>><?= esc($user) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </th>
+                            <th class="py-2">
+                                <select name="filter_kategori" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Kategori..." onchange="document.getElementById('filterForm').submit();">
+                                    <option value="">Semua Kategori</option>
+                                    <?php foreach ($availableCategories as $cat): ?>
+                                        <option value="<?= esc($cat) ?>" <?= $cat === $filterKategori ? 'selected' : '' ?>><?= esc($cat) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </th>
+                            <th class="py-2">
+                                <input type="text" name="filter_dokumen" form="filterForm" class="form-control form-control-sm fw-bold border-1 bg-white" placeholder="Cari ID..." value="<?= esc($filterDokumen) ?>" onkeypress="if(event.key === 'Enter') document.getElementById('filterForm').submit();">
+                            </th>
+                            <th class="py-2">
+                                <select name="filter_aksi" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Aksi..." onchange="document.getElementById('filterForm').submit();">
+                                    <option value="">Semua Aksi</option>
+                                    <option value="Edit" <?= 'Edit' === $filterAksi ? 'selected' : '' ?>>Edit</option>
+                                    <option value="Hapus" <?= 'Hapus' === $filterAksi ? 'selected' : '' ?>>Hapus</option>
+                                </select>
+                            </th>
+                            <th class="py-2">
+                                <select name="filter_mesin" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Mesin..." onchange="document.getElementById('filterForm').submit();">
+                                    <option value="">Semua Mesin</option>
+                                    <?php foreach ($availableMesins as $mesin): ?>
+                                        <option value="<?= esc($mesin) ?>" <?= $mesin === $filterMesin ? 'selected' : '' ?>><?= esc($mesin) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </th>
+                            <th class="py-2"></th>
+                            <th class="pe-4 py-2 text-center align-middle">
+                                <a href="<?= site_url('admin/audit-log') ?>" class="btn btn-sm btn-danger fw-bold px-3" title="Reset Filter" style="font-size: 0.75rem;">
+                                    <i class="bi bi-arrow-counterclockwise fw-bold"></i> Reset
+                                </a>
+                            </th>
+                        </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($logs)): ?>

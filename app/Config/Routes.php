@@ -20,6 +20,7 @@ $routes->get('logout', 'Auth::logout');
 // Dashboard (semua role login, konten beda per role di dalam controller)
 $routes->get('dashboard', 'DashboardController::index', ['filter' => 'auth']);
 $routes->get('dashboard/detail-pencapaian', 'DashboardController::detailPencapaian', ['filter' => 'auth']);
+$routes->get('dashboard/detail-kategori-mesin', 'DashboardController::detailKategoriMesin', ['filter' => 'auth']);
 $routes->post('dashboard/akhiri-periode-overhaul', 'DashboardController::akhiriPeriodeOverhaul', ['filter' => 'auth']);
 $routes->post('dashboard/awali-periode-overhaul', 'DashboardController::awaliPeriodeOverhaul', ['filter' => 'auth']);
 

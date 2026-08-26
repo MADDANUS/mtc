@@ -26,12 +26,13 @@ class RiwayatMesinModel extends Model
         $dateStr = $bulanTahun . '-01';
         
         $sql = "
-            SELECT plant, departemen, line, COUNT(id_mesin) as total
+            SELECT riwayat_mesin.plant, riwayat_mesin.departemen, riwayat_mesin.line, COUNT(DISTINCT riwayat_mesin.id_mesin) as total
             FROM riwayat_mesin
-            WHERE tanggal_mulai <= LAST_DAY(STR_TO_DATE(?, '%Y-%m-%d'))
-              AND (tanggal_selesai IS NULL OR tanggal_selesai >= LAST_DAY(STR_TO_DATE(?, '%Y-%m-%d')))
-              AND line != '' AND line IS NOT NULL
-            GROUP BY plant, departemen, line
+            JOIN master_mesin ON master_mesin.id_mesin = riwayat_mesin.id_mesin
+            WHERE riwayat_mesin.tanggal_mulai <= LAST_DAY(STR_TO_DATE(?, '%Y-%m-%d'))
+              AND (riwayat_mesin.tanggal_selesai IS NULL OR riwayat_mesin.tanggal_selesai >= LAST_DAY(STR_TO_DATE(?, '%Y-%m-%d')))
+              AND riwayat_mesin.line != '' AND riwayat_mesin.line IS NOT NULL
+            GROUP BY riwayat_mesin.plant, riwayat_mesin.departemen, riwayat_mesin.line
         ";
 
         return $this->db->query($sql, [$dateStr, $dateStr])->getResultArray();

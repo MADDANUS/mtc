@@ -43,6 +43,11 @@ class KontrolService
             'out_of_plan'   => $outOfPlan,
             'ulasan'        => $ulasan,
             'tanggal_check' => date('Y-m-d'),
+            'plant'         => $mesin ? $mesin['plant'] : null,
+            'departemen'    => $mesin ? $mesin['departemen'] : null,
+            'line'          => $mesin ? $mesin['line'] : null,
+            'ss_no_mesin'   => $mesin ? $mesin['no_mesin'] : null,
+            'ss_type_mesin' => $mesin ? $mesin['type_mesin'] : null,
         ];
 
         if ($idKontrol && (int)$idKontrol > 0) {
@@ -612,13 +617,13 @@ class KontrolService
             // Location Validation for Sheadprd
             if (session()->get('departemen')) {
                 $userDepts = array_map('trim', explode(',', session()->get('departemen')));
-                if (!in_array($departemen, $userDepts)) {
+                if (!in_array(strtolower((string)$departemen), array_map('strtolower', $userDepts))) {
                     return ["status" => false, "message" => 'Akses ditolak! Anda hanya dapat menyetujui laporan dari departemen ' . session()->get('departemen')];
                 }
             }
             if (session()->get('line')) {
                 $userLines = array_map('trim', explode(',', session()->get('line')));
-                if (!in_array($line, $userLines)) {
+                if (!in_array(strtolower((string)$line), array_map('strtolower', $userLines))) {
                     return ["status" => false, "message" => 'Akses ditolak! Line ini tidak berada di ' . session()->get('line') . ' yang menjadi tanggung jawab Anda.'];
                 }
             }

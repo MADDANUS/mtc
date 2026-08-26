@@ -305,7 +305,7 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
     function buildChartOptions(categories, series) {
         return {
             chart: {
-                type: 'line',
+                type: 'bar',
                 height: 320,
                 toolbar: { show: true, tools: { download: true, selection: false, zoom: false, reset: false, pan: false, zoomin: false, zoomout: false } },
                 animations: { enabled: true, easing: 'easeinout', speed: 600 },
@@ -325,8 +325,16 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                 labels: { formatter: v => Math.round(v) },
                 min: 0,
             },
-            stroke: { curve: 'smooth', width: 2.5 },
-            markers: { size: 4, strokeWidth: 0, hover: { size: 7 } },
+            plotOptions: {
+                bar: {
+                    borderRadius: 4,
+                    columnWidth: '50%',
+                    dataLabels: {
+                        position: 'top', 
+                    },
+                }
+            },
+            stroke: { show: true, width: 2, colors: ['transparent'] },
             colors: PALETTE,
             legend: {
                 position: 'bottom',

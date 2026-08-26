@@ -21,6 +21,47 @@
             <th>Dilakukan Oleh</th>
             <th>Detail</th>
           </tr>
+          <tr class="bg-white">
+            <th class="py-2"></th>
+            <th class="py-2">
+                <select name="filter_bulan" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Bulan..." onchange="document.getElementById('filterForm').submit();">
+                    <option value="all">Semua Bulan</option>
+                    <?php foreach ($bulanList as $val => $label): ?>
+                        <option value="<?= $val ?>" <?= $val === $filterBulan ? 'selected' : '' ?>><?= $label ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </th>
+            <th class="py-2">
+                <select name="filter_target_user" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Target User..." onchange="document.getElementById('filterForm').submit();">
+                    <option value="">Semua User</option>
+                    <?php foreach ($availableTargetUsers as $user): ?>
+                        <option value="<?= esc($user) ?>" <?= $user === $filterTargetUser ? 'selected' : '' ?>><?= esc($user) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </th>
+            <th class="py-2">
+                <select name="filter_aksi" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Aksi..." onchange="document.getElementById('filterForm').submit();">
+                    <option value="">Semua Aksi</option>
+                    <?php foreach ($availableAksi as $aksi): ?>
+                        <option value="<?= esc($aksi) ?>" <?= $aksi === $filterAksi ? 'selected' : '' ?>><?= esc($aksi) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </th>
+            <th class="py-2"></th>
+            <th class="py-2">
+                <select name="filter_user" form="filterForm" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Admin..." onchange="document.getElementById('filterForm').submit();">
+                    <option value="">Semua Admin</option>
+                    <?php foreach ($availableUsers as $user): ?>
+                        <option value="<?= esc($user) ?>" <?= $user === $filterUser ? 'selected' : '' ?>><?= esc($user) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </th>
+            <th class="py-2 text-center align-middle">
+                <a href="<?= site_url('admin/log-user') ?>" class="btn btn-sm btn-danger fw-bold px-3" title="Reset Filter" style="font-size: 0.75rem;">
+                    <i class="bi bi-arrow-counterclockwise fw-bold"></i> Reset
+                </a>
+            </th>
+          </tr>
         </thead>
         <tbody>
           <?php if(empty($logs)): ?>

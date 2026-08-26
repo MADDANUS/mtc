@@ -162,14 +162,24 @@
                 <div class="tab-pane fade show active p-0" id="checked-pane" role="tabpanel" tabindex="0">
                     <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
                         <table class="table table-hover table-striped mb-0 table-sm" id="tableChecked">
-                            <thead class="table-light sticky-top">
+                            <thead class="table-light sticky-top" style="z-index: 10;">
                                 <tr>
-                                    <th class="ps-3 py-2">No Mesin</th>
-                                    <th>Type</th>
-                                    <th>Plant</th>
-                                    <th>Departemen</th>
-                                    <th>Line</th>
-                                    <th class="text-center pe-3">Status</th>
+                                    <th class="ps-3 py-2" style="min-width: 120px;">No Mesin</th>
+                                    <th style="min-width: 120px;">Type</th>
+                                    <th style="min-width: 100px;">Plant</th>
+                                    <th style="min-width: 120px;">Departemen</th>
+                                    <th style="min-width: 100px;">Line</th>
+                                    <th class="text-center" style="min-width: 110px;">Status</th>
+                                    <th class="text-center pe-3" style="min-width: 90px;">Aksi</th>
+                                </tr>
+                                <tr class="bg-white">
+                                    <th class="ps-2 py-1 border-bottom"><input type="text" id="filterNoMesin1" class="form-control form-control-sm border-1 bg-white fw-normal" placeholder="Cari No..." oninput="applyFilters()"></th>
+                                    <th class="py-1 border-bottom"><input type="text" id="filterType1" class="form-control form-control-sm border-1 bg-white fw-normal" placeholder="Cari Type..." oninput="applyFilters()"></th>
+                                    <th class="py-1 border-bottom"><select id="filterPlant1" class="form-select form-select-sm border-1 bg-white fw-normal" onchange="applyFilters()"><option value="">Semua</option></select></th>
+                                    <th class="py-1 border-bottom"><select id="filterDept1" class="form-select form-select-sm border-1 bg-white fw-normal" onchange="applyFilters()"><option value="">Semua</option></select></th>
+                                    <th class="py-1 border-bottom"><select id="filterLine1" class="form-select form-select-sm border-1 bg-white fw-normal" onchange="applyFilters()"><option value="">Semua</option></select></th>
+                                    <th class="py-1 border-bottom"><select id="filterStatus1" class="form-select form-select-sm border-1 bg-white fw-normal" onchange="applyFilters()"><option value="">Semua</option></select></th>
+                                    <th class="pe-2 py-1 border-bottom"></th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -179,13 +189,22 @@
                 <div class="tab-pane fade p-0" id="unchecked-pane" role="tabpanel" tabindex="0">
                     <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
                         <table class="table table-hover table-striped mb-0 table-sm" id="tableUnchecked">
-                            <thead class="table-light sticky-top">
+                            <thead class="table-light sticky-top" style="z-index: 10;">
                                 <tr>
-                                    <th class="ps-3 py-2">No Mesin</th>
-                                    <th>Type</th>
-                                    <th>Plant</th>
-                                    <th>Departemen</th>
-                                    <th>Line</th>
+                                    <th class="ps-3 py-2" style="min-width: 120px;">No Mesin</th>
+                                    <th style="min-width: 120px;">Type</th>
+                                    <th style="min-width: 100px;">Plant</th>
+                                    <th style="min-width: 120px;">Departemen</th>
+                                    <th style="min-width: 100px;">Line</th>
+                                    <th class="text-center pe-3" style="min-width: 90px;">Aksi</th>
+                                </tr>
+                                <tr class="bg-white">
+                                    <th class="ps-2 py-1 border-bottom"><input type="text" id="filterNoMesin2" class="form-control form-control-sm border-1 bg-white fw-normal" placeholder="Cari No..." oninput="applyFilters()"></th>
+                                    <th class="py-1 border-bottom"><input type="text" id="filterType2" class="form-control form-control-sm border-1 bg-white fw-normal" placeholder="Cari Type..." oninput="applyFilters()"></th>
+                                    <th class="py-1 border-bottom"><select id="filterPlant2" class="form-select form-select-sm border-1 bg-white fw-normal" onchange="applyFilters()"><option value="">Semua</option></select></th>
+                                    <th class="py-1 border-bottom"><select id="filterDept2" class="form-select form-select-sm border-1 bg-white fw-normal" onchange="applyFilters()"><option value="">Semua</option></select></th>
+                                    <th class="py-1 border-bottom"><select id="filterLine2" class="form-select form-select-sm border-1 bg-white fw-normal" onchange="applyFilters()"><option value="">Semua</option></select></th>
+                                    <th class="pe-2 py-1 border-bottom"></th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -207,8 +226,12 @@
 let allChecked = [];
 let allUnchecked = [];
 let currentPlant = null;
+let currentJenis = null;
+let currentBulan = null;
 
 function showDetailPencapaian(jenis, bulan) {
+    currentJenis = jenis;
+    currentBulan = bulan;
     const modal = new bootstrap.Modal(document.getElementById('modalDetailPencapaian'));
     modal.show();
     
@@ -251,7 +274,8 @@ function showDetailPencapaian(jenis, bulan) {
             document.getElementById('countChecked').innerText = allChecked.length;
             document.getElementById('countUnchecked').innerText = allUnchecked.length;
             
-            renderTables(allChecked, allUnchecked);
+            populateFilterOptions(allChecked, allUnchecked);
+            applyFilters();
             
             document.getElementById('detailLoader').classList.add('d-none');
             document.getElementById('detailContent').classList.remove('d-none');
@@ -348,6 +372,11 @@ function renderTables(checked, unchecked) {
                 statusBadge = '<span class="badge bg-secondary">' + m.kondisi + '</span>';
             }
             
+            let btnAksi = '';
+            if (currentJenis === 'preventive') {
+                btnAksi = `<button class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill" style="font-size:0.75rem;" onclick="showDetailKategori(${m.id_mesin}, '${m.departemen}', '${m.plant || ''}')">Detail</button>`;
+            }
+            
             tbodyChecked.innerHTML += `
                 <tr>
                     <td class="ps-3 fw-bold">${m.no_mesin}</td>
@@ -355,7 +384,8 @@ function renderTables(checked, unchecked) {
                     <td><span class="text-muted fw-medium">${m.plant || '-'}</span></td>
                     <td><span class="badge bg-secondary">${m.departemen}</span></td>
                     <td>${m.line || '-'}</td>
-                    <td class="text-center pe-3">${statusBadge}</td>
+                    <td class="text-center">${statusBadge}</td>
+                    <td class="text-center pe-3">${btnAksi}</td>
                 </tr>
             `;
         });
@@ -366,6 +396,11 @@ function renderTables(checked, unchecked) {
         tbodyUnchecked.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Semua mesin sudah dicek!</td></tr>';
     } else {
         unchecked.forEach(m => {
+            let btnAksi = '';
+            if (currentJenis === 'preventive') {
+                btnAksi = `<button class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill" style="font-size:0.75rem;" onclick="showDetailKategori(${m.id_mesin}, '${m.departemen}', '${m.plant || ''}')">Detail</button>`;
+            }
+
             tbodyUnchecked.innerHTML += `
                 <tr>
                     <td class="ps-3 fw-bold">${m.no_mesin}</td>
@@ -373,24 +408,216 @@ function renderTables(checked, unchecked) {
                     <td><span class="text-muted fw-medium">${m.plant || '-'}</span></td>
                     <td><span class="badge bg-secondary">${m.departemen}</span></td>
                     <td>${m.line || '-'}</td>
+                    <td class="text-center pe-3">${btnAksi}</td>
                 </tr>
             `;
         });
     }
 }
 
-document.getElementById('searchMesin').addEventListener('input', function(e) {
-    const term = e.target.value.toLowerCase();
+function populateFilterOptions(checked, unchecked) {
+    const plants = new Set();
+    const depts = new Set();
+    const lines = new Set();
+    const statuses = new Set();
     
-    const filterFn = (m) => 
-        (m.no_mesin || '').toLowerCase().includes(term) || 
-        (m.type_mesin || '').toLowerCase().includes(term) ||
-        (m.line || '').toLowerCase().includes(term);
+    [...checked, ...unchecked].forEach(m => {
+        if(m.plant) plants.add(m.plant);
+        if(m.departemen) depts.add(m.departemen);
+        if(m.line) lines.add(m.line);
+    });
+    
+    checked.forEach(m => {
+        if(m.kondisi) statuses.add(m.kondisi);
+    });
+    
+    const fillSelect = (id, options) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const val = el.value;
+        el.innerHTML = '<option value="">Semua</option>';
+        [...options].sort().forEach(opt => {
+            el.innerHTML += `<option value="${opt}" ${opt === val ? 'selected' : ''}>${opt}</option>`;
+        });
+    };
+    
+    fillSelect('filterPlant1', plants);
+    fillSelect('filterPlant2', plants);
+    fillSelect('filterDept1', depts);
+    fillSelect('filterDept2', depts);
+    fillSelect('filterLine1', lines);
+    fillSelect('filterLine2', lines);
+    
+    const statusEl = document.getElementById('filterStatus1');
+    if (statusEl) {
+        const sVal = statusEl.value;
+        statusEl.innerHTML = '<option value="">Semua</option>';
+        [...statuses].sort().forEach(s => {
+            let label = s;
+            if(s === 'V') label = 'Normal (V)';
+            if(s === 'Δ') label = 'Abnormal (Δ)';
+            if(s === 'X') label = 'Tidak Ada (X)';
+            statusEl.innerHTML += `<option value="${s}" ${s === sVal ? 'selected' : ''}>${label}</option>`;
+        });
+    }
+}
+
+function applyFilters() {
+    const termGlobal = (document.getElementById('searchMesin').value || '').toLowerCase();
+    
+    const noMesin1 = (document.getElementById('filterNoMesin1')?.value || '').toLowerCase();
+    const type1 = (document.getElementById('filterType1')?.value || '').toLowerCase();
+    const plant1 = document.getElementById('filterPlant1')?.value || '';
+    const dept1 = document.getElementById('filterDept1')?.value || '';
+    const line1 = document.getElementById('filterLine1')?.value || '';
+    const status1 = document.getElementById('filterStatus1')?.value || '';
+    
+    const filterFn1 = (m) => {
+        const matchGlobal = (m.no_mesin || '').toLowerCase().includes(termGlobal) || 
+                            (m.type_mesin || '').toLowerCase().includes(termGlobal) ||
+                            (m.line || '').toLowerCase().includes(termGlobal);
+                            
+        const matchNoMesin = (m.no_mesin || '').toLowerCase().includes(noMesin1);
+        const matchType = (m.type_mesin || '').toLowerCase().includes(type1);
+        const matchPlant = plant1 === '' || m.plant === plant1;
+        const matchDept = dept1 === '' || m.departemen === dept1;
+        const matchLine = line1 === '' || m.line === line1;
+        const matchStatus = status1 === '' || m.kondisi === status1;
         
-    const filteredChecked = allChecked.filter(filterFn);
-    const filteredUnchecked = allUnchecked.filter(filterFn);
+        return matchGlobal && matchNoMesin && matchType && matchPlant && matchDept && matchLine && matchStatus;
+    };
+    
+    const noMesin2 = (document.getElementById('filterNoMesin2')?.value || '').toLowerCase();
+    const type2 = (document.getElementById('filterType2')?.value || '').toLowerCase();
+    const plant2 = document.getElementById('filterPlant2')?.value || '';
+    const dept2 = document.getElementById('filterDept2')?.value || '';
+    const line2 = document.getElementById('filterLine2')?.value || '';
+    
+    const filterFn2 = (m) => {
+        const matchGlobal = (m.no_mesin || '').toLowerCase().includes(termGlobal) || 
+                            (m.type_mesin || '').toLowerCase().includes(termGlobal) ||
+                            (m.line || '').toLowerCase().includes(termGlobal);
+                            
+        const matchNoMesin = (m.no_mesin || '').toLowerCase().includes(noMesin2);
+        const matchType = (m.type_mesin || '').toLowerCase().includes(type2);
+        const matchPlant = plant2 === '' || m.plant === plant2;
+        const matchDept = dept2 === '' || m.departemen === dept2;
+        const matchLine = line2 === '' || m.line === line2;
+        
+        return matchGlobal && matchNoMesin && matchType && matchPlant && matchDept && matchLine;
+    };
+    
+    const filteredChecked = allChecked.filter(filterFn1);
+    const filteredUnchecked = allUnchecked.filter(filterFn2);
     
     renderTables(filteredChecked, filteredUnchecked);
+}
+
+document.getElementById('searchMesin').addEventListener('input', function(e) {
+    applyFilters();
 });
+
+function showDetailKategori(idMesin, departemen, plant) {
+    const modalKategori = new bootstrap.Modal(document.getElementById('modalDetailKategori'));
+    modalKategori.show();
+    
+    document.getElementById('kategoriLoader').classList.remove('d-none');
+    document.getElementById('kategoriContent').classList.add('d-none');
+    document.getElementById('kategoriMesinTitle').innerText = 'Loading...';
+
+    let url = `<?= site_url('dashboard/detail-kategori-mesin') ?>?id_mesin=${idMesin}&bulan=${currentBulan}&departemen=${encodeURIComponent(departemen)}&plant=${encodeURIComponent(plant)}&jenis=${currentJenis}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('kategoriLoader').classList.add('d-none');
+            
+            if (data.status === 'success') {
+                document.getElementById('kategoriContent').classList.remove('d-none');
+                document.getElementById('kategoriMesinTitle').innerText = data.mesin;
+                
+                let tbody = document.getElementById('tableKategoriBody');
+                tbody.innerHTML = '';
+                
+                if (data.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-center py-3">Tidak ada target jadwal preventive untuk bulan ini.</td></tr>';
+                } else {
+                    data.data.forEach((k, idx) => {
+                        let badgeStr = k.is_done ? `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>${k.status}</span>` : `<span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>${k.status}</span>`;
+                        if (!k.is_done && k.status === 'Belum Dicek') {
+                            badgeStr = `<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Belum Dicek</span>`;
+                        }
+                        
+                        let kondisiBadge = '-';
+                        if (k.kondisi === 'V') kondisiBadge = `<span class="text-success fw-bold"><i class="bi bi-check-circle"></i> Normal</span>`;
+                        else if (k.kondisi === 'Δ') kondisiBadge = `<span class="text-warning fw-bold"><i class="bi bi-exclamation-triangle"></i> Abnormal</span>`;
+                        else if (k.kondisi === 'X') kondisiBadge = `<span class="text-danger fw-bold"><i class="bi bi-x-circle"></i> Tidak Ada</span>`;
+                        else if (k.kondisi !== '-') kondisiBadge = k.kondisi;
+                        
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="text-center">${idx + 1}</td>
+                                <td class="fw-bold">${k.kategori}</td>
+                                <td>${badgeStr}</td>
+                                <td class="text-center">${kondisiBadge}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            } else {
+                document.getElementById('kategoriLoader').innerHTML = `<div class="text-danger py-4"><i class="bi bi-exclamation-triangle fs-3"></i><p>${data.message || 'Gagal memuat data.'}</p></div>`;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('kategoriLoader').innerHTML = '<div class="text-danger py-4"><i class="bi bi-exclamation-triangle fs-3"></i><p>Gagal memuat data.</p></div>';
+        });
+}
 </script>
+
+<!-- Modal Kategori Detail -->
+<div class="modal fade" id="modalDetailKategori" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-card-checklist me-2"></i>Detail Kategori Preventive</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="p-3 bg-light border-bottom text-center">
+                    <h6 class="mb-0 text-muted small">Mesin:</h6>
+                    <h5 class="fw-bold text-primary mb-0" id="kategoriMesinTitle">Loading...</h5>
+                </div>
+                
+                <div id="kategoriLoader" class="text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted fw-bold">Mengambil data kategori...</p>
+                </div>
+                
+                <div id="kategoriContent" class="d-none">
+                    <div class="table-responsive" style="max-height: 50vh;">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th class="text-center" style="width:50px;">#</th>
+                                    <th>Kategori Preventive</th>
+                                    <th>Status Transaksi</th>
+                                    <th class="text-center">Kondisi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableKategoriBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-top-0">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php endif; ?>

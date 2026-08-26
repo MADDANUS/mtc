@@ -846,20 +846,26 @@ class AbnormalService
         if ($abnormalModel->update($idAbnormal, $data)) {
             // Catat ke Log Audit
             if ($existing) {
-                $snapshotOld = ['header' => $existing, 'details' => []];
-                $mergedNew = array_merge($existing, $data);
-                $snapshotNew = ['header' => $mergedNew, 'details' => []];
+                // Cek apakah ini pengisian pertama (action dan PIC sebelumnya masih kosong)
+                $isFirstTime = empty(trim($existing['action'] ?? '')) && empty(trim($existing['repair_pic'] ?? ''));
                 
-                $logAuditModel = new \App\Models\LogAuditLaporanModel();
-                $logAuditModel->insert([
-                    'kategori_dokumen' => 'Tindak Lanjut Abnormal',
-                    'aksi'             => $isHapusSemua ? 'Hapus' : 'Edit',
-                    'no_mesin'         => $existing['no_mesin'] ?? '-',
-                    'waktu_eksekusi'   => date('Y-m-d H:i:s'),
-                    'dieksekusi_oleh'  => session()->get('nama') ?? 'System',
-                    'alasan'           => $isHapusSemua ? 'Penghapusan tindak lanjut via sistem.' : 'Pembaruan rencana perbaikan (Action).',
-                    'detail_perubahan' => json_encode(['old_data' => $snapshotOld, 'new_data' => $snapshotNew]),
-                ]);
+                // Log audit hanya jika BUKAN pengisian pertama ATAU jika ini adalah penghapusan
+                if (!$isFirstTime || $isHapusSemua) {
+                    $snapshotOld = ['header' => $existing, 'details' => []];
+                    $mergedNew = array_merge($existing, $data);
+                    $snapshotNew = ['header' => $mergedNew, 'details' => []];
+                    
+                    $logAuditModel = new \App\Models\LogAuditLaporanModel();
+                    $logAuditModel->insert([
+                        'kategori_dokumen' => 'Tindak Lanjut Abnormal',
+                        'aksi'             => $isHapusSemua ? 'Hapus' : 'Edit',
+                        'no_mesin'         => $existing['no_mesin'] ?? '-',
+                        'waktu_eksekusi'   => date('Y-m-d H:i:s'),
+                        'dieksekusi_oleh'  => session()->get('nama') ?? 'System',
+                        'alasan'           => $isHapusSemua ? 'Penghapusan tindak lanjut via sistem.' : 'Pembaruan rencana perbaikan (Action).',
+                        'detail_perubahan' => json_encode(['old_data' => $snapshotOld, 'new_data' => $snapshotNew]),
+                    ]);
+                }
             }
             return ["status" => true, "message" => $successMsg];
         }

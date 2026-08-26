@@ -227,7 +227,7 @@ class DashboardController extends BaseController
         $checkedMap = [];
         if (!$isOverhaul || ($isOverhaul && $hasActiveCycle)) {
             $builder = $db->table('transaksi_check t')
-                          ->select('t.id_mesin, 
+                          ->select('t.id_mesin, t.kategori, m.jenis,
                                     (SELECT CASE 
                                         WHEN SUM(CASE WHEN d.hasil_check = \'Δ\' THEN 1 ELSE 0 END) > 0 THEN \'Δ\' 
                                         WHEN COUNT(d.id_detail) > 0 AND SUM(CASE WHEN d.hasil_check = \'X\' THEN 1 ELSE 0 END) = COUNT(d.id_detail) THEN \'X\' 
@@ -271,7 +271,16 @@ class DashboardController extends BaseController
             $checkedRecords = $builder->orderBy('t.id_transaksi', 'ASC')->get()->getResultArray();
             
             foreach ($checkedRecords as $row) {
-                $checkedMap[$row['id_mesin']] = $row['kondisi'];
+                if (!isset($checkedMap[$row['id_mesin']])) {
+                    $checkedMap[$row['id_mesin']] = ['categories' => [], 'kondisi' => 'V'];
+                }
+                $checkedMap[$row['id_mesin']]['categories'][] = $row['kategori'];
+                
+                if ($row['kondisi'] === 'Δ') {
+                    $checkedMap[$row['id_mesin']]['kondisi'] = 'Δ';
+                } elseif ($row['kondisi'] === 'X' && $checkedMap[$row['id_mesin']]['kondisi'] !== 'Δ') {
+                    $checkedMap[$row['id_mesin']]['kondisi'] = 'X';
+                }
             }
         }
 
@@ -280,14 +289,21 @@ class DashboardController extends BaseController
 
         foreach ($targetMesin as $m) {
             if (array_key_exists($m['id_mesin'], $checkedMap)) {
-                $m['kondisi'] = $checkedMap[$m['id_mesin']];
-                $sudahDicek[] = $m;
+                $uniqueCategories = array_unique($checkedMap[$m['id_mesin']]['categories']);
+                $checkedCount = count($uniqueCategories);
+
+                if ($isOverhaul || $checkedCount > 0) {
+                    $m['kondisi'] = $checkedMap[$m['id_mesin']]['kondisi'];
+                    $sudahDicek[] = $m;
+                } else {
+                    $belumDicek[] = $m;
+                }
             } else {
                 $belumDicek[] = $m;
             }
         }
 
-        $canManage = has_any_role(['admin', 'leader', 'sheadmtc', 'sheadprd']);
+        $canManage = has_any_role(['admin', 'leader mtc', 'member']);
 
         return $this->response->setJSON([
             'sudah_dicek'      => $sudahDicek,
@@ -306,7 +322,7 @@ class DashboardController extends BaseController
      */
     public function akhiriPeriodeOverhaul()
     {
-        if (!has_any_role(['admin', 'leader', 'sheadmtc', 'sheadprd'])) {
+        if (!has_any_role(['admin', 'leader mtc', 'member'])) {
             return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Tidak punya akses.']);
         }
 
@@ -332,7 +348,7 @@ class DashboardController extends BaseController
      */
     public function awaliPeriodeOverhaul()
     {
-        if (!has_any_role(['admin', 'leader', 'sheadmtc', 'sheadprd'])) {
+        if (!has_any_role(['admin', 'leader mtc', 'member'])) {
             return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Tidak punya akses.']);
         }
 
@@ -350,5 +366,77 @@ class DashboardController extends BaseController
         }
 
         return $this->response->setJSON(['success' => false, 'message' => 'Gagal memulai. Mungkin masih ada siklus yang aktif.']);
+    }
+    public function detailKategoriMesin()
+    {
+        $idMesin = $this->request->getGet('id_mesin');
+        $bulan   = $this->request->getGet('bulan');
+
+        $db = \Config\Database::connect();
+        
+        $mesin = $db->table('master_mesin')->select('no_mesin, jenis')->where('id_mesin', $idMesin)->get()->getRowArray();
+
+        // Target kategori wajib: CAM = 6 kategori, Lainnya = 3 kategori
+        if ($mesin && strcasecmp($mesin['jenis'], 'CAM') === 0) {
+            $kategoriList = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor', 'Bearing Cam', 'Gearbox Cam', 'Belt Cam'];
+        } else {
+            $kategoriList = ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
+        }
+
+        $checkedKategori = $db->table('transaksi_check t')
+                              ->select('t.kategori, t.status as approval_status, 
+                                        (SELECT CASE 
+                                            WHEN SUM(CASE WHEN d.hasil_check = \'Δ\' THEN 1 ELSE 0 END) > 0 THEN \'Δ\' 
+                                            WHEN COUNT(d.id_detail) > 0 AND SUM(CASE WHEN d.hasil_check = \'X\' THEN 1 ELSE 0 END) = COUNT(d.id_detail) THEN \'X\' 
+                                            ELSE \'V\' 
+                                         END 
+                                         FROM transaksi_check_detail d 
+                                         WHERE d.id_transaksi = t.id_transaksi) as kondisi')
+                              ->where('t.id_mesin', $idMesin)
+                              ->where('t.jenis_check', \App\Enums\JenisCheck::Preventive->value)
+                              ->groupStart()
+                                  ->where('t.target_periode', $bulan)
+                                  ->orGroupStart()
+                                      ->where('(t.target_periode IS NULL OR t.target_periode = "")', null, false)
+                                      ->like('t.waktu_mulai', $bulan, 'after')
+                                  ->groupEnd()
+                              ->groupEnd()
+                              ->get()->getResultArray();
+
+        $checkedMap = [];
+        foreach ($checkedKategori as $c) {
+            $checkedMap[$c['kategori']] = [
+                'kondisi' => $c['kondisi'],
+                'approval_status' => $c['approval_status']
+            ];
+        }
+
+        $result = [];
+        foreach ($kategoriList as $kat) {
+            if (isset($checkedMap[$kat])) {
+                $statusStr = $checkedMap[$kat]['approval_status'] === 'Approved' ? 'Sudah Selesai' : 'Proses ('.$checkedMap[$kat]['approval_status'].')';
+                $result[] = [
+                    'kategori' => $kat,
+                    'status' => $statusStr,
+                    'is_done' => $checkedMap[$kat]['approval_status'] === 'Approved',
+                    'kondisi' => $checkedMap[$kat]['kondisi']
+                ];
+            } else {
+                $result[] = [
+                    'kategori' => $kat,
+                    'status' => 'Belum Dicek',
+                    'is_done' => false,
+                    'kondisi' => '-'
+                ];
+            }
+        }
+
+        $mesin = $db->table('master_mesin')->select('no_mesin')->where('id_mesin', $idMesin)->get()->getRowArray();
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'mesin'  => $mesin ? $mesin['no_mesin'] : 'Unknown',
+            'data'   => $result
+        ]);
     }
 }

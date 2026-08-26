@@ -107,12 +107,12 @@
   #reader__dashboard_section_csr button {
     background-color: var(--accent) !important;
     border-color: var(--accent) !important;
-    color: #fff !important;
+    color: #000 !important;
     border-radius: var(--radius-sm) !important;
     font-weight: 600 !important;
     font-size: 0.8rem !important;
     padding: 0.4rem 0.85rem !important;
-    border: none !important;
+    border: 1px solid #ccc !important;
     box-shadow: var(--shadow-sm) !important;
     transition: background 0.15s !important;
   }

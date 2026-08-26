@@ -1,1 +1,0 @@
-<?php $db = new PDO('mysql:host=localhost;dbname=mtce_db', 'root', ''); $stmt = $db->query('SELECT id, nama, role, departemen, plant, line FROM users WHERE role LIKE \'%sheadmtc%\''); print_r($stmt->fetchAll(PDO::FETCH_ASSOC));

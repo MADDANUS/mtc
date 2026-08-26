@@ -33,30 +33,70 @@
   <div class="alert alert-danger shadow-sm border-0 mb-4"><?= session()->getFlashdata('error') ?></div>
 <?php endif; ?>
 
-<div class="card-stat p-3">
-  <?php if (empty($daftar)): ?>
-    <p class="text-muted mb-0">Belum ada data user.</p>
-  <?php else: ?>
-    <div class="table-responsive">
-      <table class="table table-sm align-middle">
-        <thead>
-          <tr>
-            <?php if (has_any_role(['admin', 'leader mtc'])): ?>
-            <th style="width: 40px;" class="text-center">
-              <input type="checkbox" id="checkAllUser" class="form-check-input">
-            </th>
-            <?php endif; ?>
-            <th>Nama</th>
-            <th>Username</th>
-            <th>Role</th>
-            <th>Plant</th>
-            <th>Departemen</th>
-            <th>Line</th>
-            <th>Status</th>
-            <th style="width:220px;">AKSI</th>
-          </tr>
-        </thead>
-        <tbody>
+<form method="get" action="<?= site_url('admin/user') ?>" id="filterForm">
+  <div class="card-stat p-3">
+    <?php if (empty($daftar) && empty(array_filter($filters))): ?>
+      <p class="text-muted mb-0">Belum ada data user.</p>
+    <?php else: ?>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <?php if (has_any_role(['admin', 'leader mtc'])): ?>
+              <th style="width: 40px;" class="text-center">
+                <input type="checkbox" id="checkAllUser" class="form-check-input">
+              </th>
+              <?php endif; ?>
+              <th class="text-center" style="width: 50px;">No.</th>
+              <th>Nama</th>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Plant</th>
+              <th>Departemen</th>
+              <th>Line</th>
+              <th>Status</th>
+              <th style="width:160px;" class="text-end">Aksi</th>
+            </tr>
+            <tr style="background: rgba(0,0,0,0.02);">
+              <?php if (has_any_role(['admin', 'leader mtc'])): ?>
+              <td></td>
+              <?php endif; ?>
+              <td></td>
+              <td colspan="2">
+                <input type="text" name="q" class="form-control form-control-sm" placeholder="Cari Nama / Username..." value="<?= esc($filters['q'] ?? '') ?>" onkeypress="if(event.key === 'Enter') this.form.submit();">
+              </td>
+              <td>
+                <select name="role" class="form-select form-select-sm" onchange="this.form.submit();">
+                  <option value="all">Semua</option>
+                  <option value="admin" <?= ($filters['role'] ?? '') === 'admin' ? 'selected' : '' ?>>Admin</option>
+                  <option value="sheadmtc" <?= ($filters['role'] ?? '') === 'sheadmtc' ? 'selected' : '' ?>>Shead MTC</option>
+                  <option value="sheadprd" <?= ($filters['role'] ?? '') === 'sheadprd' ? 'selected' : '' ?>>Shead PRD</option>
+                  <option value="leader" <?= ($filters['role'] ?? '') === 'leader' ? 'selected' : '' ?>>Leader Produksi</option>
+                  <option value="leader mtc" <?= ($filters['role'] ?? '') === 'leader mtc' ? 'selected' : '' ?>>Leader MTC</option>
+                  <option value="member" <?= ($filters['role'] ?? '') === 'member' ? 'selected' : '' ?>>Member</option>
+                  <option value="magang" <?= ($filters['role'] ?? '') === 'magang' ? 'selected' : '' ?>>Magang</option>
+                </select>
+              </td>
+              <td>
+                <select name="plant" class="form-select form-select-sm" onchange="this.form.submit();">
+                  <option value="all">Semua</option>
+                  <option value="Plant 1" <?= ($filters['plant'] ?? '') === 'Plant 1' ? 'selected' : '' ?>>Plant 1</option>
+                  <option value="Plant 2" <?= ($filters['plant'] ?? '') === 'Plant 2' ? 'selected' : '' ?>>Plant 2</option>
+                </select>
+              </td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td class="text-end">
+                <div class="d-flex gap-1 justify-content-end">
+                  <button type="submit" class="btn btn-sm btn-primary py-1 px-2" title="Cari"><i class="bi bi-search"></i></button>
+                  <a href="<?= site_url('admin/user') ?>" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Reset"><i class="bi bi-x-lg"></i></a>
+                </div>
+              </td>
+            </tr>
+          </thead>
+          <tbody>
+          <?php $no = 1; ?>
           <?php foreach ($daftar as $u): ?>
             <tr>
               <?php if (has_any_role(['admin', 'leader mtc'])): ?>
@@ -76,6 +116,7 @@
                 <?php endif; ?>
               </td>
               <?php endif; ?>
+              <td class="text-center"><?= $no++ ?></td>
               <td><?= esc($u['nama']) ?></td>
               <td><?= esc($u['username']) ?></td>
               <td><span class="badge bg-secondary text-uppercase"><?= esc($u['role']) ?></span></td>
@@ -126,7 +167,8 @@
       </table>
     </div>
   <?php endif; ?>
-</div>
+  </div>
+</form>
 
 <!-- Modal Konfirmasi Hapus User -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
