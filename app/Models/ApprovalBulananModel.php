@@ -73,7 +73,8 @@ class ApprovalBulananModel extends Model
 
     public function deleteApprovalKontrol(string $departemen, string $line, string $kategori, string $bulanTahun, ?string $plant = null): bool
     {
-        $builder = $this->where('type', 'kontrol')
+        $builder = $this->builder()
+                        ->where('type', 'kontrol')
                         ->where('departemen', $departemen)
                         ->where('line', $line)
                         ->where('kategori', $kategori)

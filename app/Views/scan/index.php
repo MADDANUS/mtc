@@ -38,7 +38,7 @@
       if (url.includes('/scan/mesin/')) {
         window.location.href = url;
       } else {
-        alert("QR Code tidak valid! Pastikan Anda memindai stiker QR Code Mesin MTCE resmi.");
+        alert("QR Code tidak valid! Pastikan Anda memindai stiker QR Code Mesin MTC resmi.");
       }
     }
 

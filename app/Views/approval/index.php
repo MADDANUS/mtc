@@ -195,6 +195,7 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                         . '&kategori=' . urlencode($doc['kategori']  ?? '')
                         . '&bulan='    . urlencode(substr($doc['doc_date'] ?? '', 0, 7))
                         . (!empty($doc['line']) ? '&line=' . urlencode($doc['line']) : '')
+                        . '&plant=' . urlencode($doc['plant'] ?? 'Plant 1')
                         . '&from=approval'
                         . (!empty($_SERVER['QUERY_STRING']) ? '&qs_approval=' . urlencode($_SERVER['QUERY_STRING']) : '');
                 } else {
@@ -239,7 +240,9 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
                 <td style="font-size:0.85rem; white-space:normal; font-weight:600;"><?= $tdKategori ?></td>
                 <td>
                   <div class="fw-semibold text-dark" style="font-size:0.85rem;"><?= $tdMesin ?></div>
-                  <div class="text-muted small" style="font-size:0.75rem;"><?= !$isKontrol ? esc($doc['type_mesin'] ?? '-') : '-' ?></div>
+                  <?php if (!$isKontrol): ?>
+                  <div class="text-muted small" style="font-size:0.75rem;"><?= esc($doc['type_mesin'] ?? '-') ?></div>
+                  <?php endif; ?>
                 </td>
                 <td class="fw-medium text-dark" style="font-size:0.85rem; text-center"><?= esc($doc['plant'] ?? '-') ?></td>
                 <td style="font-size:0.82rem; color:var(--text-secondary);"><?= $departemenLine ?></td>

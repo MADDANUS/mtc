@@ -59,6 +59,11 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
         <i class="bi bi-plus-lg"></i> Buat Baru
       </a>
     <?php endif; ?>
+    <?php if (has_role('admin')): ?>
+      <button type="button" class="btn btn-sm btn-danger shadow-sm d-none" id="btnBulkDelete" onclick="confirmBulkDelete()">
+        <i class="bi bi-trash"></i> Hapus Terpilih (<span id="bulkDeleteCount">0</span>)
+      </button>
+    <?php endif; ?>
   </div>
 </div>
 
@@ -76,6 +81,13 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
                 <thead class="table-light">
                     <!-- Baris Kolom dan Sorting -->
           <tr>
+            <?php if (has_role('admin')): ?>
+            <th style="width: 3%;" class="text-center align-middle">
+              <div class="form-check d-flex justify-content-center mb-0">
+                <input class="form-check-input" type="checkbox" id="selectAllCheckbox" onchange="toggleAllCheckboxes(this)">
+              </div>
+            </th>
+            <?php endif; ?>
             <th style="width: 5%;" class="text-center align-middle">
               <a href="<?= $getSortUrl('id_transaksi') ?>" class="text-decoration-none text-secondary d-inline-flex align-items-center fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">
                 NO <?= $getSortIcon('id_transaksi') ?>
@@ -130,6 +142,9 @@ $getSortIcon = function(string $column) use ($selectedFilters) {
           </tr>
           <!-- NEW FILTER ROW -->
           <tr class="bg-white">
+            <?php if (has_role('admin')): ?>
+            <th class="p-1"></th>
+            <?php endif; ?>
             <th class="p-1"></th>
             <th class="p-1" style="min-width: 130px;">
               <select name="pic" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari PIC..." onchange="this.form.submit()" style="font-size: 0.75rem;">
@@ -272,6 +287,95 @@ function confirmDelete(id) {
     document.getElementById('deleteForm').action = '<?= site_url("riwayat/delete/") ?>' + id;
     modal.show();
 }
+</script>
+<?php endif; ?>
+
+<?php if (has_role('admin')): ?>
+<!-- Modal Hapus Masal -->
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <div class="modal-header border-bottom-0 pb-0 pt-4 px-4">
+        <h6 class="modal-title fw-bold text-danger"><i class="bi bi-trash3 me-1.5"></i>Hapus Masal Riwayat</h6>
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="bulkDeleteFormSubmit" action="<?= site_url('riwayat/bulk-delete') ?>" method="post">
+        <?= csrf_field() ?>
+        <input type="hidden" name="departemen_slug" value="<?= esc($departemenSlug) ?>">
+        <div id="bulkDeleteInputs"></div>
+        <div class="modal-body px-4 pt-3 pb-2">
+          <p class="text-muted mb-3" style="font-size:0.88rem;">Apakah Anda yakin ingin menghapus <strong id="bulkDeleteModalCount">0</strong> riwayat yang dipilih secara permanen? Data yang dihapus tidak dapat dikembalikan.</p>
+          <div class="mb-2">
+            <label for="bulkDeleteReason" class="form-label" style="font-size:0.85rem; font-weight:600;">Alasan Penghapusan <span class="text-danger">*</span></label>
+            <textarea class="form-control" name="alasan" id="bulkDeleteReason" rows="3" required placeholder="Wajib: Tuliskan alasan mengapa laporan-laporan ini dihapus..." style="font-size:0.85rem;"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-3" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-danger btn-sm px-4 rounded-3">Hapus</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleAllCheckboxes(source) {
+      const checkboxes = document.querySelectorAll('.row-checkbox');
+      checkboxes.forEach(cb => cb.checked = source.checked);
+      updateBulkDeleteButton();
+  }
+
+  function updateBulkDeleteButton() {
+      const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+      const btn = document.getElementById('btnBulkDelete');
+      const countSpan = document.getElementById('bulkDeleteCount');
+      
+      if (checkedBoxes.length > 0) {
+          btn.classList.remove('d-none');
+          countSpan.textContent = checkedBoxes.length;
+      } else {
+          btn.classList.add('d-none');
+      }
+  }
+
+  function confirmBulkDelete() {
+      const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+      if (checkedBoxes.length === 0) return;
+      
+      const inputsContainer = document.getElementById('bulkDeleteInputs');
+      inputsContainer.innerHTML = '';
+      
+      checkedBoxes.forEach(cb => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'ids[]';
+          input.value = cb.value;
+          inputsContainer.appendChild(input);
+      });
+      
+      document.getElementById('bulkDeleteModalCount').textContent = checkedBoxes.length;
+      document.getElementById('bulkDeleteReason').value = '';
+      
+      const modal = new bootstrap.Modal(document.getElementById('bulkDeleteModal'));
+      modal.show();
+  }
+
+  // Add event listener to dynamically loaded checkboxes
+  document.addEventListener('change', function(e) {
+      if (e.target && e.target.classList.contains('row-checkbox')) {
+          updateBulkDeleteButton();
+          
+          // Update select all checkbox state
+          const allCheckboxes = document.querySelectorAll('.row-checkbox');
+          const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+          const selectAllCb = document.getElementById('selectAllCheckbox');
+          
+          if (selectAllCb) {
+              selectAllCb.checked = (allCheckboxes.length > 0 && allCheckboxes.length === checkedBoxes.length);
+          }
+      }
+  });
 </script>
 <?php endif; ?>
 

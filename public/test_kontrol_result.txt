@@ -1,0 +1,19 @@
+array (
+  'sql' => 'SELECT `id_transaksi`
+FROM `transaksi_check`
+WHERE `id_mesin` = 229
+AND `kategori` = \'Penerangan\'
+AND   (
+`target_periode` = \'2026-08\'
+OR    (
+    (
+`target_periode` IS NULL
+OR `target_periode` = \'\'
+   )
+AND  `waktu_mulai` LIKE \'2026-08%\' ESCAPE \'!\'
+  )
+ )
+ORDER BY `id_transaksi` DESC
+ LIMIT 1',
+  'count' => 77,
+)

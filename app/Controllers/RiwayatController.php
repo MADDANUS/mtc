@@ -78,8 +78,10 @@ class RiwayatController extends BaseController
         // Dropdown filter mesin dinamis (semua mesin jika departemen null)
         $daftarMesin = $mesinModel->getByDepartemen($departemenName);
 
-        $userLine = has_role(Role::Leader->value) ? session()->get('line') : null;
+        // Shead MTC melihat semua plant/line (tidak dibatasi), Shead PRD tetap dibatasi
+        $userLine = (has_any_role([Role::Leader->value, Role::Sheadprd->value]) && !has_role(Role::Sheadmtc->value)) ? session()->get('line') : null;
         $filters = $this->buildSearchFilters($departemenName, $userLine);
+
 
         $perPage = (int) ($this->request->getGet('per_page') ?: 15);
         $currentPage = (int) ($this->request->getGet('page_riwayat') ?: 1);
@@ -87,6 +89,9 @@ class RiwayatController extends BaseController
         $userIdFilter = has_role('magang') ? session()->get('user_id') : null;
         // Semua role bisa lihat riwayat yang sudah Approved
         $riwayat = $transaksiModel->getRiwayatFiltered($filters, $userIdFilter, null, $perPage);
+        if (has_any_role([Role::Sheadprd->value])) {
+            // dd($transaksiModel->db->getLastQuery()->getQuery());
+        }
         $pager = $transaksiModel->pager;
         $totalItems = $pager ? $pager->getTotal('riwayat') : 0;
         $totalPages = $pager ? $pager->getPageCount('riwayat') : 1;
@@ -176,8 +181,10 @@ class RiwayatController extends BaseController
             return redirect()->to('/dashboard')->with('error', $e->getMessage());
         }
 
-        $userLine = has_role(Role::Leader->value) ? session()->get('line') : null;
+        // Shead MTC melihat semua plant/line (tidak dibatasi), Shead PRD tetap dibatasi
+        $userLine = (has_any_role([Role::Leader->value, Role::Sheadprd->value]) && !has_role(Role::Sheadmtc->value)) ? session()->get('line') : null;
         $filters = $this->buildSearchFilters($departemenName, $userLine);
+
         
         $userIdFilter = has_role('magang') ? session()->get('user_id') : null;
         $transaksiModel = new TransaksiCheckModel();
@@ -412,18 +419,26 @@ class RiwayatController extends BaseController
         } elseif ($rawStatus && $rawStatus !== 'all') {
             $statusFilter = $rawStatus;
         } else {
-            // Sesuai permintaan, Riwayat secara default HANYA menampilkan yang sudah selesai (Approved / Approved Final)
-            // Laporan yang masih setengah jalan (Pending, Approved L1, Approved L2) akan tetap ada di halaman Approval.
-            $statusFilter = ['Approved', 'Approved Final'];
-            if (has_role(\App\Enums\Role::Leader->value)) {
-                $statusFilter[] = 'Approved L1';
-                $statusFilter[] = 'Approved L2';
-            }
-            if (has_role(\App\Enums\Role::Sheadprd->value)) {
-                $statusFilter[] = 'Approved L2';
-            }
-            if (has_role('magang')) {
+            // Aturan akses default per role:
+            // - Leader PRD, Shead PRD, Shead MTC: bisa lihat semua status (Pending s.d Approved Final)
+            //   karena mereka terlibat dalam proses approval dan perlu pantau progres dokumen.
+            // - Admin, Leader MTC (leader mtc), Member MTC: HANYA Approved Final.
+            //   Dokumen yang masih di tengah proses (Pending, Approved L1, dll) cukup di halaman Approval.
+            // - Magang: bebas lihat semua status miliknya sendiri.
+            if (has_role(Role::Sheadmtc->value)) {
+                // Shead MTC: melihat semua dokumen yang sudah di-approve final,
+                // tanpa batasan plant/line (scope MTC adalah seluruh pabrik)
+                $statusFilter = ['Approved', 'Approved Final'];
+            } elseif (has_any_role([Role::Leader->value, Role::Sheadprd->value])) {
+                // Leader PRD & Shead PRD: melihat seluruh tahap approval tapi dibatasi plant/line
+                $statusFilter = ['Pending', 'Approved L1', 'Approved L2', 'Approved', 'Approved Final'];
+            } elseif (has_role('magang')) {
                 $statusFilter = null; // Magang dapat melihat semua status
+            } else {
+                // Admin, Leader MTC (LeaderMember), Member: hanya dokumen yang sudah selesai di-approve
+                // Status 'Approved' = final untuk Checklist Report (Preventive)
+                // Status 'Approved Final' = final untuk Overhaul
+                $statusFilter = ['Approved', 'Approved Final'];
             }
         }
         
@@ -432,11 +447,39 @@ class RiwayatController extends BaseController
             $rawJenisCheck = 'Preventive';
         }
 
+        $reqLine = $this->request->getGet('line');
+        $finalLine = null;
+        if ($userLine) {
+            $userLinesArr = array_map('trim', explode(',', $userLine));
+            if ($reqLine && $reqLine !== 'all' && in_array(trim($reqLine), $userLinesArr)) {
+                $finalLine = $reqLine;
+            } else {
+                $finalLine = $userLine;
+            }
+        } else {
+            $finalLine = ($reqLine === 'all' ? null : ($reqLine ?: null));
+        }
+
+        // Shead MTC tidak dibatasi plant (bisa lihat semua), Shead PRD dibatasi plant session
+        $userPlant = (has_any_role([Role::Leader->value, Role::Sheadprd->value]) && !has_role(Role::Sheadmtc->value)) ? session()->get('plant') : null;
+        $reqPlant = $this->request->getGet('plant');
+        $finalPlant = null;
+        if ($userPlant) {
+            $userPlantArr = array_map('trim', explode(',', $userPlant));
+            if ($reqPlant && $reqPlant !== 'all' && in_array(trim($reqPlant), $userPlantArr)) {
+                $finalPlant = $reqPlant;
+            } else {
+                $finalPlant = $userPlant;
+            }
+        } else {
+            $finalPlant = ($reqPlant === 'all' ? null : ($reqPlant ?: null));
+        }
+
         return [
-            'plant'        => $this->request->getGet('plant') === 'all' ? null : ($this->request->getGet('plant') ?: null),
+            'plant'       => $finalPlant,
             'departemen'  => $departemenName,
             'id_mesin'    => $this->request->getGet('id_mesin') === 'all' ? null : ($this->request->getGet('id_mesin') ?: null),
-            'line'        => $userLine ?: ($this->request->getGet('line') === 'all' ? null : ($this->request->getGet('line') ?: null)),
+            'line'        => $finalLine,
             'jenis_check' => $rawJenisCheck === 'all' ? null : ($rawJenisCheck ?: null),
             'kategori'    => $this->request->getGet('kategori') === 'all' ? null : ($this->request->getGet('kategori') ?: null),
             'bulan'       => $this->request->getGet('bulan') === 'all' ? null : ($this->request->getGet('bulan') ?: date('Y-m')),
@@ -511,5 +554,36 @@ class RiwayatController extends BaseController
             krsort($bulanList);
         }
         return $bulanList;
+    }
+
+    public function bulkDelete()
+    {
+        if (!has_role('admin')) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk menghapus data.');
+        }
+
+        $ids = $this->request->getPost('ids');
+        $departemenSlug = $this->request->getPost('departemen_slug');
+        $alasan = $this->request->getPost('alasan');
+        
+        if (empty($ids) || !is_array($ids)) {
+            return redirect()->back()->with('error', 'Tidak ada data yang dipilih untuk dihapus.');
+        }
+
+        if (empty($alasan)) {
+            return redirect()->back()->with('error', 'Alasan penghapusan harus diisi.');
+        }
+
+        $riwayatService = new \App\Services\RiwayatService();
+        $deletedCount = 0;
+        
+        foreach ($ids as $id) {
+            if ($riwayatService->deleteTransaksi($id, $alasan)) {
+                $deletedCount++;
+            }
+        }
+
+        $url = empty($departemenSlug) ? site_url('riwayat') : site_url('riwayat/departemen/' . $departemenSlug);
+        return redirect()->to($url)->with('message', $deletedCount . ' riwayat pengecekan berhasil dihapus beserta histori alasannya.');
     }
 }

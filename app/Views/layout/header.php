@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<title><?= esc($title ?? 'MTCE') ?></title>
+<title><?= esc($title ?? 'MTC') ?></title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="<?= base_url('assets/css/bootstrap.min.css') ?>" rel="stylesheet">
 <!-- Google Fonts (Inter) -->
@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="<?= base_url('assets/css/bootstrap-icons.min.css') ?>">
 <style>
     /* ============================================================
-       GLOBAL DESIGN SYSTEM - MTCE (Modern Minimalist)
+       GLOBAL DESIGN SYSTEM - MTC (Modern Minimalist)
        Font: Inter | Palette: Slate + Indigo accent
     ============================================================ */
 
@@ -640,7 +640,7 @@ $seg3 = $uri->getTotalSegments() >= 3 ? $uri->getSegment(3) : '';
   <aside class="sidebar">
     <a href="<?= site_url('dashboard') ?>" class="sidebar-brand">
       <div class="brand-icon"><i class="bi bi-shield-fill-check text-white"></i></div>
-      MTCE SYSTEM
+      MTC SYSTEM
     </a>
     
     <div class="sidebar-menu">

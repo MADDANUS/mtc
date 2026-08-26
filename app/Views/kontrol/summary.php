@@ -194,7 +194,7 @@ $getSortIcon = function(string $column) use ($sortBy, $order) {
                                     <?php 
                                         $qsSummary = !empty($_SERVER['QUERY_STRING']) ? '&qs_summary=' . urlencode($_SERVER['QUERY_STRING']) : '';
                                     ?>
-                                    <a href="<?= site_url('kontrol?departemen=' . urlencode($row['departemen']) . '&line=' . urlencode($row['line']) . '&kategori=' . urlencode($row['kategori']) . '&bulan=' . urlencode($bulan) . $qsSummary) ?>" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3">
+                                    <a href="<?= site_url('kontrol?departemen=' . urlencode($row['departemen']) . '&line=' . urlencode($row['line']) . '&kategori=' . urlencode($row['kategori']) . '&bulan=' . urlencode($bulan) . '&plant=' . urlencode($row['plant']) . $qsSummary) ?>" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3">
                                         Lihat Form
                                     </a>
                                 </td>

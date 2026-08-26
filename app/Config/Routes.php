@@ -12,6 +12,7 @@ $routes->get('/', static function () {
     return redirect()->to('/login');
 });
 
+
 // Auth
 $routes->get('login', 'Auth::loginForm');
 $routes->post('login', 'Auth::attemptLogin');
@@ -54,6 +55,7 @@ $routes->group('checklist', ['filter' => 'role:admin,magang,member,leader mtc'],
 
 // Riwayat & Detail Transaksi (semua role login, scoping data ditangani di controller)
 $routes->group('riwayat', ['filter' => 'auth'], static function ($routes) {
+    $routes->post('bulk-delete', 'RiwayatController::bulkDelete');
     $routes->get('/', 'RiwayatController::index');
     $routes->get('redirect-detail', 'RiwayatController::redirectDetail');
     $routes->get('departemen/(:segment)', 'RiwayatController::departemen/$1');

@@ -31,7 +31,7 @@ class CeklisKontrolModel extends Model
      * Mengambil data Checklist Control untuk departemen, kategori, dan bulan tertentu.
      * Mengembalikan data yang distrukturkan per mesin lengkap dengan data periode 1-5.
      */
-    public function getGridData(string $departemen, string $kategori, string $bulanTahun, ?string $line = null): array
+    public function getGridData(string $departemen, string $kategori, string $bulanTahun, ?string $line = null, ?string $plant = null): array
     {
         // 1. Ambil semua mesin untuk departemen dan bulan ini dari tabel riwayat_mesin
         $mesinModel = new MesinModel();
@@ -42,6 +42,15 @@ class CeklisKontrolModel extends Model
         if ($line) {
             $linesArray = array_map('trim', explode(',', $line));
             $builder->whereIn('riwayat_mesin.line', $linesArray);
+        }
+
+        if ($plant) {
+            $plantsArray = array_map('trim', explode(',', $plant));
+            $builder->whereIn('riwayat_mesin.plant', $plantsArray);
+        }
+
+        if (in_array($kategori, ['Bearing Cam', 'Gearbox Cam', 'Belt Cam'])) {
+            $builder->where('master_mesin.jenis', 'CAM');
         }
 
         $firstDayOfMonth = $bulanTahun . '-01';

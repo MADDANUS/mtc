@@ -76,10 +76,40 @@ class KontrolService
      
         public function pdf($request)
     {
-        $departemen   = $request->getGet('departemen') ?: Departemen::MFG1->value;
+        $userPlant = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('plant') : null;
+        $userLine = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('line') : null;
+        
+        $departemenName = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('departemen') : ($request->getGet('departemen') === 'all' ? null : ($request->getGet('departemen') ?: Departemen::MFG1->value));
+        $departemen = $departemenName;
+        
+        $reqLine = $request->getGet('line');
+        $line = null;
+        if ($userLine) {
+            $userLinesArr = array_map('trim', explode(',', $userLine));
+            if ($reqLine && $reqLine !== 'all' && in_array(trim($reqLine), $userLinesArr)) {
+                $line = $reqLine;
+            } else {
+                $line = $userLine;
+            }
+        } else {
+            $line = ($reqLine === 'all' ? null : ($reqLine ?: null));
+        }
+
+        $reqPlant = $request->getGet('plant');
+        $plant = null;
+        if ($userPlant) {
+            $userPlantArr = array_map('trim', explode(',', $userPlant));
+            if ($reqPlant && $reqPlant !== 'all' && in_array(trim($reqPlant), $userPlantArr)) {
+                $plant = $reqPlant;
+            } else {
+                $plant = $userPlant;
+            }
+        } else {
+            $plant = ($reqPlant === 'all' ? null : ($reqPlant ?: null));
+        }
+
         $kategori = $request->getGet('kategori') ?: 'Penerangan';
         $bulan    = $request->getGet('bulan') ?: date('Y-m');
-        $line     = $request->getGet('line') ?: null;
 
         $categoriesList = $this->resolveCategories($departemen, $line);
         if (!in_array($kategori, $categoriesList)) {
@@ -91,8 +121,7 @@ class KontrolService
         if (empty($line) && !empty($availableLines)) {
             $line = $availableLines[0];
         }
-
-        $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $kategori, $bulan, $line);
+        $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $kategori, $bulan, $line, $plant);
 
         $db = \Config\Database::connect();
         $jadwalModel = new \App\Models\JadwalPreventiveModel();
@@ -126,10 +155,39 @@ class KontrolService
 
     public function pdfAllCategories($request)
     {
-        $plant         = $request->getGet('plant') ?: 'Plant 1';
-        $departemen   = $request->getGet('departemen') ?: Departemen::MFG1->value;
+        $userPlant = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('plant') : null;
+        $userLine = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('line') : null;
+        
+        $departemenName = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('departemen') : ($request->getGet('departemen') === 'all' ? null : ($request->getGet('departemen') ?: Departemen::MFG1->value));
+        $departemen = $departemenName;
+        
+        $reqLine = $request->getGet('line');
+        $line = null;
+        if ($userLine) {
+            $userLinesArr = array_map('trim', explode(',', $userLine));
+            if ($reqLine && $reqLine !== 'all' && in_array(trim($reqLine), $userLinesArr)) {
+                $line = $reqLine;
+            } else {
+                $line = $userLine;
+            }
+        } else {
+            $line = ($reqLine === 'all' ? null : ($reqLine ?: null));
+        }
+
+        $reqPlant = $request->getGet('plant');
+        $plant = null;
+        if ($userPlant) {
+            $userPlantArr = array_map('trim', explode(',', $userPlant));
+            if ($reqPlant && $reqPlant !== 'all' && in_array(trim($reqPlant), $userPlantArr)) {
+                $plant = $reqPlant;
+            } else {
+                $plant = $userPlant;
+            }
+        } else {
+            $plant = ($reqPlant === 'all' ? null : ($reqPlant ?: 'Plant 1'));
+        }
+
         $bulan    = $request->getGet('bulan') ?: date('Y-m');
-        $line     = $request->getGet('line') ?: null;
 
         $categories = $this->resolveCategories($departemen, $line);
         $availableLines = $this->resolveAvailableLines($departemen);
@@ -138,35 +196,24 @@ class KontrolService
         }
 
         $allGrids = [];
-        $db = \Config\Database::connect();
-        
         foreach ($categories as $cat) {
-            $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $cat, $bulan, $line);
-            $jadwalModel = new \App\Models\JadwalPreventiveModel();
-            $schedule = $jadwalModel->getJadwalForChecklist($departemen, $cat, $bulan);
-                           
-            $hasSchedule = false;
-            $tglRencanaStr = '-';
-            if ($schedule) {
-                $hasSchedule = true;
-                $tglRencanaStr = date('d-m-Y', strtotime($schedule['tanggal_rencana']));
-            }
-            $columnDates = $this->calculateColumnDates($schedule);
-
-            $approvalModel = new \App\Models\ApprovalBulananModel();
-            $approval = $approvalModel->getApprovalWithUsers($departemen, $cat, $bulan, $line ?: 'NONE', $plant) ?: [];
-
-            $allGrids[] = [
-                'kategori'    => $cat,
-                'grid'        => $grid,
-                'hasSchedule' => $hasSchedule,
-                'tglRencana'  => $tglRencanaStr,
-                'columnDates' => $columnDates,
-                'approvalData'=> $approval
-            ];
+            $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $cat, $bulan, $line, $plant);
+            $allGrids[$cat] = $grid;
         }
-        
-        $bulanList = $this->buildBulanList();
+
+        $jadwalModel = new \App\Models\JadwalPreventiveModel();
+        $schedule = $jadwalModel->getJadwalForChecklist($departemen, $cat, $bulan);
+                       
+        $hasSchedule = false;
+        $tglRencanaStr = '-';
+        if ($schedule) {
+            $hasSchedule = true;
+            $tglRencanaStr = date('d-m-Y', strtotime($schedule['tanggal_rencana']));
+        }
+        $columnDates = $this->calculateColumnDates($schedule);
+
+        $approvalModel = new \App\Models\ApprovalBulananModel();
+        $approval = $approvalModel->getApprovalWithUsers($departemen, $cat, $bulan, $line ?: 'NONE', $plant) ?: [];
 
         $data = [
             'title'      => "Checklist Control - {$plant} - {$departemen} - Semua Kategori",
@@ -175,7 +222,7 @@ class KontrolService
             'bulan'      => $bulan,
             'line'       => $line,
             'allGrids'   => $allGrids,
-            'bulanList'  => $bulanList
+            'approvalData'=> $approval
         ];
 
         return $data;
@@ -184,9 +231,50 @@ class KontrolService
     public function pdfAllSummary($request)
     {
         $bulan = $request->getGet('bulan') ?: date('Y-m');
-        $filterPlant = $request->getGet('filter_plant') === 'all' ? '' : ($request->getGet('filter_plant') ?: '');
-        $filterLokasi = $request->getGet('filter_lokasi') === 'all' ? '' : ($request->getGet('filter_lokasi') ?: '');
-        $filterLine = $request->getGet('filter_line') === 'all' ? '' : ($request->getGet('filter_line') ?: '');
+        
+        $userPlant = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('plant') : null;
+        $userLine = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('line') : null;
+        $userDept = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('departemen') : null;
+        
+        $reqLokasi = $request->getGet('filter_lokasi');
+        $filterLokasi = '';
+        if ($userDept) {
+            $userDeptArr = array_map('trim', explode(',', $userDept));
+            if ($reqLokasi && $reqLokasi !== 'all' && in_array(trim($reqLokasi), $userDeptArr)) {
+                $filterLokasi = $reqLokasi;
+            } else {
+                $filterLokasi = $userDept;
+            }
+        } else {
+            $filterLokasi = ($reqLokasi === 'all' ? '' : ($reqLokasi ?: ''));
+        }
+
+        $reqPlant = $request->getGet('filter_plant');
+        $filterPlant = '';
+        if ($userPlant) {
+            $userPlantArr = array_map('trim', explode(',', $userPlant));
+            if ($reqPlant && $reqPlant !== 'all' && in_array(trim($reqPlant), $userPlantArr)) {
+                $filterPlant = $reqPlant;
+            } else {
+                $filterPlant = $userPlant;
+            }
+        } else {
+            $filterPlant = ($reqPlant === 'all' ? '' : ($reqPlant ?: ''));
+        }
+
+        $reqLine = $request->getGet('filter_line');
+        $filterLine = '';
+        if ($userLine) {
+            $userLinesArr = array_map('trim', explode(',', $userLine));
+            if ($reqLine && $reqLine !== 'all' && in_array(trim($reqLine), $userLinesArr)) {
+                $filterLine = $reqLine;
+            } else {
+                $filterLine = $userLine;
+            }
+        } else {
+            $filterLine = ($reqLine === 'all' ? '' : ($reqLine ?: ''));
+        }
+
         $filterKategori = $request->getGet('filter_kategori') === 'all' ? '' : ($request->getGet('filter_kategori') ?: '');
         
         $departemenList = [
@@ -214,9 +302,11 @@ class KontrolService
                         : ['Penerangan', 'Kabel dan Pipa', 'Angin Bocor'];
                     
                     foreach ($categories as $cat) {
-                        if (!empty($filterKategori) && $cat !== $filterKategori) continue;
-                        
-                        $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $cat, $bulan, $line);
+                        if (empty($line) && !empty($availableLines)) {
+                            $line = $availableLines[0];
+                        }
+                        $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $cat, $bulan, $line, $pln);
+                        $summaryData[$pln][$departemen][$line]['categories'][$cat] = $grid;
                         
                         if (empty($grid)) continue;
 
@@ -302,10 +392,40 @@ class KontrolService
             return $this->summary($request);
         }
 
-        $departemen   = $request->getGet('departemen') ?: Departemen::MFG1->value;
+        $userPlant = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('plant') : null;
+        $userLine = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('line') : null;
+        
+        $departemenName = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('departemen') : ($request->getGet('departemen') === 'all' ? null : ($request->getGet('departemen') ?: Departemen::MFG1->value));
+        $departemen = $departemenName;
+        
+        $reqLine = $request->getGet('line');
+        $line = null;
+        if ($userLine) {
+            $userLinesArr = array_map('trim', explode(',', $userLine));
+            if ($reqLine && $reqLine !== 'all' && in_array(trim($reqLine), $userLinesArr)) {
+                $line = $reqLine;
+            } else {
+                $line = $userLine;
+            }
+        } else {
+            $line = ($reqLine === 'all' ? null : ($reqLine ?: null));
+        }
+
+        $reqPlant = $request->getGet('plant');
+        $plant = null;
+        if ($userPlant) {
+            $userPlantArr = array_map('trim', explode(',', $userPlant));
+            if ($reqPlant && $reqPlant !== 'all' && in_array(trim($reqPlant), $userPlantArr)) {
+                $plant = $reqPlant;
+            } else {
+                $plant = $userPlant;
+            }
+        } else {
+            $plant = ($reqPlant === 'all' ? null : ($reqPlant ?: null));
+        }
+
         $kategori = $request->getGet('kategori') ?: 'Penerangan';
         $bulan    = $request->getGet('bulan') ?: date('Y-m');
-        $line     = $request->getGet('line') ?: null;
 
         // Daftar kategori khusus Preventive
         $categoriesList = $this->resolveCategories($departemen, $line);
@@ -320,8 +440,23 @@ class KontrolService
         if (empty($line) && !empty($availableLines)) {
             $line = $availableLines[0];
         }
+        
+        if (empty($plant)) {
+            $existing = (new \App\Models\ApprovalBulananModel())
+                        ->where('type', 'kontrol')
+                        ->where('departemen', $departemen)
+                        ->where('line', $line ?: 'NONE')
+                        ->where('kategori', $kategori)
+                        ->where('bulan_tahun', $bulan)
+                        ->first();
+            if ($existing) {
+                $plant = $existing['plant'];
+            } else {
+                $plant = 'Plant 1';
+            }
+        }
 
-        $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $kategori, $bulan, $line);
+        $grid = (new \App\Models\CeklisKontrolModel())->getGridData($departemen, $kategori, $bulan, $line, $plant);
 
         // Ambil jadwal rencana untuk departemen, kategori, dan bulan berjalan (maks 1 per bulan)
         $db = \Config\Database::connect();
@@ -342,7 +477,7 @@ class KontrolService
 
         // Ambil status approval beserta nama approver
         $approvalModel = new \App\Models\ApprovalBulananModel();
-        $approval = $approvalModel->getApprovalWithUsers($departemen, $kategori, $bulan, $line ?: 'NONE');
+        $approval = $approvalModel->getApprovalWithUsers($departemen, $kategori, $bulan, $line ?: 'NONE', $plant);
 
         $approvalStatus = $approval ? $approval['status'] : 'Pending';
 
@@ -355,6 +490,7 @@ class KontrolService
 
         return [
             'title'          => 'Checklist Control Bulanan',
+            'plant'          => $plant,
             'departemen'         => $departemen,
             'line'           => $line,
             'kategori'       => $kategori,
@@ -377,9 +513,50 @@ class KontrolService
     public function summary($request)
     {
         $bulan = $request->getGet('bulan') ?: date('Y-m');
-        $filterLokasi = $request->getGet('filter_lokasi') === 'all' ? '' : ($request->getGet('filter_lokasi') ?: '');
-        $filterPlant = $request->getGet('filter_plant') === 'all' ? '' : ($request->getGet('filter_plant') ?: '');
-        $filterLine = $request->getGet('filter_line') === 'all' ? '' : ($request->getGet('filter_line') ?: '');
+        
+        $userPlant = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('plant') : null;
+        $userLine = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('line') : null;
+        $userDept = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('departemen') : null;
+        
+        $reqLokasi = $request->getGet('filter_lokasi');
+        $filterLokasi = '';
+        if ($userDept) {
+            $userDeptArr = array_map('trim', explode(',', $userDept));
+            if ($reqLokasi && $reqLokasi !== 'all' && in_array(trim($reqLokasi), $userDeptArr)) {
+                $filterLokasi = $reqLokasi;
+            } else {
+                $filterLokasi = $userDept;
+            }
+        } else {
+            $filterLokasi = ($reqLokasi === 'all' ? '' : ($reqLokasi ?: ''));
+        }
+
+        $reqPlant = $request->getGet('filter_plant');
+        $filterPlant = '';
+        if ($userPlant) {
+            $userPlantArr = array_map('trim', explode(',', $userPlant));
+            if ($reqPlant && $reqPlant !== 'all' && in_array(trim($reqPlant), $userPlantArr)) {
+                $filterPlant = $reqPlant;
+            } else {
+                $filterPlant = $userPlant;
+            }
+        } else {
+            $filterPlant = ($reqPlant === 'all' ? '' : ($reqPlant ?: ''));
+        }
+
+        $reqLine = $request->getGet('filter_line');
+        $filterLine = '';
+        if ($userLine) {
+            $userLinesArr = array_map('trim', explode(',', $userLine));
+            if ($reqLine && $reqLine !== 'all' && in_array(trim($reqLine), $userLinesArr)) {
+                $filterLine = $reqLine;
+            } else {
+                $filterLine = $userLine;
+            }
+        } else {
+            $filterLine = ($reqLine === 'all' ? '' : ($reqLine ?: ''));
+        }
+
         $filterKategori = $request->getGet('filter_kategori') === 'all' ? '' : ($request->getGet('filter_kategori') ?: '');
         $filterStatus = $request->getGet('filter_status') === 'all' ? '' : ($request->getGet('filter_status') ?: '');
         $sortBy = $request->getGet('sort_by') ?: 'departemen';
@@ -392,10 +569,12 @@ class KontrolService
         $totalMesinQuery = $riwayatMesinModel->getTotalMesinPerLineHistorical($bulan);
         
         $totalMesin = [];
+        $totalMesinCam = [];
         $linesByLokasi = [];
         foreach($totalMesinQuery as $tm) {
             $pln = $tm['plant'] ?? 'Plant 1';
             $totalMesin[$pln][$tm['departemen']][$tm['line']] = (int) $tm['total'];
+            $totalMesinCam[$pln][$tm['departemen']][$tm['line']] = (int) $tm['total_cam'];
             $linesByLokasi[$tm['departemen']][] = $tm['line'];
         }
 
@@ -433,34 +612,61 @@ class KontrolService
         $summaryRows = [];
         $notCheckedRows = [];
         
+        // Ambil batasan plant dan line dari session
+        // Shead PRD only (bukan Shead MTC): dibatasi plant/line session
+        // Shead MTC: TIDAK dibatasi plant/line, melihat semua yang sudah Approved/Approved Final
+        $isSheadMtc = has_role(Role::Sheadmtc->value);
+        $isSheadPrdOnly = has_role(Role::Sheadprd->value) && !$isSheadMtc;
+        $sessionPlants = $isSheadPrdOnly ? array_map('trim', explode(',', $userPlant ?: '')) : [];
+        $sessionLines  = $isSheadPrdOnly ? array_map('trim', explode(',', $userLine ?: '')) : [];
+
         $plansToIterate = ['Plant 1', 'Plant 2'];
 
+        // Konversi filter string ke array agar multi-value CSV bisa di-match dengan in_array
+        $filterPlantArr  = !empty($filterPlant)  ? array_map('trim', explode(',', $filterPlant))  : [];
+        $filterLokasiArr = !empty($filterLokasi) ? array_map('trim', explode(',', $filterLokasi)) : [];
+        $filterLineArr   = !empty($filterLine)   ? array_map('trim', explode(',', $filterLine))   : [];
+
         foreach ($plansToIterate as $pln) {
-            if (!empty($filterPlant) && $pln !== $filterPlant) continue;
+            // Shead PRD only: dibatasi plant session; Shead MTC: tidak dibatasi
+            if ($isSheadPrdOnly && !empty($sessionPlants) && !in_array($pln, $sessionPlants)) continue;
+            // Filter dari URL param (hanya berlaku jika bukan Shead PRD yang mengirim filter multi-value)
+            if (!$isSheadPrdOnly && !empty($filterPlantArr) && !in_array($pln, $filterPlantArr)) continue;
             
             foreach ($kategoriByLokasi as $departemen => $categories) {
-                if (!empty($filterLokasi) && $departemen !== $filterLokasi) continue;
+                if (!empty($filterLokasiArr) && !in_array($departemen, $filterLokasiArr)) continue;
+                // Shead PRD only: dibatasi departemen session
+                if ($isSheadPrdOnly && !empty($userDept)) {
+                    $sessionDepts = array_map('trim', explode(',', $userDept));
+                    if (!in_array($departemen, $sessionDepts)) continue;
+                }
                 
                 $lines = isset($linesByLokasi[$departemen]) ? array_unique($linesByLokasi[$departemen]) : [];
                 sort($lines);
 
                 foreach ($lines as $line) {
-                    if (!empty($filterLine) && $line !== $filterLine) continue;
+                    // Shead PRD only: dibatasi line session; Shead MTC: tidak dibatasi
+                    if ($isSheadPrdOnly && !empty($sessionLines) && !in_array($line, $sessionLines)) continue;
+                    if (!$isSheadPrdOnly && !empty($filterLineArr) && !in_array($line, $filterLineArr)) continue;
 
                     foreach ($categories as $kategori) {
                         if (!empty($filterKategori) && $kategori !== $filterKategori) continue;
                         
-                        $total = $totalMesin[$pln][$departemen][$line] ?? 0;
+                        if (in_array($kategori, ['Bearing Cam', 'Gearbox Cam', 'Belt Cam'])) {
+                            $total = $totalMesinCam[$pln][$departemen][$line] ?? 0;
+                        } else {
+                            $total = $totalMesin[$pln][$departemen][$line] ?? 0;
+                        }
                         if ($total == 0) continue;
                         
                         $checked = $checkedData[$pln][$departemen][$line][$kategori] ?? 0;
                         
                         if ($checked == 0) {
                             $notCheckedRows[] = [
-                                'plant'         => $pln,
-                                'departemen'   => $departemen,
-                                'line'     => $line,
-                                'kategori' => $kategori
+                                'plant'      => $pln,
+                                'departemen' => $departemen,
+                                'line'       => $line,
+                                'kategori'   => $kategori
                             ];
                             continue;
                         }
@@ -468,52 +674,56 @@ class KontrolService
                         $percent = $total > 0 ? round(($checked / $total) * 100) : 0;
                         $status = $approvalData[$pln][$departemen][$line][$kategori] ?? '';
                         
-                        // Hitung status teks dan warna badge yang akurat sesuai progress
-                    $badgeClass = 'bg-secondary';
-                    $statusText = 'Belum Selesai (' . $percent . '%)';
-                    
-                    if ($percent == 100) {
-                        if (empty($status) || $status === 'Pending') {
-                            $badgeClass = 'bg-warning text-dark';
-                            $statusText = 'Menunggu Member (100%)';
-                        } elseif ($status === 'Approved L1') {
-                            $badgeClass = 'bg-info text-dark';
-                            $statusText = 'Menunggu SHead PRD';
-                        } elseif ($status === 'Approved L2') {
-                            $badgeClass = 'bg-primary';
-                            $statusText = 'Menunggu SHead MTC';
-                        } elseif ($status === 'Final' || $status === 'Approved Final') {
-                            $badgeClass = 'bg-success';
-                            $statusText = 'Selesai (Final)';
+                        // Hitung status teks dan warna badge
+                        $badgeClass = 'bg-secondary';
+                        $statusText = 'Belum Selesai (' . $percent . '%)';
+                        
+                        if ($percent == 100) {
+                            if (empty($status) || $status === 'Pending') {
+                                $badgeClass = 'bg-warning text-dark';
+                                $statusText = 'Menunggu Member (100%)';
+                            } elseif ($status === 'Approved L1') {
+                                $badgeClass = 'bg-info text-dark';
+                                $statusText = 'Menunggu SHead PRD';
+                            } elseif ($status === 'Approved L2') {
+                                $badgeClass = 'bg-primary';
+                                $statusText = 'Menunggu SHead MTC';
+                            } elseif ($status === 'Final' || $status === 'Approved Final' || $status === 'Approved') {
+                                $badgeClass = 'bg-success';
+                                $statusText = 'Selesai (Final)';
+                            }
                         }
-                    }
 
-                    // Eksekusi: History Checklist Control HANYA boleh menampilkan dokumen yang SUDAH 100% SELESAI DAN APPROVED FINAL.
-                    // Jika belum 100% atau belum di-approve final, maka sembunyikan dari History (otomatis masuk ke menu Approval).
-                    // Pengecualian: Role 'magang' dapat melihat semua data terlepas dari status progress/approval.
-                    if (!has_role('magang')) {
-                        if ($percent < 100 || !in_array($status, ['Final', 'Approved Final'], true)) {
-                            continue;
+                        // Aturan visibilitas per role:
+                        // - Shead MTC: lihat SEMUA plant/line, hanya yang Approved/Approved Final
+                        // - Shead PRD only: lihat plant/line mereka, semua status (sudah difilter di atas)
+                        // - Admin/Leader MTC/Member: hanya yang 100% dan Approved Final
+                        // - Magang: bebas
+                        if ($isSheadMtc) {
+                            if (!in_array($status, ['Approved', 'Final', 'Approved Final'], true)) continue;
+                        } elseif (!has_role('magang') && !$isSheadPrdOnly) {
+                            // Admin, Leader MTC, Member
+                            if ($percent < 100 || !in_array($status, ['Final', 'Approved Final'], true)) continue;
                         }
-                    }
-                    
-                    if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
+                        // Shead PRD only: tidak ada filter status tambahan (sudah dibatasi plant/line di atas)
+                        
+                        if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
 
-                    $summaryRows[] = [
-                        'plant'            => $pln,
-                        'departemen'      => $departemen,
-                        'line'        => $line,
-                        'kategori'    => $kategori,
-                        'total'       => $total,
-                        'checked'     => $checked,
-                        'percent'     => $percent,
-                        'statusText'  => $statusText,
-                        'badgeClass'  => $badgeClass
-                    ];
+                        $summaryRows[] = [
+                            'plant'       => $pln,
+                            'departemen'  => $departemen,
+                            'line'        => $line,
+                            'kategori'    => $kategori,
+                            'total'       => $total,
+                            'checked'     => $checked,
+                            'percent'     => $percent,
+                            'statusText'  => $statusText,
+                            'badgeClass'  => $badgeClass
+                        ];
+                    }
                 }
             }
         }
-    }
 
         // Sort the flat array
         usort($summaryRows, function($a, $b) use ($sortBy, $order) {
@@ -586,6 +796,9 @@ class KontrolService
         $approval = $approvalModel->getApprovalKontrol($departemen, $line, $kategori, $bulan, $plant);
 
         $currentStatus = $approval ? $approval['status'] : 'Pending';
+        
+        log_message('error', "APPROVE_BULANAN_DEBUG: plant=$plant, dept=$departemen, line=$line, kat=$kategori, bln=$bulan, currentStatus=$currentStatus");
+        
         $userId        = session()->get('user_id');
         $now           = date('Y-m-d H:i:s');
 

@@ -26,7 +26,7 @@
                         <i class="bi bi-camera-fill"></i> In-App Scanner
                     </span>
                     <p class="text-muted small mt-2 mb-0">
-                        Arahkan kamera ke stiker QR Code mesin MTCE Anda untuk langsung menuju form pengecekan.
+                        Arahkan kamera ke stiker QR Code mesin MTC Anda untuk langsung menuju form pengecekan.
                     </p>
                 </div>
             </div>
@@ -95,7 +95,7 @@
           window.location.href = decodedText;
         });
       } else {
-        alert("QR Code tidak valid! Pastikan Anda memindai stiker QR Code Mesin MTCE resmi.");
+        alert("QR Code tidak valid! Pastikan Anda memindai stiker QR Code Mesin MTC resmi.");
       }
     }
 

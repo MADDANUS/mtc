@@ -235,7 +235,7 @@
             </td>
             <td class="text-end pe-3">
               <?php
-                $kontrolUrl = site_url('kontrol') . '?departemen=' . urlencode($pk['departemen'] ?? '') . '&line=' . urlencode($pk['line'] ?? '') . '&kategori=' . urlencode($pk['kategori'] ?? '') . '&bulan=' . urlencode($pk['doc_date'] ?? $pk['bulan_tahun'] ?? '') . '&from=approval';
+                $kontrolUrl = site_url('kontrol') . '?departemen=' . urlencode($pk['departemen'] ?? '') . '&line=' . urlencode($pk['line'] ?? '') . '&kategori=' . urlencode($pk['kategori'] ?? '') . '&bulan=' . urlencode($pk['doc_date'] ?? $pk['bulan_tahun'] ?? '') . '&plant=' . urlencode($pk['plant'] ?? 'Plant 1') . '&from=approval';
               ?>
               <a href="<?= $kontrolUrl ?>" class="btn btn-sm btn-success fw-bold rounded-pill px-3">
                 <i class="bi bi-check-circle me-1"></i> Review & Approve

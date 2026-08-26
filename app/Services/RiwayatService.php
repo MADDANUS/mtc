@@ -13,7 +13,7 @@ class RiwayatService
 {
     public function validateLeaderAccess(?string $departemenName): ?string
     {
-        if (has_role(Role::Leader->value) && !has_role(Role::Admin->value) && !has_role(Role::Sheadprd->value) && !has_role(Role::Sheadmtc->value)) {
+        if (has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value])) {
             $userLokasi = session()->get('departemen');
             if ($userLokasi) {
                 $userDepts = array_map('trim', explode(',', $userLokasi));

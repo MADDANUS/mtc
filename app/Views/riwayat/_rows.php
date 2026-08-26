@@ -15,6 +15,13 @@
     }
   ?>
   <tr>
+    <?php if (has_role('admin')): ?>
+    <td class="text-center align-middle">
+      <div class="form-check d-flex justify-content-center mb-0">
+        <input class="form-check-input row-checkbox" type="checkbox" value="<?= esc($r['id_transaksi']) ?>">
+      </div>
+    </td>
+    <?php endif; ?>
     <td class="fw-semibold text-muted text-center"><?= $no++ ?></td>
     <td class="text-muted" style="font-size: 0.85rem;"><?= esc($r['nama_pic']) ?></td>
     <td class="fw-medium text-dark" style="font-size: 0.85rem; text-center"><?= esc($r['plant'] ?? '-') ?></td>

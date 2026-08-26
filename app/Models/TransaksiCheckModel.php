@@ -74,11 +74,21 @@ class TransaksiCheckModel extends Model
         }
 
         if (!empty($filters['plant']) && $filters['plant'] !== 'all') {
-            $builder->where('master_mesin.plant', $filters['plant']);
+            $plantsArray = array_map('trim', explode(',', $filters['plant']));
+            $escapedPlants = array_map(function($p) { return $this->db->escape($p); }, $plantsArray);
+            $inClause = implode(',', $escapedPlants);
+            $builder->where('IF(transaksi_check.jenis_check = "Overhaul", COALESCE(master_mesin.plant, transaksi_check.plant), master_mesin.plant) IN (' . $inClause . ')', null, false);
         }
 
         if (!empty($filters['departemen'])) {
-            $builder->where('transaksi_check.departemen_check', $filters['departemen']);
+            $deptsArray = array_map('trim', explode(',', $filters['departemen']));
+            if (count($deptsArray) === 1) {
+                $builder->where('transaksi_check.departemen_check', $deptsArray[0]);
+            } else {
+                $escapedDepts = array_map(function($d) { return $this->db->escape($d); }, $deptsArray);
+                $inClause = implode(',', $escapedDepts);
+                $builder->where('transaksi_check.departemen_check IN (' . $inClause . ')', null, false);
+            }
         }
 
         if (!empty($filters['jenis_check'])) {

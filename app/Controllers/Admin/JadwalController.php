@@ -110,8 +110,13 @@ class JadwalController extends BaseController
             $startDate = date('Y-m-d', $mondayTs);
             $endDate   = date('Y-m-d', $saturdayTs); // FullCalendar end exclusive = Sabtu → bar sampai Jumat
 
-            // Warna penanda mfg
-            $color = $s['departemen'] === Departemen::MFG1->value ? '#0d6efd' : '#198754'; // Biru mfg 1, hijau mfg 2
+            // Warna penanda plant & mfg
+            $plantEvent = $s['plant'] ?? 'Plant 1';
+            if ($plantEvent === 'Plant 2') {
+                $color = $s['departemen'] === Departemen::MFG1->value ? '#6f42c1' : '#fd7e14'; // Ungu & Oranye
+            } else {
+                $color = $s['departemen'] === Departemen::MFG1->value ? '#0d6efd' : '#198754'; // Biru & Hijau
+            }
 
             // Label: tampilkan rentang tanggal Senin-Jumat di judul
             $fridayTs = strtotime('+4 days', $mondayTs);

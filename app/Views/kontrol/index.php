@@ -391,6 +391,7 @@
     </div>
     <form action="<?= site_url('kontrol/approve') ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menyetujui Checklist Control ini sebagai <?= esc(session()->get('nama')) ?>?');">
       <?= csrf_field() ?>
+      <input type="hidden" name="plant" value="<?= esc($plant ?? 'Plant 1') ?>">
       <input type="hidden" name="departemen" value="<?= esc($departemen) ?>">
       <input type="hidden" name="line" value="<?= esc($line) ?>">
       <input type="hidden" name="kategori" value="<?= esc($kategori) ?>">
@@ -412,6 +413,7 @@
     </div>
     <form action="<?= site_url('kontrol/delete-approval') ?>" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menghapus approval ini? Status akan kembali ke Belum Selesai.');">
       <?= csrf_field() ?>
+      <input type="hidden" name="plant" value="<?= esc($plant ?? 'Plant 1') ?>">
       <input type="hidden" name="departemen" value="<?= esc($departemen) ?>">
       <input type="hidden" name="line" value="<?= esc($line) ?>">
       <input type="hidden" name="kategori" value="<?= esc($kategori) ?>">

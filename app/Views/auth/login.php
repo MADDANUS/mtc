@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<title>Login — MTCE System</title>
+<title>Login — MTC System</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="<?= base_url('assets/css/bootstrap.min.css') ?>" rel="stylesheet">
 <!-- Google Fonts (Inter) -->
@@ -251,7 +251,7 @@
 <!-- SEAMLESS LOGIN AREA -->
 <div class="login-layout">
     <div class="login-container">
-        <div class="brand-logo">MTCE</div>
+        <div class="brand-logo">MTC</div>
         <div class="brand-tagline">SYSTEM :: MAINTENANCE</div>
 
             <div class="login-header">
@@ -285,7 +285,7 @@
             </form>
 
             <div class="login-footer">
-                &copy; <?= date('Y') ?> MTCE // V1.0 // ALL SYSTEMS NORMAL
+                &copy; <?= date('Y') ?> MTC // V1.0 // ALL SYSTEMS NORMAL
             </div>
         </div>
 

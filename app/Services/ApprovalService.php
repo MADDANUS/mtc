@@ -145,17 +145,24 @@ class ApprovalService
             // Ambil total mesin per line secara historis untuk bulan tersebut
             $totalMesinData = $riwayatMesinModel->getTotalMesinPerLineHistorical($bt);
             $totalMesinMap = [];
+            $totalMesinCamMap = [];
             foreach ($totalMesinData as $tm) {
                 $pln = $tm['plant'] ?? 'Plant 1';
                 $totalMesinMap[$pln][$tm['departemen']][$tm['line']] = (int) $tm['total'];
+                $totalMesinCamMap[$pln][$tm['departemen']][$tm['line']] = (int) $tm['total_cam'];
             }
 
             foreach ($kategoriByLokasi as $lok => $kats) {
                 $plansToIterate = isset($totalMesinMap) ? array_keys($totalMesinMap) : ['Plant 1'];
                 foreach ($plansToIterate as $pln) {
                     if (!isset($totalMesinMap[$pln][$lok])) continue;
-                    foreach ($totalMesinMap[$pln][$lok] as $ln => $totalMesin) {
+                    foreach ($totalMesinMap[$pln][$lok] as $ln => $totalMesinBase) {
                         foreach ($kats as $kat) {
+                            if (in_array($kat, ['Bearing Cam', 'Gearbox Cam', 'Belt Cam'])) {
+                                $totalMesin = $totalMesinCamMap[$pln][$lok][$ln] ?? 0;
+                            } else {
+                                $totalMesin = $totalMesinBase;
+                            }
                             $checked = $checkedMap[$bt][$pln][$lok][$ln][$kat] ?? 0;
                             $persen = $totalMesin > 0 ? round(($checked / $totalMesin) * 100) : 0;
 

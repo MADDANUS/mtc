@@ -405,7 +405,7 @@
           snbarfeeder: snbarfeeder
         };
 
-        // URL scan mesin MTCE
+        // URL scan mesin MTC
         const scanUrl = "<?= site_url('scan/mesin/') ?>" + id;
 
         // Load QR Code menggunakan API lokal offline

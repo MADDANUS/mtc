@@ -16,13 +16,41 @@ class LaporanController extends BaseController
 {
     public function durasi()
     {
-        $departemenName = has_role(Role::Leader->value) ? session()->get('departemen') : ($this->request->getGet('departemen') === 'all' ? null : ($this->request->getGet('departemen') ?: null));
-        $userLine = has_role(Role::Leader->value) ? session()->get('line') : null;
+        $departemenName = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('departemen') : ($this->request->getGet('departemen') === 'all' ? null : ($this->request->getGet('departemen') ?: null));
+        $userLine = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('line') : null;
+        $userPlant = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('plant') : null;
+        
+        $reqLine = $this->request->getGet('line');
+        $finalLine = null;
+        if ($userLine) {
+            $userLinesArr = array_map('trim', explode(',', $userLine));
+            if ($reqLine && $reqLine !== 'all' && in_array(trim($reqLine), $userLinesArr)) {
+                $finalLine = $reqLine;
+            } else {
+                $finalLine = $userLine;
+            }
+        } else {
+            $finalLine = ($reqLine === 'all' ? null : ($reqLine ?: null));
+        }
+
+        $reqPlant = $this->request->getGet('plant');
+        $finalPlant = null;
+        if ($userPlant) {
+            $userPlantArr = array_map('trim', explode(',', $userPlant));
+            if ($reqPlant && $reqPlant !== 'all' && in_array(trim($reqPlant), $userPlantArr)) {
+                $finalPlant = $reqPlant;
+            } else {
+                $finalPlant = $userPlant;
+            }
+        } else {
+            $finalPlant = ($reqPlant === 'all' ? null : ($reqPlant ?: null));
+        }
 
         $filters = [
+            'plant'           => $finalPlant,
             'departemen'      => $departemenName,
             'id_mesin'    => $this->request->getGet('id_mesin') === 'all' ? null : ($this->request->getGet('id_mesin') ?: null),
-            'line'        => $userLine ?: ($this->request->getGet('line') === 'all' ? null : ($this->request->getGet('line') ?: null)),
+            'line'        => $finalLine,
             'jenis_check' => $this->request->getGet('jenis_check') === 'all' ? null : ($this->request->getGet('jenis_check') ?: null),
             'bulan'       => $this->request->getGet('bulan') === 'all' ? null : ($this->request->getGet('bulan') ?: null),
             'pic'         => $this->request->getGet('pic') === 'all' ? null : ($this->request->getGet('pic') ?: null),
@@ -111,13 +139,41 @@ class LaporanController extends BaseController
 
     public function durasiPdf()
     {
-        $departemenName = has_role(Role::Leader->value) ? session()->get('departemen') : ($this->request->getGet('departemen') === 'all' ? null : ($this->request->getGet('departemen') ?: null));
-        $userLine = has_role(Role::Leader->value) ? session()->get('line') : null;
+        $departemenName = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('departemen') : ($this->request->getGet('departemen') === 'all' ? null : ($this->request->getGet('departemen') ?: null));
+        $userLine = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('line') : null;
+        $userPlant = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('plant') : null;
+        
+        $reqLine = $this->request->getGet('line');
+        $finalLine = null;
+        if ($userLine) {
+            $userLinesArr = array_map('trim', explode(',', $userLine));
+            if ($reqLine && $reqLine !== 'all' && in_array(trim($reqLine), $userLinesArr)) {
+                $finalLine = $reqLine;
+            } else {
+                $finalLine = $userLine;
+            }
+        } else {
+            $finalLine = ($reqLine === 'all' ? null : ($reqLine ?: null));
+        }
+
+        $reqPlant = $this->request->getGet('plant');
+        $finalPlant = null;
+        if ($userPlant) {
+            $userPlantArr = array_map('trim', explode(',', $userPlant));
+            if ($reqPlant && $reqPlant !== 'all' && in_array(trim($reqPlant), $userPlantArr)) {
+                $finalPlant = $reqPlant;
+            } else {
+                $finalPlant = $userPlant;
+            }
+        } else {
+            $finalPlant = ($reqPlant === 'all' ? null : ($reqPlant ?: null));
+        }
 
         $filters = [
+            'plant'           => $finalPlant,
             'departemen'      => $departemenName,
             'id_mesin'    => $this->request->getGet('id_mesin') === 'all' ? null : ($this->request->getGet('id_mesin') ?: null),
-            'line'        => $userLine ?: ($this->request->getGet('line') === 'all' ? null : ($this->request->getGet('line') ?: null)),
+            'line'        => $finalLine,
             'jenis_check' => $this->request->getGet('jenis_check') === 'all' ? null : ($this->request->getGet('jenis_check') ?: null),
             'bulan'       => $this->request->getGet('bulan') === 'all' ? null : ($this->request->getGet('bulan') ?: null),
             'pic'         => $this->request->getGet('pic') === 'all' ? null : ($this->request->getGet('pic') ?: null),
@@ -160,13 +216,41 @@ class LaporanController extends BaseController
 
     public function durasiExcel()
     {
-        $departemenName = has_role(Role::Leader->value) ? session()->get('departemen') : ($this->request->getGet('departemen') === 'all' ? null : ($this->request->getGet('departemen') ?: null));
-        $userLine = has_role(Role::Leader->value) ? session()->get('line') : null;
+        $departemenName = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('departemen') : ($this->request->getGet('departemen') === 'all' ? null : ($this->request->getGet('departemen') ?: null));
+        $userLine = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('line') : null;
+        $userPlant = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('plant') : null;
+        
+        $reqLine = $this->request->getGet('line');
+        $finalLine = null;
+        if ($userLine) {
+            $userLinesArr = array_map('trim', explode(',', $userLine));
+            if ($reqLine && $reqLine !== 'all' && in_array(trim($reqLine), $userLinesArr)) {
+                $finalLine = $reqLine;
+            } else {
+                $finalLine = $userLine;
+            }
+        } else {
+            $finalLine = ($reqLine === 'all' ? null : ($reqLine ?: null));
+        }
+
+        $reqPlant = $this->request->getGet('plant');
+        $finalPlant = null;
+        if ($userPlant) {
+            $userPlantArr = array_map('trim', explode(',', $userPlant));
+            if ($reqPlant && $reqPlant !== 'all' && in_array(trim($reqPlant), $userPlantArr)) {
+                $finalPlant = $reqPlant;
+            } else {
+                $finalPlant = $userPlant;
+            }
+        } else {
+            $finalPlant = ($reqPlant === 'all' ? null : ($reqPlant ?: null));
+        }
 
         $filters = [
+            'plant'       => $finalPlant,
             'departemen'  => $departemenName,
             'id_mesin'    => $this->request->getGet('id_mesin') === 'all' ? null : ($this->request->getGet('id_mesin') ?: null),
-            'line'        => $userLine ?: ($this->request->getGet('line') === 'all' ? null : ($this->request->getGet('line') ?: null)),
+            'line'        => $finalLine,
             'jenis_check' => $this->request->getGet('jenis_check') === 'all' ? null : ($this->request->getGet('jenis_check') ?: null),
             'bulan'       => $this->request->getGet('bulan') === 'all' ? null : ($this->request->getGet('bulan') ?: null),
             'pic'         => $this->request->getGet('pic') === 'all' ? null : ($this->request->getGet('pic') ?: null),

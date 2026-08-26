@@ -4,7 +4,7 @@
     <div class="d-flex align-items-center justify-content-between position-relative" style="z-index: 2;">
         <div>
             <h3 class="fw-bold mb-1">Halo, <?= esc(ucwords(session('nama'))) ?>! 👋</h3>
-            <p class="mb-0 opacity-75 small">Berikut adalah ringkasan seluruh data sistem pada platform MTCE saat ini.</p>
+            <p class="mb-0 opacity-75 small">Berikut adalah ringkasan seluruh data sistem pada platform MTC saat ini.</p>
         </div>
         <div class="d-none d-md-block text-white opacity-50">
             <i class="bi bi-speedometer2" style="font-size: 3rem;"></i>

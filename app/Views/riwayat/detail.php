@@ -8,7 +8,7 @@
 <div class="page-header d-flex align-items-center gap-3" style="justify-content: flex-start;">
   <?php if (isset($from) && $from === 'kontrol'): ?>
     <?php 
-      $backUrl = site_url('kontrol') . '?departemen=' . urlencode($cb_lokasi ?? 'MFG 1') . '&line=' . urlencode($cb_line ?? '') . '&kategori=' . urlencode($cb_kategori ?? '') . '&bulan=' . urlencode($cb_bulan ?? '');
+      $backUrl = site_url('kontrol') . '?departemen=' . urlencode($cb_lokasi ?? 'MFG 1') . '&line=' . urlencode($cb_line ?? '') . '&kategori=' . urlencode($cb_kategori ?? '') . '&bulan=' . urlencode($cb_bulan ?? '') . '&plant=' . urlencode($cb_plant ?? 'Plant 1');
       if (!empty($_GET['qs_summary'])) {
           $backUrl .= '&qs_summary=' . urlencode($_GET['qs_summary']);
       }

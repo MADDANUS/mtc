@@ -365,6 +365,13 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
   <div class="row g-3">
     <!-- TABEL CHECKLIST -->
     <div class="col-12 col-lg-9 order-2 order-lg-1" style="overflow: hidden;">
+      <?php if (has_role('admin')): ?>
+      <div class="d-flex justify-content-end mb-2">
+         <button type="button" class="btn btn-sm btn-outline-success shadow-sm" onclick="fillAllNormal()" title="Khusus Admin: Isi otomatis semua pilihan menjadi 'V'">
+            <i class="bi bi-magic me-1"></i> Isi Semua 'V' (Test Mode)
+         </button>
+      </div>
+      <?php endif; ?>
       <?php if (empty($rows)): ?>
         <div class="alert alert-info">Belum ada parameter check yang didefinisikan untuk kategori ini.</div>
       <?php else: ?>
@@ -1337,6 +1344,20 @@ $editUrl = $isEdit ? site_url("riwayat/update/{$idTransaksi}") : site_url("check
     });
   </script>
 </form>
+
+<script>
+  function fillAllNormal() {
+      if (confirm('Anda yakin ingin mengisi semua pilihan parameter menjadi "V" (Normal)?')) {
+          const radiosV = document.querySelectorAll('.hasil-check-radio[value="V"]');
+          radiosV.forEach(radio => {
+              if (!radio.disabled) {
+                  radio.checked = true;
+                  radio.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+          });
+      }
+  }
+</script>
 
 <?= view('layout/footer') ?>
 
