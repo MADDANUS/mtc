@@ -71,9 +71,9 @@
         Ekspor
       </a>
       <!-- Link Download Semua QR -->
-      <a href="<?= site_url('admin/mesin/download-all-qr') ?>" target="_blank" class="btn btn-outline-info btn-sm d-flex align-items-center gap-1 py-2" title="Download Semua QR Code Mesin (PDF)">
+      <button type="button" onclick="downloadFilteredQr()" class="btn btn-outline-info btn-sm d-flex align-items-center gap-1 py-2" title="Download Semua QR Code Mesin (PDF)">
         <i class="bi bi-qr-code"></i> Download Semua QR
-      </a>
+      </button>
       <button type="button" id="btnBatchDeleteMesin" class="btn btn-danger btn-sm py-2 d-none">
         <i class="bi bi-trash"></i> Hapus Terpilih (<span id="batchCountMesin">0</span>)
       </button>
@@ -532,6 +532,26 @@
 </div>
 
 <script>
+  function downloadFilteredQr() {
+      const form = document.getElementById('filterForm');
+      if (form) {
+          const formData = new FormData(form);
+          const params = new URLSearchParams();
+          
+          // Only append parameters that have non-empty values to keep URL clean
+          for (const [key, value] of formData.entries()) {
+              if (value.trim() !== '') {
+                  params.append(key, value);
+              }
+          }
+          
+          const url = '<?= site_url('admin/mesin/download-all-qr') ?>?' + params.toString();
+          window.open(url, '_blank');
+      } else {
+          window.open('<?= site_url('admin/mesin/download-all-qr') ?>', '_blank');
+      }
+  }
+
   function openDeleteModal(id, noMesin) {
       document.getElementById('deleteMesinLabel').innerText = noMesin;
       document.getElementById('deleteForm').action = '<?= site_url('admin/mesin/delete/') ?>' + id;

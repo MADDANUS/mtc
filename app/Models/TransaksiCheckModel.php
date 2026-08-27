@@ -514,7 +514,9 @@ class TransaksiCheckModel extends Model
             $conditionsAdded = true;
         } 
         
-        if (has_role(\App\Enums\Role::Sheadprd->value)) {
+        // SHead PRD: hanya dari areanya, status Approved L1
+        // SKIP blok ini jika user juga punya role SHead MTC (SHead MTC lebih tinggi)
+        if (has_role(\App\Enums\Role::Sheadprd->value) && !has_role(\App\Enums\Role::Sheadmtc->value)) {
             $builder->orGroupStart()
                         ->whereIn('transaksi_check.jenis_check', [\App\Enums\JenisCheck::Overhaul->value, \App\Enums\JenisCheck::Preventive->value])
                         ->whereIn('transaksi_check.status', ['Approved L1', 'Revised']);
@@ -536,10 +538,12 @@ class TransaksiCheckModel extends Model
             $conditionsAdded = true;
         } 
         
+        // SHead MTC: bebas semua area, melihat yang Approved L2 (menunggu approval mereka)
+        // Jika merangkap SHead PRD, blok PRD di atas sudah di-skip, SHead MTC cover semuanya
         if (has_role(\App\Enums\Role::Sheadmtc->value)) {
             $builder->orGroupStart()
                         ->whereIn('transaksi_check.jenis_check', [\App\Enums\JenisCheck::Overhaul->value, \App\Enums\JenisCheck::Preventive->value])
-                        ->where('transaksi_check.status', 'Approved L2');
+                        ->whereIn('transaksi_check.status', ['Approved L2', 'Revised']);
             $builder->groupEnd();
             $conditionsAdded = true;
         } 

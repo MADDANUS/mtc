@@ -850,11 +850,44 @@ class MesinController extends BaseController
         ini_set('memory_limit', '512M');
         ini_set('max_execution_time', '300'); // allow more time for downloading many QRs
 
-        $departemen = session()->get('departemen');
+        $departemenUser = session()->get('departemen');
         $builder = $this->model->orderBy('departemen', 'ASC')->orderBy('no_mesin', 'ASC');
         
-        if (has_role(Role::Leader->value) && $departemen) {
-            $builder->where('departemen', $departemen);
+        if (has_role(Role::Leader->value) && $departemenUser) {
+            $builder->where('departemen', $departemenUser);
+        }
+
+        // Apply filters
+        $q = $this->request->getGet('q');
+        $departemen = $this->request->getGet('departemen');
+        $plant = $this->request->getGet('plant');
+        $line = $this->request->getGet('line');
+        $jenis = $this->request->getGet('jenis');
+
+        if (!empty($q)) {
+            $builder->groupStart()
+                    ->like('no_mesin', $q)
+                    ->orLike('type_mesin', $q)
+                    ->orLike('serial_nomor', $q)
+                    ->groupEnd();
+        }
+
+        if (!empty($plant) && $plant !== 'all') {
+            $builder->where('plant', $plant);
+        }
+
+        if (!empty($departemen) && $departemen !== 'all') {
+            if (!has_role(Role::Leader->value) || (has_role(Role::Leader->value) && $departemen === $departemenUser)) {
+                $builder->where('departemen', $departemen);
+            }
+        }
+
+        if (!empty($line) && $line !== 'all') {
+            $builder->where('line', $line);
+        }
+
+        if (!empty($jenis) && $jenis !== 'all') {
+            $builder->where('jenis', $jenis);
         }
 
         $mesin = $builder->findAll();

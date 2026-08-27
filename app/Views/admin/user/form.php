@@ -55,6 +55,10 @@
             'sheadmtc' => 'Section Head MTC',
             'admin' => 'Admin'
           ];
+          // Hide 'admin' option if the currently logged-in user is not an admin themselves
+          if (!has_role('admin')) {
+              unset($availableRoles['admin']);
+          }
           foreach ($availableRoles as $rv => $rl):
         ?>
         <div class="form-check">

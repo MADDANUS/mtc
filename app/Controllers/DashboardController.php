@@ -221,13 +221,13 @@ class DashboardController extends BaseController
                 $mesinBuilder->where('m.plant', $plantFilter);
             }
         }
-        $targetMesin = $mesinBuilder->orderBy('m.departemen', 'ASC')->orderBy('m.line', 'ASC')->orderBy('m.no_mesin', 'ASC')->get()->getResultArray();
+        $targetMesin = $mesinBuilder->orderBy('m.plant', 'ASC')->orderBy('m.departemen', 'ASC')->orderBy('m.line', 'ASC')->orderBy('m.no_mesin', 'ASC')->get()->getResultArray();
 
         // 2. Get Checked Machines (hanya jika ada siklus aktif, jika tidak, kosongkan data pengecekan)
         $checkedMap = [];
         if (!$isOverhaul || ($isOverhaul && $hasActiveCycle)) {
             $builder = $db->table('transaksi_check t')
-                          ->select('t.id_mesin, t.kategori, m.jenis,
+                          ->select('t.id_transaksi, t.id_mesin, t.kategori, m.jenis,
                                     (SELECT CASE 
                                         WHEN SUM(CASE WHEN d.hasil_check = \'Δ\' THEN 1 ELSE 0 END) > 0 THEN \'Δ\' 
                                         WHEN COUNT(d.id_detail) > 0 AND SUM(CASE WHEN d.hasil_check = \'X\' THEN 1 ELSE 0 END) = COUNT(d.id_detail) THEN \'X\' 
@@ -237,7 +237,7 @@ class DashboardController extends BaseController
                                      WHERE d.id_transaksi = t.id_transaksi) as kondisi')
                           ->join('master_mesin m', 'm.id_mesin = t.id_mesin', 'left')
                           ->where('t.jenis_check', $jenisStr)
-                          ->where('t.status', 'Approved');
+                          ->whereIn('t.status', ['Approved', 'Final', 'Approved Final']);
 
             if (!empty($departemen) && $departemen !== '-') {
                 $deptsArray = array_map('trim', explode(',', $departemen));
@@ -272,7 +272,7 @@ class DashboardController extends BaseController
             
             foreach ($checkedRecords as $row) {
                 if (!isset($checkedMap[$row['id_mesin']])) {
-                    $checkedMap[$row['id_mesin']] = ['categories' => [], 'kondisi' => 'V'];
+                    $checkedMap[$row['id_mesin']] = ['categories' => [], 'kondisi' => 'V', 'id_transaksi' => $row['id_transaksi']];
                 }
                 $checkedMap[$row['id_mesin']]['categories'][] = $row['kategori'];
                 
@@ -294,6 +294,7 @@ class DashboardController extends BaseController
 
                 if ($isOverhaul || $checkedCount > 0) {
                     $m['kondisi'] = $checkedMap[$m['id_mesin']]['kondisi'];
+                    $m['id_transaksi'] = $checkedMap[$m['id_mesin']]['id_transaksi'];
                     $sudahDicek[] = $m;
                 } else {
                     $belumDicek[] = $m;
@@ -384,7 +385,7 @@ class DashboardController extends BaseController
         }
 
         $checkedKategori = $db->table('transaksi_check t')
-                              ->select('t.kategori, t.status as approval_status, 
+                              ->select('t.id_transaksi, t.kategori, t.status as approval_status, 
                                         (SELECT CASE 
                                             WHEN SUM(CASE WHEN d.hasil_check = \'Δ\' THEN 1 ELSE 0 END) > 0 THEN \'Δ\' 
                                             WHEN COUNT(d.id_detail) > 0 AND SUM(CASE WHEN d.hasil_check = \'X\' THEN 1 ELSE 0 END) = COUNT(d.id_detail) THEN \'X\' 
@@ -406,20 +407,24 @@ class DashboardController extends BaseController
         $checkedMap = [];
         foreach ($checkedKategori as $c) {
             $checkedMap[$c['kategori']] = [
-                'kondisi' => $c['kondisi'],
-                'approval_status' => $c['approval_status']
+                'kondisi'         => $c['kondisi'],
+                'approval_status' => $c['approval_status'],
+                'id_transaksi'    => $c['id_transaksi']
             ];
         }
 
         $result = [];
         foreach ($kategoriList as $kat) {
             if (isset($checkedMap[$kat])) {
-                $statusStr = $checkedMap[$kat]['approval_status'] === 'Approved' ? 'Sudah Selesai' : 'Proses ('.$checkedMap[$kat]['approval_status'].')';
+                $isSelesai = in_array($checkedMap[$kat]['approval_status'], ['Approved', 'Final', 'Approved Final'], true);
+                $statusStr = $isSelesai ? 'Sudah Selesai' : 'Proses ('.$checkedMap[$kat]['approval_status'].')';
+                
                 $result[] = [
-                    'kategori' => $kat,
-                    'status' => $statusStr,
-                    'is_done' => $checkedMap[$kat]['approval_status'] === 'Approved',
-                    'kondisi' => $checkedMap[$kat]['kondisi']
+                    'kategori'     => $kat,
+                    'status'       => $statusStr,
+                    'is_done'      => $isSelesai,
+                    'kondisi'      => $checkedMap[$kat]['kondisi'],
+                    'id_transaksi' => $checkedMap[$kat]['id_transaksi']
                 ];
             } else {
                 $result[] = [

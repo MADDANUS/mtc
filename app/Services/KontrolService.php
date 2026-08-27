@@ -76,10 +76,12 @@ class KontrolService
      
         public function pdf($request)
     {
-        $userPlant = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('plant') : null;
-        $userLine = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('line') : null;
+        // SHead MTC tidak dibatasi plant/line dari session
+        $isSheadMtcPdf = has_role(Role::Sheadmtc->value);
+        $userPlant = (!$isSheadMtcPdf && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('plant') : null;
+        $userLine = (!$isSheadMtcPdf && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('line') : null;
         
-        $departemenName = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('departemen') : ($request->getGet('departemen') === 'all' ? null : ($request->getGet('departemen') ?: Departemen::MFG1->value));
+        $departemenName = (!$isSheadMtcPdf && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('departemen') : ($request->getGet('departemen') === 'all' ? null : ($request->getGet('departemen') ?: Departemen::MFG1->value));
         $departemen = $departemenName;
         
         $reqLine = $request->getGet('line');
@@ -155,10 +157,12 @@ class KontrolService
 
     public function pdfAllCategories($request)
     {
-        $userPlant = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('plant') : null;
-        $userLine = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('line') : null;
+        // SHead MTC tidak dibatasi plant/line dari session
+        $isSheadMtcPdfAll = has_role(Role::Sheadmtc->value);
+        $userPlant = (!$isSheadMtcPdfAll && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('plant') : null;
+        $userLine = (!$isSheadMtcPdfAll && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('line') : null;
         
-        $departemenName = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('departemen') : ($request->getGet('departemen') === 'all' ? null : ($request->getGet('departemen') ?: Departemen::MFG1->value));
+        $departemenName = (!$isSheadMtcPdfAll && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('departemen') : ($request->getGet('departemen') === 'all' ? null : ($request->getGet('departemen') ?: Departemen::MFG1->value));
         $departemen = $departemenName;
         
         $reqLine = $request->getGet('line');
@@ -232,9 +236,11 @@ class KontrolService
     {
         $bulan = $request->getGet('bulan') ?: date('Y-m');
         
-        $userPlant = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('plant') : null;
-        $userLine = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('line') : null;
-        $userDept = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('departemen') : null;
+        // SHead MTC tidak dibatasi plant/line dari session
+        $isSheadMtcSummaryPdf = has_role(Role::Sheadmtc->value);
+        $userPlant = (!$isSheadMtcSummaryPdf && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('plant') : null;
+        $userLine = (!$isSheadMtcSummaryPdf && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('line') : null;
+        $userDept = (!$isSheadMtcSummaryPdf && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('departemen') : null;
         
         $reqLokasi = $request->getGet('filter_lokasi');
         $filterLokasi = '';
@@ -392,10 +398,12 @@ class KontrolService
             return $this->summary($request);
         }
 
-        $userPlant = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('plant') : null;
-        $userLine = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('line') : null;
+        // SHead MTC bisa lihat semua (seperti admin/member), tidak dibatasi plant/line/dept session
+        $isSheadMtcIndex = has_role(Role::Sheadmtc->value);
+        $userPlant = (!$isSheadMtcIndex && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('plant') : null;
+        $userLine = (!$isSheadMtcIndex && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('line') : null;
         
-        $departemenName = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('departemen') : ($request->getGet('departemen') === 'all' ? null : ($request->getGet('departemen') ?: Departemen::MFG1->value));
+        $departemenName = (!$isSheadMtcIndex && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('departemen') : ($request->getGet('departemen') === 'all' ? null : ($request->getGet('departemen') ?: Departemen::MFG1->value));
         $departemen = $departemenName;
         
         $reqLine = $request->getGet('line');
@@ -481,11 +489,17 @@ class KontrolService
 
         $approvalStatus = $approval ? $approval['status'] : 'Pending';
 
-        if (has_role(Role::Sheadprd->value) && !has_any_role([Role::Admin->value, Role::Leader->value, Role::Member->value]) && $approvalStatus === 'Pending') {
+        // SHead MTC (prioritas lebih tinggi, bisa merangkap SHead PRD): lihat semua dokumen yang sudah Approved (L2/Final)
+        if (has_role(Role::Sheadmtc->value) && !has_any_role([Role::Admin->value, Role::Member->value]) && in_array($approvalStatus, ['Pending', 'Approved L1'], true)) {
+            return redirect()->to('/kontrol')->with('error', 'Dokumen belum siap untuk Anda (Masih menunggu persetujuan SHead Produksi).');
+        }
+        // SHead PRD saja (tidak punya role Sheadmtc): hanya bisa lihat dokumen minimal Approved L1
+        if (has_role(Role::Sheadprd->value) && !has_any_role([Role::Admin->value, Role::Member->value, Role::Sheadmtc->value]) && $approvalStatus === 'Pending') {
             return redirect()->to('/kontrol')->with('error', 'Dokumen belum siap untuk Anda (Masih menunggu persetujuan Leader).');
         }
-        if (has_role(Role::Sheadmtc->value) && !has_any_role([Role::Admin->value, Role::Leader->value, Role::Member->value, Role::Sheadprd->value]) && in_array($approvalStatus, ['Pending', 'Approved L1'], true)) {
-            return redirect()->to('/kontrol')->with('error', 'Dokumen belum siap untuk Anda (Masih menunggu persetujuan SHead Produksi).');
+        // Leader PRD (role=leader, tanpa Sheadmtc): sama seperti SHead PRD, hanya bisa lihat dokumen minimal Approved L1
+        if (has_role(Role::Leader->value) && !has_any_role([Role::Admin->value, Role::Member->value, Role::LeaderMember->value, Role::Sheadmtc->value]) && $approvalStatus === 'Pending') {
+            return redirect()->to('/kontrol')->with('error', 'Dokumen belum siap untuk Anda (Masih menunggu persetujuan Leader MTC).');
         }
 
         return [
@@ -514,9 +528,11 @@ class KontrolService
     {
         $bulan = $request->getGet('bulan') ?: date('Y-m');
         
-        $userPlant = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('plant') : null;
-        $userLine = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('line') : null;
-        $userDept = has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value]) ? session()->get('departemen') : null;
+        // SHead MTC tidak dibatasi plant/line/dept (bisa melihat semua seperti admin)
+        $isSheadMtcSummary = has_role(Role::Sheadmtc->value);
+        $userPlant = (!$isSheadMtcSummary && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('plant') : null;
+        $userLine = (!$isSheadMtcSummary && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('line') : null;
+        $userDept = (!$isSheadMtcSummary && has_any_role([Role::Leader->value, Role::Sheadprd->value])) ? session()->get('departemen') : null;
         
         $reqLokasi = $request->getGet('filter_lokasi');
         $filterLokasi = '';
@@ -612,13 +628,14 @@ class KontrolService
         $summaryRows = [];
         $notCheckedRows = [];
         
-        // Ambil batasan plant dan line dari session
-        // Shead PRD only (bukan Shead MTC): dibatasi plant/line session
-        // Shead MTC: TIDAK dibatasi plant/line, melihat semua yang sudah Approved/Approved Final
+        // SHead MTC (termasuk yang merangkap SHead PRD): bebas lihat semua, hanya filter berdasarkan status Approved
+        // SHead PRD saja (tanpa role SHead MTC): dibatasi plant/line/dept dari session
+        // Leader PRD (role='leader'): diperlakukan SAMA seperti SHead PRD — dibatasi area session, semua status
         $isSheadMtc = has_role(Role::Sheadmtc->value);
-        $isSheadPrdOnly = has_role(Role::Sheadprd->value) && !$isSheadMtc;
-        $sessionPlants = $isSheadPrdOnly ? array_map('trim', explode(',', $userPlant ?: '')) : [];
-        $sessionLines  = $isSheadPrdOnly ? array_map('trim', explode(',', $userLine ?: '')) : [];
+        $isAreaRestricted = (has_role(Role::Sheadprd->value) || has_role(Role::Leader->value)) && !$isSheadMtc;
+        $isSheadPrdOnly = $isAreaRestricted; // alias untuk backward-compat di bawah
+        $sessionPlants = $isAreaRestricted ? array_map('trim', explode(',', $userPlant ?: '')) : [];
+        $sessionLines  = $isAreaRestricted ? array_map('trim', explode(',', $userLine ?: '')) : [];
 
         $plansToIterate = ['Plant 1', 'Plant 2'];
 
@@ -695,14 +712,14 @@ class KontrolService
                         }
 
                         // Aturan visibilitas per role:
-                        // - Shead MTC: lihat SEMUA plant/line, hanya yang Approved/Approved Final
-                        // - Shead PRD only: lihat plant/line mereka, semua status (sudah difilter di atas)
+                        // - SHead MTC: lihat SEMUA plant/line, hanya yang sudah Approved (L2/Final)
+                        // - SHead PRD & Leader PRD: lihat area sessionnya saja, semua status (sudah difilter di atas)
                         // - Admin/Leader MTC/Member: hanya yang 100% dan Approved Final
                         // - Magang: bebas
                         if ($isSheadMtc) {
                             if (!in_array($status, ['Approved', 'Final', 'Approved Final'], true)) continue;
-                        } elseif (!has_role('magang') && !$isSheadPrdOnly) {
-                            // Admin, Leader MTC, Member
+                        } elseif (!has_role('magang') && !$isAreaRestricted) {
+                            // Admin, Leader MTC, Member — hanya Approved Final
                             if ($percent < 100 || !in_array($status, ['Final', 'Approved Final'], true)) continue;
                         }
                         // Shead PRD only: tidak ada filter status tambahan (sudah dibatasi plant/line di atas)

@@ -112,7 +112,7 @@
 
 <!-- Modal Detail Pencapaian -->
 <div class="modal fade" id="modalDetailPencapaian" tabindex="-1" aria-labelledby="modalDetailPencapaianLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 90%;">
     <div class="modal-content border-0 shadow">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title" id="modalDetailPencapaianLabel"><i class="bi bi-list-check me-2"></i>Detail <span id="detailJenisTitle"></span></h5>
@@ -259,6 +259,17 @@ function showDetailPencapaian(jenis, bulan) {
             document.getElementById('detailJenisTitle').innerText = data.jenis;
             document.getElementById('detailPeriodeText').innerText = data.periode;
             
+            const normalizeData = (arr) => {
+                arr.forEach(m => {
+                    if (m.plant) m.plant = m.plant.trim().replace(/\w\S*/g, (t) => t.charAt(0).toUpperCase() + t.substr(1).toLowerCase());
+                    if (m.departemen) m.departemen = m.departemen.trim().toUpperCase();
+                    if (m.line) m.line = m.line.trim().replace(/\w\S*/g, (t) => t.charAt(0).toUpperCase() + t.substr(1).toLowerCase());
+                });
+            };
+            
+            normalizeData(data.sudah_dicek);
+            normalizeData(data.belum_dicek);
+
             allChecked = data.sudah_dicek;
             allUnchecked = data.belum_dicek;
             currentPlant = data.plant;
@@ -374,7 +385,9 @@ function renderTables(checked, unchecked) {
             
             let btnAksi = '';
             if (currentJenis === 'preventive') {
-                btnAksi = `<button class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill" style="font-size:0.75rem;" onclick="showDetailKategori(${m.id_mesin}, '${m.departemen}', '${m.plant || ''}')">Detail</button>`;
+                btnAksi = `<button class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill" style="font-size:0.75rem;" onclick="showDetailKategori(${m.id_mesin}, '${m.departemen}', '${m.plant || ''}')">Detail Kategori</button>`;
+            } else if (currentJenis.startsWith('overhaul') && m.id_transaksi) {
+                btnAksi = `<a href="<?= site_url('riwayat') ?>/${m.id_transaksi}" target="_blank" class="btn btn-sm btn-primary py-0 px-2 rounded-pill" style="font-size:0.75rem;"><i class="bi bi-box-arrow-up-right me-1"></i>Lihat Laporan</a>`;
             }
             
             tbodyChecked.innerHTML += `
@@ -398,7 +411,7 @@ function renderTables(checked, unchecked) {
         unchecked.forEach(m => {
             let btnAksi = '';
             if (currentJenis === 'preventive') {
-                btnAksi = `<button class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill" style="font-size:0.75rem;" onclick="showDetailKategori(${m.id_mesin}, '${m.departemen}', '${m.plant || ''}')">Detail</button>`;
+                btnAksi = `<button class="btn btn-sm btn-outline-primary py-0 px-2 rounded-pill" style="font-size:0.75rem;" onclick="showDetailKategori(${m.id_mesin}, '${m.departemen}', '${m.plant || ''}')">Detail Kategori</button>`;
             }
 
             tbodyUnchecked.innerHTML += `
@@ -415,41 +428,40 @@ function renderTables(checked, unchecked) {
     }
 }
 
-function populateFilterOptions(checked, unchecked) {
-    const plants = new Set();
-    const depts = new Set();
-    const lines = new Set();
-    const statuses = new Set();
-    
-    [...checked, ...unchecked].forEach(m => {
-        if(m.plant) plants.add(m.plant);
-        if(m.departemen) depts.add(m.departemen);
-        if(m.line) lines.add(m.line);
-    });
-    
-    checked.forEach(m => {
-        if(m.kondisi) statuses.add(m.kondisi);
-    });
-    
-    const fillSelect = (id, options) => {
+function populateFilterOptions() {
+    const fillSelect = (id, options, currentVal) => {
         const el = document.getElementById(id);
         if (!el) return;
-        const val = el.value;
         el.innerHTML = '<option value="">Semua</option>';
         [...options].sort().forEach(opt => {
-            el.innerHTML += `<option value="${opt}" ${opt === val ? 'selected' : ''}>${opt}</option>`;
+            el.innerHTML += `<option value="${opt}" ${opt === currentVal ? 'selected' : ''}>${opt}</option>`;
         });
     };
+
+    const updateCascadingSelects = (plantId, deptId, lineId, dataSource) => {
+        const plantVal = document.getElementById(plantId)?.value || '';
+        let deptVal = document.getElementById(deptId)?.value || '';
+        let lineVal = document.getElementById(lineId)?.value || '';
+
+        const plants = new Set(dataSource.map(m => m.plant).filter(Boolean));
+        fillSelect(plantId, plants, plantVal);
+
+        const depts = new Set(dataSource.filter(m => !plantVal || m.plant === plantVal).map(m => m.departemen).filter(Boolean));
+        if (deptVal && !depts.has(deptVal)) deptVal = '';
+        fillSelect(deptId, depts, deptVal);
+
+        const lines = new Set(dataSource.filter(m => (!plantVal || m.plant === plantVal) && (!deptVal || m.departemen === deptVal)).map(m => m.line).filter(Boolean));
+        if (lineVal && !lines.has(lineVal)) lineVal = '';
+        fillSelect(lineId, lines, lineVal);
+    };
+
+    updateCascadingSelects('filterPlant1', 'filterDept1', 'filterLine1', allChecked);
+    updateCascadingSelects('filterPlant2', 'filterDept2', 'filterLine2', allUnchecked);
     
-    fillSelect('filterPlant1', plants);
-    fillSelect('filterPlant2', plants);
-    fillSelect('filterDept1', depts);
-    fillSelect('filterDept2', depts);
-    fillSelect('filterLine1', lines);
-    fillSelect('filterLine2', lines);
-    
+    // Status filter
+    const statuses = new Set(allChecked.map(m => m.kondisi).filter(Boolean));
     const statusEl = document.getElementById('filterStatus1');
-    if (statusEl) {
+    if (statusEl && statusEl.options.length <= 1) { // Only fill if empty to preserve selection
         const sVal = statusEl.value;
         statusEl.innerHTML = '<option value="">Semua</option>';
         [...statuses].sort().forEach(s => {
@@ -463,52 +475,34 @@ function populateFilterOptions(checked, unchecked) {
 }
 
 function applyFilters() {
+    populateFilterOptions(); // update dropdowns dynamically before filtering
+    
     const termGlobal = (document.getElementById('searchMesin').value || '').toLowerCase();
     
-    const noMesin1 = (document.getElementById('filterNoMesin1')?.value || '').toLowerCase();
-    const type1 = (document.getElementById('filterType1')?.value || '').toLowerCase();
-    const plant1 = document.getElementById('filterPlant1')?.value || '';
-    const dept1 = document.getElementById('filterDept1')?.value || '';
-    const line1 = document.getElementById('filterLine1')?.value || '';
-    const status1 = document.getElementById('filterStatus1')?.value || '';
-    
-    const filterFn1 = (m) => {
-        const matchGlobal = (m.no_mesin || '').toLowerCase().includes(termGlobal) || 
-                            (m.type_mesin || '').toLowerCase().includes(termGlobal) ||
-                            (m.line || '').toLowerCase().includes(termGlobal);
-                            
-        const matchNoMesin = (m.no_mesin || '').toLowerCase().includes(noMesin1);
-        const matchType = (m.type_mesin || '').toLowerCase().includes(type1);
-        const matchPlant = plant1 === '' || m.plant === plant1;
-        const matchDept = dept1 === '' || m.departemen === dept1;
-        const matchLine = line1 === '' || m.line === line1;
-        const matchStatus = status1 === '' || m.kondisi === status1;
+    const filterData = (dataSource, noId, typeId, plantId, deptId, lineId, statusId = null) => {
+        const noVal = (document.getElementById(noId)?.value || '').toLowerCase();
+        const typeVal = (document.getElementById(typeId)?.value || '').toLowerCase();
+        const plantVal = document.getElementById(plantId)?.value || '';
+        const deptVal = document.getElementById(deptId)?.value || '';
+        const lineVal = document.getElementById(lineId)?.value || '';
+        const statusVal = statusId ? (document.getElementById(statusId)?.value || '') : '';
         
-        return matchGlobal && matchNoMesin && matchType && matchPlant && matchDept && matchLine && matchStatus;
+        return dataSource.filter(m => {
+            const matchGlobal = (m.no_mesin || '').toLowerCase().includes(termGlobal) || 
+                                (m.type_mesin || '').toLowerCase().includes(termGlobal) ||
+                                (m.line || '').toLowerCase().includes(termGlobal);
+            const matchNo = (m.no_mesin || '').toLowerCase().includes(noVal);
+            const matchType = (m.type_mesin || '').toLowerCase().includes(typeVal);
+            const matchPlant = plantVal === '' || m.plant === plantVal;
+            const matchDept = deptVal === '' || m.departemen === deptVal;
+            const matchLine = lineVal === '' || m.line === lineVal;
+            const matchStatus = statusVal === '' || m.kondisi === statusVal;
+            return matchGlobal && matchNo && matchType && matchPlant && matchDept && matchLine && matchStatus;
+        });
     };
     
-    const noMesin2 = (document.getElementById('filterNoMesin2')?.value || '').toLowerCase();
-    const type2 = (document.getElementById('filterType2')?.value || '').toLowerCase();
-    const plant2 = document.getElementById('filterPlant2')?.value || '';
-    const dept2 = document.getElementById('filterDept2')?.value || '';
-    const line2 = document.getElementById('filterLine2')?.value || '';
-    
-    const filterFn2 = (m) => {
-        const matchGlobal = (m.no_mesin || '').toLowerCase().includes(termGlobal) || 
-                            (m.type_mesin || '').toLowerCase().includes(termGlobal) ||
-                            (m.line || '').toLowerCase().includes(termGlobal);
-                            
-        const matchNoMesin = (m.no_mesin || '').toLowerCase().includes(noMesin2);
-        const matchType = (m.type_mesin || '').toLowerCase().includes(type2);
-        const matchPlant = plant2 === '' || m.plant === plant2;
-        const matchDept = dept2 === '' || m.departemen === dept2;
-        const matchLine = line2 === '' || m.line === line2;
-        
-        return matchGlobal && matchNoMesin && matchType && matchPlant && matchDept && matchLine;
-    };
-    
-    const filteredChecked = allChecked.filter(filterFn1);
-    const filteredUnchecked = allUnchecked.filter(filterFn2);
+    const filteredChecked = filterData(allChecked, 'filterNoMesin1', 'filterType1', 'filterPlant1', 'filterDept1', 'filterLine1', 'filterStatus1');
+    const filteredUnchecked = filterData(allUnchecked, 'filterNoMesin2', 'filterType2', 'filterPlant2', 'filterDept2', 'filterLine2');
     
     renderTables(filteredChecked, filteredUnchecked);
 }
@@ -554,12 +548,15 @@ function showDetailKategori(idMesin, departemen, plant) {
                         else if (k.kondisi === 'X') kondisiBadge = `<span class="text-danger fw-bold"><i class="bi bi-x-circle"></i> Tidak Ada</span>`;
                         else if (k.kondisi !== '-') kondisiBadge = k.kondisi;
                         
+                        let detailBtn = (k.is_done && k.id_transaksi) ? `<a href="<?= site_url('riwayat') ?>/${k.id_transaksi}" target="_blank" class="btn btn-sm btn-primary py-0 px-2 rounded-pill" style="font-size:0.75rem;"><i class="bi bi-box-arrow-up-right me-1"></i>Lihat Laporan</a>` : '';
+                        
                         tbody.innerHTML += `
                             <tr>
                                 <td class="text-center">${idx + 1}</td>
                                 <td class="fw-bold">${k.kategori}</td>
                                 <td>${badgeStr}</td>
                                 <td class="text-center">${kondisiBadge}</td>
+                                <td class="text-center pe-3">${detailBtn}</td>
                             </tr>
                         `;
                     });
@@ -577,7 +574,7 @@ function showDetailKategori(idMesin, departemen, plant) {
 
 <!-- Modal Kategori Detail -->
 <div class="modal fade" id="modalDetailKategori" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width: 90%;">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-primary text-white border-0">
                 <h5 class="modal-title fw-bold"><i class="bi bi-card-checklist me-2"></i>Detail Kategori Preventive</h5>
@@ -605,6 +602,7 @@ function showDetailKategori(idMesin, departemen, plant) {
                                     <th>Kategori Preventive</th>
                                     <th>Status Transaksi</th>
                                     <th class="text-center">Kondisi</th>
+                                    <th class="text-center pe-3">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="tableKategoriBody">

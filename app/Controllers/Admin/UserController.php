@@ -84,6 +84,10 @@ class UserController extends BaseController
         $rolePost = $this->request->getPost('role');
         $roleStr = is_array($rolePost) ? implode(',', $rolePost) : ($rolePost ?: 'magang');
         
+        if (has_role('leader mtc') && str_contains(strtolower($roleStr), 'admin')) {
+            return $this->redirectError('/admin/user', 'Leader MTC tidak dapat memberikan role Admin kepada user baru.');
+        }
+        
         $noAssignmentRoles = ['admin', 'member', 'magang', 'leader mtc'];
         
         // If ALL selected roles are in noAssignmentRoles, then no assignment needed
@@ -161,6 +165,10 @@ class UserController extends BaseController
             return $this->redirectNotFound('/admin/user', 'User');
         }
 
+        if (has_role('leader mtc') && str_contains(strtolower($user['role']), 'admin')) {
+            return $this->redirectError('/admin/user', 'Leader MTC tidak dapat mengedit akun Admin.');
+        }
+
         $lineModel = new LineModel();
         return view('admin/user/form', [
             'title'        => 'Edit User',
@@ -176,6 +184,10 @@ class UserController extends BaseController
             return $this->redirectNotFound('/admin/user', 'User');
         }
 
+        if (has_role('leader mtc') && str_contains(strtolower($existing['role']), 'admin')) {
+            return $this->redirectError('/admin/user', 'Leader MTC tidak dapat mengupdate akun Admin.');
+        }
+
         $rules = $this->rules();
         $rules['username'] = "required|max_length[50]|is_unique[users.username,id,{$id}]";
         // password opsional saat edit (kosong = tidak diubah)
@@ -189,6 +201,10 @@ class UserController extends BaseController
 
         $rolePost = $this->request->getPost('role');
         $roleStr = is_array($rolePost) ? implode(',', $rolePost) : ($rolePost ?: 'magang');
+        
+        if (has_role('leader mtc') && str_contains(strtolower($roleStr), 'admin')) {
+            return $this->redirectError('/admin/user', 'Leader MTC tidak dapat memberikan role Admin.');
+        }
         
         $noAssignmentRoles = ['admin', 'member', 'magang', 'leader mtc'];
 
@@ -283,6 +299,10 @@ class UserController extends BaseController
         $user = $this->model->find($id);
         if (! $user) {
             return $this->redirectNotFound('/admin/user', 'User');
+        }
+        
+        if (has_role('leader mtc') && str_contains(strtolower($user['role']), 'admin')) {
+            return $this->redirectError('/admin/user', 'Leader MTC tidak dapat mengubah status aktif akun Admin.');
         }
         
         if ((int) $id === (int) session()->get('user_id')) {
