@@ -547,7 +547,8 @@ class MesinController extends BaseController
         $sheet->setCellValue('E1', 'Departemen');
         $sheet->setCellValue('F1', 'Line');
         $sheet->setCellValue('G1', 'Bar Feeder Type');
-        $sheet->setCellValue('H1', 'Jenis');
+        $sheet->setCellValue('H1', 'SN Bar Feeder');
+        $sheet->setCellValue('I1', 'Jenis');
         
         // Header styling
         $headerStyle = [
@@ -556,10 +557,10 @@ class MesinController extends BaseController
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
             'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
         ];
-        $sheet->getStyle('A1:H1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:I1')->applyFromArray($headerStyle);
         
         // Auto-size columns
-        foreach (range('A', 'H') as $col) {
+        foreach (range('A', 'I') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
         
@@ -605,7 +606,8 @@ class MesinController extends BaseController
                 $departemen    = trim($sheet->getCell('E' . $row)->getValue() ?? '');
                 $line          = trim($sheet->getCell('F' . $row)->getValue() ?? '');
                 $barFeederType = trim($sheet->getCell('G' . $row)->getValue() ?? '');
-                $jenis         = trim($sheet->getCell('H' . $row)->getValue() ?? '');
+                $snBarFeeder   = trim($sheet->getCell('H' . $row)->getValue() ?? '');
+                $jenis         = trim($sheet->getCell('I' . $row)->getValue() ?? '');
                 
                 // Lewati baris kosong
                 if (empty($noMesin) && empty($typeMesin) && empty($serialNomor) && empty($departemen)) {
@@ -660,6 +662,7 @@ class MesinController extends BaseController
                         'departemen'      => $departemen,
                         'line'            => empty($line) ? null : $line,
                         'bar_feeder_type' => empty($barFeederType) ? null : $barFeederType,
+                        'sn_barfeeder'    => empty($snBarFeeder) ? null : $snBarFeeder,
                         'jenis'           => empty($jenis) ? null : $jenis,
                     ];
                     
@@ -747,6 +750,7 @@ class MesinController extends BaseController
                         'departemen'      => $departemen,
                         'line'            => empty($line) ? null : $line,
                         'bar_feeder_type' => empty($barFeederType) ? null : $barFeederType,
+                        'sn_barfeeder'    => empty($snBarFeeder) ? null : $snBarFeeder,
                         'jenis'           => empty($jenis) ? null : $jenis,
                     ]);
                     $idMesin = $this->model->getInsertID();

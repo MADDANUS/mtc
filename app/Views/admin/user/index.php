@@ -3,11 +3,15 @@
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
   <h5 class="mb-0">Master User</h5>
   <div class="d-flex align-items-center gap-2 flex-wrap">
-    <!-- Form Impor CSV -->
+    <!-- Link Template -->
+    <a href="<?= site_url('admin/user/template') ?>" class="btn btn-outline-secondary btn-sm py-2">
+      Unduh Template
+    </a>
+    <!-- Form Impor Excel -->
     <form action="<?= site_url('admin/user/import') ?>" method="post" enctype="multipart/form-data" class="d-flex align-items-center gap-1 border rounded p-1 bg-white shadow-sm" style="max-height: 38px;">
       <?= csrf_field() ?>
-      <input type="file" name="file_csv" accept=".csv" required class="form-control form-control-sm" style="max-width: 170px; border:none; padding: 2px 4px; font-size: 0.8rem;" title="Pilih file CSV untuk diimpor">
-      <button type="submit" class="btn btn-sm btn-success py-1 px-2 fw-semibold" style="font-size: 0.8rem;">Impor CSV</button>
+      <input type="file" name="file_excel" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required class="form-control form-control-sm" style="max-width: 170px; border:none; padding: 2px 4px; font-size: 0.8rem;" title="Pilih file Excel untuk diimpor">
+      <button type="submit" class="btn btn-sm btn-success py-1 px-2 fw-semibold" style="font-size: 0.8rem;">Impor Excel</button>
     </form>
     <!-- Link Ekspor CSV -->
     <a href="<?= site_url('admin/user/export') ?>" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 py-2">

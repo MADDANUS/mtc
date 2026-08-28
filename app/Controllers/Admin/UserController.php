@@ -455,45 +455,86 @@ class UserController extends BaseController
         exit;
     }
 
-    public function import()
+    public function template()
     {
-        $file = $this->request->getFile('file_csv');
-        if (! $file || ! $file->isValid() || $file->getExtension() !== 'csv') {
-            return redirect()->to('/admin/user')->with('error', 'Silakan pilih file CSV yang valid.');
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // Header
+        $sheet->setCellValue('A1', 'Nama');
+        $sheet->setCellValue('B1', 'Username');
+        $sheet->setCellValue('C1', 'Role');
+        $sheet->setCellValue('D1', 'Plant');
+        $sheet->setCellValue('E1', 'Departemen');
+        $sheet->setCellValue('F1', 'Line');
+        $sheet->setCellValue('G1', 'Password');
+        
+        // Header styling
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF0070C0']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+        ];
+        $sheet->getStyle('A1:G1')->applyFromArray($headerStyle);
+        
+        // Auto-size columns
+        foreach (range('A', 'G') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
         }
         
-        $filePath = $file->getTempName();
-        if (($handle = fopen($filePath, 'r')) !== false) {
-            // Lewati header row
-            fgetcsv($handle);
+        $filename = 'template_user.xlsx';
+        
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+
+    public function import()
+    {
+        $file = $this->request->getFile('file_excel');
+        if (! $file || ! $file->isValid()) {
+            return redirect()->to('/admin/user')->with('error', 'Silakan pilih file Excel yang valid.');
+        }
+        
+        $extension = $file->getExtension();
+        if (! in_array($extension, ['xlsx', 'xls', 'csv'], true)) {
+            return redirect()->to('/admin/user')->with('error', 'Format file tidak didukung. Gunakan .xlsx, .xls, atau .csv');
+        }
+        
+        try {
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getTempName());
+            $sheet = $spreadsheet->getActiveSheet();
+            $highestRow = $sheet->getHighestDataRow();
             
             $successInsert = 0;
             $successUpdate = 0;
             $errors = [];
-            $rowNum = 1;
             
-            while (($row = fgetcsv($handle)) !== false) {
-                $rowNum++;
-                if (count($row) < 3) {
-                    $errors[] = "Baris {$rowNum}: Kolom kurang lengkap. Harus memuat Nama, Username, dan Role.";
-                    continue;
+            for ($row = 2; $row <= $highestRow; $row++) {
+                $nama       = trim($sheet->getCell('A' . $row)->getValue() ?? '');
+                $username   = trim($sheet->getCell('B' . $row)->getValue() ?? '');
+                $role       = strtolower(trim($sheet->getCell('C' . $row)->getValue() ?? ''));
+                $plant       = trim($sheet->getCell('D' . $row)->getValue() ?? '');
+                $departemen = trim($sheet->getCell('E' . $row)->getValue() ?? '');
+                $line       = trim($sheet->getCell('F' . $row)->getValue() ?? '');
+                $password   = trim($sheet->getCell('G' . $row)->getValue() ?? '');
+                
+                if (empty($nama) && empty($username) && empty($role)) {
+                    continue; // Skip empty rows
                 }
                 
-                $nama       = trim($row[0]);
-                $username   = trim($row[1]);
-                $role       = strtolower(trim($row[2]));
-                $plant       = isset($row[3]) ? trim($row[3]) : '';
-                $departemen = isset($row[4]) ? trim($row[4]) : '';
-                $line       = isset($row[5]) ? trim($row[5]) : '';
-                $password   = isset($row[6]) ? trim($row[6]) : '';
-                
                 if (empty($nama) || empty($username) || empty($role)) {
-                    $errors[] = "Baris {$rowNum}: Kolom Nama, Username, dan Role tidak boleh kosong.";
+                    $errors[] = "Baris {$row}: Kolom Nama, Username, dan Role tidak boleh kosong.";
                     continue;
                 }
                 
                 if (! in_array($role, [Role::Magang->value, Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, Role::Leader->value, Role::LeaderMember->value], true)) {
-                    $errors[] = "Baris {$rowNum}: Role '{$role}' tidak valid. Harus Role::Magang->value, Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, 'leader', atau 'leader mtc'.";
+                    $errors[] = "Baris {$row}: Role '{$role}' tidak valid. Harus Role::Magang->value, Role::Member->value, Role::Sheadprd->value, Role::Sheadmtc->value, Role::Admin->value, 'leader', atau 'leader mtc'.";
                     continue;
                 }
                 
@@ -527,8 +568,6 @@ class UserController extends BaseController
                 }
             }
             
-            fclose($handle);
-            
             $msg = "Impor selesai. Ditambahkan: {$successInsert}, Diperbarui: {$successUpdate}.";
             if (! empty($errors)) {
                 $msg .= " Beberapa baris dilewati:\n" . implode("\n", $errors);
@@ -536,9 +575,10 @@ class UserController extends BaseController
             }
             
             return redirect()->to('/admin/user')->with('success', $msg);
+            
+        } catch (\Exception $e) {
+            return redirect()->to('/admin/user')->with('error', 'Gagal membaca file Excel: ' . $e->getMessage());
         }
-        
-        return redirect()->to('/admin/user')->with('error', 'Gagal membuka file CSV.');
     }
 
     private function rules(): array
