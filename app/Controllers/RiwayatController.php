@@ -429,9 +429,12 @@ class RiwayatController extends BaseController
                 // Shead MTC: melihat semua dokumen yang sudah di-approve final,
                 // tanpa batasan plant/line (scope MTC adalah seluruh pabrik)
                 $statusFilter = ['Approved', 'Approved Final'];
-            } elseif (has_any_role([Role::Leader->value, Role::Sheadprd->value])) {
-                // Leader PRD & Shead PRD: melihat seluruh tahap approval tapi dibatasi plant/line
-                $statusFilter = ['Pending', 'Approved L1', 'Approved L2', 'Approved', 'Approved Final'];
+            } elseif (has_role(Role::Sheadprd->value)) {
+                // Shead PRD: melihat dokumen setelah mereka approve (L2 ke atas)
+                $statusFilter = ['Approved L2', 'Approved', 'Approved Final'];
+            } elseif (has_role(Role::Leader->value)) {
+                // Leader PRD: melihat dokumen setelah mereka approve (L1 ke atas)
+                $statusFilter = ['Approved L1', 'Approved L2', 'Approved', 'Approved Final'];
             } elseif (has_role('magang')) {
                 $statusFilter = null; // Magang dapat melihat semua status
             } else {

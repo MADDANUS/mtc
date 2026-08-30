@@ -51,7 +51,7 @@ class ApprovalService
         }
 
         // ─── 3. Gabungkan & apply filter GET ──────────────────────────────────────
-        $allDocs = array_merge($transaksiRows, $kontrolRows);
+        $allDocs = array_merge($kontrolRows, $transaksiRows);
 
         [$uniqueLokasi, $uniqueKategori, $uniqueMesin, $uniquePic] = $this->extractUniqueFilters($allDocs);
 

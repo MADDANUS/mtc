@@ -27,7 +27,8 @@ class ParameterCheckModel extends Model
                         ->where('jenis_check', $jenisCheck);
 
         if ($kategori !== null) {
-            if (strtolower($kategori) === 'mesin cnc & bar feeder') {
+            $kategoriLower = strtolower($kategori);
+            if ($kategoriLower === 'mesin cnc & bar feeder' || $kategoriLower === 'cnc') {
                 $builder->whereIn('kategori', ['Mesin CNC', 'Bar Feeder CNC', 'Mesin CNC & Bar Feeder', 'MESIN CNC & BAR FEEDER']);
             } else {
                 $builder->where('kategori', $kategori);

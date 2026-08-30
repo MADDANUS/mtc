@@ -57,13 +57,13 @@ $buildQuery = function(array $override = []) use ($filterJenis, $filterBulan, $f
               <select name="jenis" class="form-select form-select-sm fw-bold border-1 bg-white searchable-select" data-placeholder="Cari Tipe..." onchange="this.form.submit()" style="font-size:0.75rem;">
                 <option value=""></option>
                 <option value="all" <?= ($filterJenis === 'all') ? 'selected' : '' ?>>Semua Tipe</option>
-                <?php if (in_array($role, ['member', 'sheadprd', 'sheadmtc', 'admin'])): ?>
+                <?php if (in_array($role, ['member', 'sheadprd', 'sheadmtc', 'admin', 'leader mtc'])): ?>
                 <option value="Preventive" <?= ($filterJenis === 'Preventive') ? 'selected' : '' ?>>Checklist Report</option>
                 <?php endif; ?>
-                <?php if (in_array($role, ['member', 'leader', 'sheadprd', 'sheadmtc', 'admin'])): ?>
+                <?php if (in_array($role, ['member', 'leader', 'sheadprd', 'sheadmtc', 'admin', 'leader mtc'])): ?>
                 <option value="Overhaul" <?= ($filterJenis === 'Overhaul') ? 'selected' : '' ?>>Inspection Report</option>
                 <?php endif; ?>
-                <?php if (in_array($role, ['member', 'sheadprd', 'sheadmtc', 'admin'])): ?>
+                <?php if (in_array($role, ['member', 'sheadprd', 'sheadmtc', 'admin', 'leader mtc'])): ?>
                 <option value="kontrol" <?= ($filterJenis === 'kontrol') ? 'selected' : '' ?>>Checklist Control</option>
                 <?php endif; ?>
               </select>

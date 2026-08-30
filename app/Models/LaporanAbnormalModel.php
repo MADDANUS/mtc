@@ -293,10 +293,6 @@ class LaporanAbnormalModel extends Model
             )
             ->where('la.pengecekan_tanggal >=', $startDate);
 
-        if (function_exists('has_role') && has_role('magang')) {
-            $builder->where('tc.id_user', session()->get('user_id'));
-        }
-
         $builder->groupBy('bulan, tc.kategori, line, plant, mm.departemen')
             ->orderBy('bulan', 'ASC');
 

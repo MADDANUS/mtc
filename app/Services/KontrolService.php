@@ -713,16 +713,23 @@ class KontrolService
 
                         // Aturan visibilitas per role:
                         // - SHead MTC: lihat SEMUA plant/line, hanya yang sudah Approved (L2/Final)
-                        // - SHead PRD & Leader PRD: lihat area sessionnya saja, semua status (sudah difilter di atas)
+                        // - SHead PRD: lihat area session, hanya yang sudah di-approve olehnya (Approved L2/Final)
+                        // - Leader PRD: lihat area session, mungkin bisa lihat progres (tapi kita sesuaikan agar minimal Approved L1)
                         // - Admin/Leader MTC/Member: hanya yang 100% dan Approved Final
                         // - Magang: bebas
                         if ($isSheadMtc) {
                             if (!in_array($status, ['Approved', 'Final', 'Approved Final'], true)) continue;
-                        } elseif (!has_role('magang') && !$isAreaRestricted) {
+                        } elseif ($isAreaRestricted) {
+                            if (has_role(\App\Enums\Role::Sheadprd->value)) {
+                                if (!in_array($status, ['Approved L2', 'Approved', 'Final', 'Approved Final'], true)) continue;
+                            } else {
+                                // Leader PRD (tidak approve Checklist Control), minimal sudah masuk approval flow
+                                if (!in_array($status, ['Approved L1', 'Approved L2', 'Approved', 'Final', 'Approved Final'], true)) continue;
+                            }
+                        } elseif (!has_role('magang')) {
                             // Admin, Leader MTC, Member — hanya Approved Final
-                            if ($percent < 100 || !in_array($status, ['Final', 'Approved Final'], true)) continue;
+                            if ($percent < 100 || !in_array($status, ['Final', 'Approved Final', 'Approved'], true)) continue;
                         }
-                        // Shead PRD only: tidak ada filter status tambahan (sudah dibatasi plant/line di atas)
                         
                         if (!empty($filterStatus) && $statusText !== $filterStatus) continue;
 

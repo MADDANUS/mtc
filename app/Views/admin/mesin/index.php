@@ -213,6 +213,10 @@
                     <i class="bi bi-qr-code"></i> QR
                   </button>
                   <?php if (has_any_role(['admin', 'member', 'leader mtc'])): ?>
+                    <button type="button" class="btn btn-outline-info btn-sm py-1 px-2" 
+                            onclick="showRiwayatModal(<?= $m['id_mesin'] ?>, '<?= esc($m['no_mesin'], 'js') ?>')" title="Riwayat Mesin">
+                      <i class="bi bi-clock-history"></i>
+                    </button>
                     <a href="<?= site_url('admin/mesin/edit/' . $m['id_mesin']) ?>" class="btn btn-outline-primary btn-sm py-1 px-2" title="Edit Mesin">
                       <i class="bi bi-pencil"></i>
                     </a>
@@ -278,9 +282,39 @@
         </button>
       </div>
     </div>
-  </div>
+</div>
 </div>
 
+<!-- Modal Riwayat Mesin -->
+<div class="modal fade" id="riwayatMesinModal" tabindex="-1" aria-labelledby="riwayatMesinModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="riwayatMesinModalLabel">Riwayat Perubahan Mesin</h5>
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <h6 class="fw-bold mb-3 text-primary" id="riwayatNoMesin"></h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped table-hover border">
+            <thead class="table-light">
+              <tr>
+                <th>Waktu Perubahan</th>
+                <th>Kolom Diubah</th>
+                <th>Nilai Lama</th>
+                <th>Nilai Baru</th>
+                <th>Dilakukan Oleh</th>
+              </tr>
+            </thead>
+            <tbody id="riwayatMesinBody">
+              <tr><td colspan="5" class="text-center">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
   document.addEventListener("DOMContentLoaded", function() {
@@ -652,6 +686,58 @@
       });
     }
   });
+
+  let riwayatMesinModal = null;
+  
+  window.showRiwayatModal = function(idMesin, noMesin) {
+    if (!riwayatMesinModal) {
+      riwayatMesinModal = new bootstrap.Modal(document.getElementById('riwayatMesinModal'));
+    }
+    document.getElementById('riwayatNoMesin').innerText = 'Mesin: ' + noMesin;
+    const tbody = document.getElementById('riwayatMesinBody');
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center">Memuat data...</td></tr>';
+    riwayatMesinModal.show();
+    
+    fetch('<?= site_url("admin/mesin/riwayat") ?>/' + idMesin)
+      .then(response => response.json())
+      .then(data => {
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Belum ada riwayat perubahan.</td></tr>';
+          return;
+        }
+        
+        data.forEach(row => {
+          const tr = document.createElement('tr');
+          
+          const tdDate = document.createElement('td');
+          tdDate.innerText = row.created_at;
+          tr.appendChild(tdDate);
+          
+          const tdKolom = document.createElement('td');
+          tdKolom.innerHTML = '<span class="badge bg-secondary">' + row.kolom_diubah + '</span>';
+          tr.appendChild(tdKolom);
+          
+          const tdLama = document.createElement('td');
+          tdLama.innerText = row.nilai_lama || '-';
+          tr.appendChild(tdLama);
+          
+          const tdBaru = document.createElement('td');
+          tdBaru.innerHTML = '<strong>' + (row.nilai_baru || '-') + '</strong>';
+          tr.appendChild(tdBaru);
+          
+          const tdOleh = document.createElement('td');
+          tdOleh.innerText = row.nama_admin || 'Sistem';
+          tr.appendChild(tdOleh);
+          
+          tbody.appendChild(tr);
+        });
+      })
+      .catch(err => {
+        console.error(err);
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Gagal memuat riwayat.</td></tr>';
+      });
+  };
 </script>
 
 <?= view('layout/footer') ?>

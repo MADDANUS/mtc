@@ -93,14 +93,17 @@
   document.addEventListener("DOMContentLoaded", function() {
     const jenisSelect = document.getElementById("jenisCheckSelect");
     const sectionWrapper = document.getElementById("sectionCheckWrapper");
+    const kategoriInput = document.querySelector('input[name="kategori"]');
 
     function toggleOverhaulFields() {
       if (jenisSelect.value === "Overhaul") {
         sectionWrapper.style.display = "block";
+        kategoriInput.placeholder = "Contoh: Mesin CNC, Cam";
       } else {
         sectionWrapper.style.display = "none";
         // Kosongkan agar tidak ikut terkirim/tersimpan lama
         sectionWrapper.querySelector("input").value = "";
+        kategoriInput.placeholder = "Contoh: Penerangan, Bearing Cam";
       }
     }
 

@@ -13,9 +13,10 @@ class RiwayatService
 {
     public function validateLeaderAccess(?string $departemenName): ?string
     {
-        if (has_any_role([Role::Leader->value, Role::Sheadprd->value, Role::Sheadmtc->value])) {
+        // SHead MTC tidak dibatasi departemen
+        if (has_any_role([\App\Enums\Role::Leader->value, \App\Enums\Role::Sheadprd->value]) && !has_role(\App\Enums\Role::Sheadmtc->value)) {
             $userLokasi = session()->get('departemen');
-            if ($userLokasi) {
+            if ($userLokasi && $userLokasi !== '-') {
                 $userDepts = array_map('trim', explode(',', $userLokasi));
                 if ($departemenName !== null && !in_array(strtolower((string)$departemenName), array_map('strtolower', $userDepts))) {
                     throw new \Exception('Akses ditolak.');

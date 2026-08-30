@@ -326,6 +326,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     </thead>
                     <tbody>`;
                     
+            // Urutkan details berdasarkan bagian_check agar rowspans berfungsi
+            details.sort((a, b) => {
+                const pa = paramMap[a.id_parameter] || {};
+                const pb = paramMap[b.id_parameter] || {};
+                const bagA = pa.bagian_check || a.bagian_check || '-';
+                const bagB = pb.bagian_check || b.bagian_check || '-';
+                if (bagA === bagB) {
+                    return (a.id_detail || a.id_parameter || 0) - (b.id_detail || b.id_parameter || 0);
+                }
+                return bagA.localeCompare(bagB);
+            });
+
             let bagianRowspans = {};
             details.forEach(row => {
                 const p = paramMap[row.id_parameter] || {};

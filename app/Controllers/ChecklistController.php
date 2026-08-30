@@ -170,35 +170,14 @@ class ChecklistController extends BaseController
         // Auto-routing jika id_mesin ada
         if ($idMesin && strtolower($jenisSlug) === 'overhaul') {
             $mesin = $this->mesinModel->find($idMesin);
-            if ($mesin) {
-                if ($departemenName === Departemen::MFG1->value) {
-                    // MFG 1 Overhaul selalu memakai form mesin-cnc-bar-feeder
-                    return redirect()->to("/checklist/plant/{$plantSlug}/{$departemenSlug}/{$jenisSlug}/create/mesin-cnc-bar-feeder?id_mesin={$idMesin}" . ($line ? "&line=" . urlencode($line) : ""));
-                } else if (!empty($mesin['jenis'])) {
-                    // MFG 2 Overhaul mengikuti jenis mesinnya (milling, thread, dll)
-                    $kategoriSlug = url_title(strtolower($mesin['jenis']), '-', true);
-                    return redirect()->to("/checklist/plant/{$plantSlug}/{$departemenSlug}/{$jenisSlug}/create/{$kategoriSlug}?id_mesin={$idMesin}" . ($line ? "&line=" . urlencode($line) : ""));
-                }
+            if ($mesin && !empty($mesin['jenis'])) {
+                $kategoriSlug = url_title(strtolower($mesin['jenis']), '-', true);
+                return redirect()->to("/checklist/plant/{$plantSlug}/{$departemenSlug}/{$jenisSlug}/create/{$kategoriSlug}?id_mesin={$idMesin}" . ($line ? "&line=" . urlencode($line) : ""));
             }
-        }
-
-        // Jika Overhaul MFG 1, langsung arahkan ke form Mesin CNC & Bar Feeder
-        if (strtolower($jenisSlug) === 'overhaul' && $departemenName === Departemen::MFG1->value) {
-            $redirectUrl = "/checklist/plant/{$plantSlug}/{$departemenSlug}/{$jenisSlug}/create/mesin-cnc-bar-feeder";
-            $queryParams = [];
-            if ($idMesin) {
-                $queryParams[] = "id_mesin=" . $idMesin;
-            }
-            if ($line) {
-                $queryParams[] = "line=" . urlencode($line);
-            }
-            if (!empty($queryParams)) {
-                $redirectUrl .= "?" . implode("&", $queryParams);
-            }
-            return redirect()->to($redirectUrl);
         }
 
         $categories = $this->resolveCategoriesList($jenisSlug, $departemenName, $plantName, $line);
+
 
         return view('checklist/index', [
             'title'      => "Pilih Kategori - {$jenisDisplayName} {$departemenName}",
@@ -621,7 +600,7 @@ class ChecklistController extends BaseController
 
     private function resolveCategoriesList(string $jenisSlug, string $departemenName, string $plantName = 'Plant 1', ?string $line = null): array
     {
-        if (strtolower($jenisSlug) === 'overhaul' && $departemenName === Departemen::MFG2->value) {
+        if (strtolower($jenisSlug) === 'overhaul') {
             $db = \Config\Database::connect();
             
             $sql = "SELECT DISTINCT jenis FROM master_mesin WHERE plant = ? AND departemen = ? AND jenis IS NOT NULL AND jenis NOT IN ('-', 'CAM')";

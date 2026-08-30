@@ -26,15 +26,17 @@ class RiwayatMesinModel extends Model
         $dateStr = $bulanTahun . '-01';
         
         $sql = "
-            SELECT riwayat_mesin.plant, riwayat_mesin.departemen, riwayat_mesin.line, 
-                   COUNT(DISTINCT riwayat_mesin.id_mesin) as total,
-                   COUNT(DISTINCT CASE WHEN master_mesin.jenis = 'CAM' THEN riwayat_mesin.id_mesin END) as total_cam
-            FROM riwayat_mesin
-            JOIN master_mesin ON master_mesin.id_mesin = riwayat_mesin.id_mesin
-            WHERE riwayat_mesin.tanggal_mulai <= LAST_DAY(STR_TO_DATE(?, '%Y-%m-%d'))
+            SELECT COALESCE(riwayat_mesin.plant, master_mesin.plant, 'Plant 1') as plant, 
+                   COALESCE(riwayat_mesin.departemen, master_mesin.departemen) as departemen, 
+                   COALESCE(riwayat_mesin.line, master_mesin.line) as line, 
+                   COUNT(DISTINCT master_mesin.id_mesin) as total,
+                   COUNT(DISTINCT CASE WHEN master_mesin.jenis = 'CAM' THEN master_mesin.id_mesin END) as total_cam
+            FROM master_mesin
+            LEFT JOIN riwayat_mesin ON master_mesin.id_mesin = riwayat_mesin.id_mesin
+              AND riwayat_mesin.tanggal_mulai <= LAST_DAY(STR_TO_DATE(?, '%Y-%m-%d'))
               AND (riwayat_mesin.tanggal_selesai IS NULL OR riwayat_mesin.tanggal_selesai >= LAST_DAY(STR_TO_DATE(?, '%Y-%m-%d')))
-              AND riwayat_mesin.line != '' AND riwayat_mesin.line IS NOT NULL
-            GROUP BY riwayat_mesin.plant, riwayat_mesin.departemen, riwayat_mesin.line
+            WHERE COALESCE(riwayat_mesin.line, master_mesin.line) != '' AND COALESCE(riwayat_mesin.line, master_mesin.line) IS NOT NULL
+            GROUP BY COALESCE(riwayat_mesin.plant, master_mesin.plant, 'Plant 1'), COALESCE(riwayat_mesin.departemen, master_mesin.departemen), COALESCE(riwayat_mesin.line, master_mesin.line)
         ";
 
         return $this->db->query($sql, [$dateStr, $dateStr])->getResultArray();

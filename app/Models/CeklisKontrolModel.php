@@ -295,14 +295,15 @@ class CeklisKontrolModel extends Model
     {
         $sql = "
             SELECT 
-                r.plant,
-                r.departemen, 
-                r.line, 
+                COALESCE(r.plant, m.plant, 'Plant 1') as plant,
+                COALESCE(r.departemen, m.departemen) as departemen, 
+                COALESCE(r.line, m.line) as line, 
                 c.kategori, 
                 c.bulan_tahun, 
                 COUNT(DISTINCT c.id_mesin) as checked_count
             FROM ceklis_kontrol c
-            JOIN riwayat_mesin r ON r.id_mesin = c.id_mesin JOIN master_mesin m ON m.id_mesin = r.id_mesin
+            JOIN master_mesin m ON m.id_mesin = c.id_mesin
+            LEFT JOIN riwayat_mesin r ON r.id_mesin = c.id_mesin 
                 AND r.tanggal_mulai <= LAST_DAY(STR_TO_DATE(CONCAT(c.bulan_tahun, '-01'), '%Y-%m-%d'))
                 AND (r.tanggal_selesai IS NULL OR r.tanggal_selesai >= LAST_DAY(STR_TO_DATE(CONCAT(c.bulan_tahun, '-01'), '%Y-%m-%d')))
             WHERE c.pic_nama != 'PIC' AND c.pic_nama IS NOT NULL
@@ -314,7 +315,7 @@ class CeklisKontrolModel extends Model
             $params[] = $bulanTahun;
         }
         
-        $sql .= " GROUP BY c.bulan_tahun, r.plant, r.departemen, r.line, c.kategori";
+        $sql .= " GROUP BY c.bulan_tahun, COALESCE(r.plant, m.plant, 'Plant 1'), COALESCE(r.departemen, m.departemen), COALESCE(r.line, m.line), c.kategori";
         
         return $this->db->query($sql, $params)->getResultArray();
     }

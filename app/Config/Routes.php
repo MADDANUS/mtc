@@ -200,3 +200,5 @@ $routes->group('admin/jadwal', ['filter' => 'auth', 'namespace' => 'App\Controll
  *   ];
  */
 
+
+$routes->get('/debug_approval', 'DebugApproval::index');
